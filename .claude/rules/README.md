@@ -1,10 +1,10 @@
 # Path-scoped auto-loaded rules
 
-This directory holds **auto-loaded rule files** that the harness injects into a session when files matching the rule's glob are touched. Use it to keep the hammer worker's startup context light while still enforcing project conventions when they're relevant.
+This directory holds **auto-loaded rule files** that the harness injects into a session when files matching the rule's glob are touched. Use it to keep the temper worker's startup context light while still enforcing project conventions when they're relevant.
 
 ## Why this exists
 
-Hammer workers are token-budgeted: they must not bulk-load `MISSION-CONTROL.md`, project-wide design docs, or `lessons.md` at startup. But some rules are load-bearing the moment a particular kind of file is opened (UI styling, database schema, command conventions). Path-scoped rules let those rules ride along **only when needed**.
+Temper workers are token-budgeted: they must not bulk-load `MISSION-CONTROL.md`, project-wide design docs, or `lessons.md` at startup. But some rules are load-bearing the moment a particular kind of file is opened (UI styling, database schema, command conventions). Path-scoped rules let those rules ride along **only when needed**.
 
 ## Conventions
 
@@ -24,7 +24,7 @@ Two common patterns:
 
 1. **CLAUDE.md include line.** Reference the rule from `CLAUDE.md` so it's always available. Cheapest mental model, but it loads every session — only use for rules that apply to every change.
 
-2. **Path-scoped auto-load via the harness.** Configure the rule to load only when files under a given glob are touched. Check your Claude Code version's docs for the current syntax (e.g. project-level subagent definitions, `@imports` in CLAUDE.md, or harness-specific frontmatter). The hammer skill assumes this mechanism exists in your setup.
+2. **Path-scoped auto-load via the harness.** Configure the rule to load only when files under a given glob are touched. Check your Claude Code version's docs for the current syntax (e.g. project-level subagent definitions, `@imports` in CLAUDE.md, or harness-specific frontmatter). The temper skill assumes this mechanism exists in your setup.
 
 ## Triage hook
 

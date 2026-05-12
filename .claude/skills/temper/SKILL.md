@@ -1,11 +1,11 @@
 ---
-name: hammer
-description: Build a triaged slice end-to-end — branch, implement, test, PR, CI, merge. Invoked as /hammer <N> where N is the issue number.
+name: temper
+description: Build a triaged slice end-to-end — branch, implement, test, PR, CI, merge. Invoked as /temper <N> where N is the issue number.
 ---
 
-# Hammer — Build a Slice
+# Temper — Build a Slice
 
-Build issue #<N> from branch to merged PR. Hammer is context-disciplined: start lean,
+Build issue #<N> from branch to merged PR. Temper is context-disciplined: start lean,
 stay lean, hand off to fresh sessions when context grows.
 
 ## Inputs
@@ -43,20 +43,20 @@ stay lean, hand off to fresh sessions when context grows.
 ### 5. Wait for CI
 - Use Monitor tool to watch `gh pr checks <PR> --watch` — zero token cost while waiting
 - If CI fails: read only the failure log (not the full run), fix, push, re-monitor
-- Max 2 fix cycles. If still failing: `HAMMER:NEEDS_HUMAN:ci-stuck`
+- Max 2 fix cycles. If still failing: `TEMPER:NEEDS_HUMAN:ci-stuck`
 
 ### 6. Merge
 - Once CI is green: `gh pr merge <PR> --squash --delete-branch`
 - Run `/sync-mission-control` to update project state
-- Clean up: delete `.claude/hammer-summary-<N>.md` if it exists
+- Clean up: delete `.claude/temper-summary-<N>.md` if it exists
 
 ## Context discipline
 
-Hammer subagents are the biggest token cost in the pipeline. Guard context aggressively:
+Temper subagents are the biggest token cost in the pipeline. Guard context aggressively:
 
 - **40% context usage — warning.** Finish your current phase (build/verify/PR), then
   evaluate whether to continue or hand off. Prefer handing off.
-- **50% context usage — hard stop.** Write a continuation file and emit `HAMMER:CONTINUE:<N>`
+- **50% context usage — hard stop.** Write a continuation file and emit `TEMPER:CONTINUE:<N>`
   immediately. Do not attempt further work.
 - **Don't load heavy docs proactively.** No MISSION-CONTROL.md, WORKFLOW.md, or
   lessons.md at session start. Read them reactively and only the relevant sections.
@@ -65,27 +65,27 @@ Hammer subagents are the biggest token cost in the pipeline. Guard context aggre
   for a targeted fix.
 
 ### Continuation file format
-Write `.claude/hammer-continue-<N>.md` with:
+Write `.claude/temper-continue-<N>.md` with:
 - Issue number, branch name, PR number (if opened)
 - What's done, what's left
 - Any state needed to resume
 
 ## Friction flagging
-When hammer hits friction (unexpected failure, confusing spec, missing dependency, flaky test):
+When temper hits friction (unexpected failure, confusing spec, missing dependency, flaky test):
 1. Add the `friction` label to the PR
 2. Post a PR comment: `## Friction\n\n<what happened, what was tried, what worked or didn't>`
 3. If the friction was resolved, note how — this feeds the self-healing loop
-4. Unresolved friction → `HAMMER:NEEDS_HUMAN:friction` sentinel
+4. Unresolved friction → `TEMPER:NEEDS_HUMAN:friction` sentinel
 
 ## Sentinels
-- `HAMMER:SUCCESS` — slice merged
-- `HAMMER:CONTINUE:<N>` — context overflow, continuation file written
-- `HAMMER:NEEDS_HUMAN:<reason>` — stuck, needs user input
-- `HAMMER:FAIL:<reason>` — unrecoverable failure
+- `TEMPER:SUCCESS` — slice merged
+- `TEMPER:CONTINUE:<N>` — context overflow, continuation file written
+- `TEMPER:NEEDS_HUMAN:<reason>` — stuck, needs user input
+- `TEMPER:FAIL:<reason>` — unrecoverable failure
 
 ## Rules
 - No subagents except the visual-review worker for UI/mixed slices.
 - Rely on auto-loaded design-system rule for UI/mixed; only read deeper design docs for detail.
 - Only read MISSION-CONTROL.md if you need to understand project context (rare).
 - Keep commits atomic and well-scoped.
-- Token logging is handled by forge after hammer completes — hammer does not log tokens.
+- Token logging is handled by forge after temper completes — temper does not log tokens.

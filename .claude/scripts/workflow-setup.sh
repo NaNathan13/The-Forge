@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# workflow-setup.sh — one-shot per-project setup for the Ponder → Forge → Hammer pipeline.
+# workflow-setup.sh — one-shot per-project setup for the Ponder → Forge → Temper pipeline.
 # Idempotent: safe to re-run. Creates GitHub labels and verifies prerequisites.
 
 set -euo pipefail
@@ -38,10 +38,10 @@ create_label() {
 
 create_label "needs-triage"    "ededed" "Maintainer needs to evaluate"
 create_label "needs-info"      "fef2c0" "Waiting on reporter for more information"
-create_label "needs-human"     "d73a4a" "Hammer got stuck; needs human attention"
-create_label "ready-for-agent" "0e8a16" "Triaged and ready for hammer"
+create_label "needs-human"     "d73a4a" "Temper got stuck; needs human attention"
+create_label "ready-for-agent" "0e8a16" "Triaged and ready for temper"
 create_label "ready-for-human" "1d76db" "Triaged but needs human implementation"
-create_label "friction"        "FBCA04" "Hammer hit unexpected friction during build"
+create_label "friction"        "FBCA04" "Temper hit unexpected friction during build"
 create_label "slice:logic"     "c5def5" "Pure logic slice"
 create_label "slice:ui"        "bfdadc" "UI-only slice"
 create_label "slice:mixed"     "d4c5f9" "Mixed logic + UI slice"
@@ -51,7 +51,7 @@ create_label "slice:mixed"     "d4c5f9" "Mixed logic + UI slice"
 if [ -f .claude/lessons.md ]; then
     ok ".claude/lessons.md exists"
 else
-    warn ".claude/lessons.md not found — hammer workers expect this file"
+    warn ".claude/lessons.md not found — temper workers expect this file"
 fi
 
 # --- 4. Verify kanban-move.sh is configured -----------------------------------

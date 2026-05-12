@@ -32,9 +32,9 @@ Reconcile `MISSION-CONTROL.md` at the repo root against current GitHub issue sta
 
 6. **Recompute the Recommended next prompt.** Priority order — first match wins:
 
-   1. **Hammer in progress:** if any row is `🚧 in-progress` AND has open issues with `ready-for-agent` + `slice:*`, write `/hammer <lowest-open-issue>`.
-   2. **Ready to hammer:** else if any issue has `ready-for-agent` + `slice:*`, write `/hammer <lowest-such-issue>`.
-   3. **PRD ready:** else if any row is `📝 prd-ready` with issues filed, write `/hammer <N>`.
+   1. **Temper in progress:** if any row is `🚧 in-progress` AND has open issues with `ready-for-agent` + `slice:*`, write `/temper <lowest-open-issue>`.
+   2. **Ready to temper:** else if any issue has `ready-for-agent` + `slice:*`, write `/temper <lowest-such-issue>`.
+   3. **PRD ready:** else if any row is `📝 prd-ready` with issues filed, write `/temper <N>`.
    4. **Queued sub-phases remain:** else if any row is `⏳ queued`, write `/ponder` with the sub-phase name.
    5. **Done:** else write `_All features shipped or in motion. No recommendation._`.
 

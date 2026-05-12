@@ -5,7 +5,7 @@ description: Write the PRD, file issues, triage all slices, then print the forge
 
 # Inscribe — write up, file, triage, hand off
 
-The "writing" sub-skill of Ponder. Takes resolved design decisions and produces triaged, labeled issues ready for `/hammer`. Handles both sub-phase (PRD + multiple issues) and single-slice (one issue) paths.
+The "writing" sub-skill of Ponder. Takes resolved design decisions and produces triaged, labeled issues ready for `/temper`. Handles both sub-phase (PRD + multiple issues) and single-slice (one issue) paths.
 
 **Inscribe does NOT grill.** If decisions are unresolved, stop and tell the user to run `/ponder` first. Inscribe's job is to execute the mechanical steps: write → file → triage → hand off.
 
@@ -143,5 +143,5 @@ All slices triaged. Run `/forge` to begin building.
 
 - **Don't grill.** Inscribe writes up resolved decisions. If you're tempted to ask a design question, you're in the wrong skill — hand back to Ponder or `/grill-me`.
 - **Don't leave issues untriaged.** Every issue gets a `slice:*` label. No lazy backfill.
-- **Don't run `/hammer` from inside inscribe.** Phases are session-scoped. End the session, hand off.
+- **Don't run `/temper` from inside inscribe.** Phases are session-scoped. End the session, hand off.
 - **Don't guess the sub-phase ID.** Read it from MISSION-CONTROL.md, or ask the user once.

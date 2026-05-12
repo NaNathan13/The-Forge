@@ -1,8 +1,8 @@
 # Blacksmith
 
-A drop-in Claude Code workflow for solo-with-AI projects: plan with `/ponder`, build with `/forge` + `/hammer`, sync with `/sync-mission-control`. Ten skills, two safety hooks, four project-root templates. No project-specific code.
+A drop-in Claude Code workflow for solo-with-AI projects: plan with `/ponder`, build with `/forge` + `/temper`, sync with `/sync-mission-control`. Ten skills, two safety hooks, four project-root templates. No project-specific code.
 
-Blacksmith is the workshop that holds the hammer. Once it's installed in a project, the metalworking metaphor cashes out: **ponder** the design, **inscribe** the spec, **hammer** the slice, **forge** the run.
+Blacksmith is the workshop that holds the temper. Once it's installed in a project, the metalworking metaphor cashes out: **ponder** the design, **inscribe** the spec, **temper** the slice, **forge** the run.
 
 ## What's in here
 
@@ -11,7 +11,7 @@ kindle.sh               # One-shot bootstrap launcher (self-removes after succes
 
 .claude/
 ├── skills/             # 11 skills (kindle, ponder, grill-me, inscribe, triage,
-│                       #            forge, hammer, sharpen, diagnose,
+│                       #            forge, temper, sharpen, diagnose,
 │                       #            sync-mission-control, write-a-skill)
 ├── hooks/              # 2 safety hooks + 1 example
 ├── rules/              # Placeholder for auto-loaded path-scoped rules
@@ -30,24 +30,24 @@ docs/workflow/          # README + reference for the pipeline
 ## The pipeline at a glance
 
 ```
-/ponder ──→ /forge ──→ /hammer <N>   (hammer dispatched as subagents, max 2 concurrent)
+/ponder ──→ /forge ──→ /temper <N>   (temper dispatched as subagents, max 2 concurrent)
 ```
 
 | Phase | Skill | What happens |
 |-------|-------|---------------|
 | **Plan** | `/ponder` | Grill the idea via `grill-me`, write a PRD (sub-phase) or scope a single slice, file issues, triage them with `/inscribe` |
 | **Preview** | `/forge` | Show the build queue, get user approval |
-| **Build** | `/hammer <N>` | Branch → implement → test → PR → CI (via `Monitor`) → merge. Visual review via Playwright for UI slices. |
+| **Build** | `/temper <N>` | Branch → implement → test → PR → CI (via `Monitor`) → merge. Visual review via Playwright for UI slices. |
 | **Reconcile** | `/sync-mission-control` | After merges, advance `MISSION-CONTROL.md` and recommend the next prompt |
 
 Each phase runs in its own Claude session and hands off via on-disk artifacts (issues, PRD, PR body, kanban state). **No session-memory continuity between phases.**
 
 ## Why it works
 
-- **Context discipline.** Hammer workers start fresh in worktrees, load only the issue + auto-loaded rules. Hard-stop at 50% context — write a continuation file, hand off to a new session.
-- **Worktree isolation.** Each hammer runs in its own git worktree so parallel builds don't stomp on each other.
-- **Sentinel protocol.** Hammer emits one of four sentinels (`SUCCESS`, `CONTINUE`, `NEEDS_HUMAN`, `FAIL`) so the forge orchestrator can react without re-reading the worker's transcript.
-- **Token tracking.** Forge logs per-hammer ccusage data to `.claude/token-usage.jsonl` and stamps PR bodies, so cost-per-slice is visible.
+- **Context discipline.** Temper workers start fresh in worktrees, load only the issue + auto-loaded rules. Hard-stop at 50% context — write a continuation file, hand off to a new session.
+- **Worktree isolation.** Each temper runs in its own git worktree so parallel builds don't stomp on each other.
+- **Sentinel protocol.** Temper emits one of four sentinels (`SUCCESS`, `CONTINUE`, `NEEDS_HUMAN`, `FAIL`) so the forge orchestrator can react without re-reading the worker's transcript.
+- **Token tracking.** Forge logs per-temper ccusage data to `.claude/token-usage.jsonl` and stamps PR bodies, so cost-per-slice is visible.
 - **Drift detection.** A SessionStart hook compares `mc:open=` markers in `MISSION-CONTROL.md` against actual GitHub state and reminds you to `/sync-mission-control`.
 
 ## Quickstart
@@ -61,7 +61,7 @@ Two paths — pick the one that fits.
 cp -R /path/to/Blacksmith/. ./my-new-project/
 cd my-new-project
 
-# 2. Light the hammer fire
+# 2. Light the temper fire
 ./kindle.sh
 ```
 
@@ -80,7 +80,7 @@ If you'd rather configure by hand, see [`SETUP.md`](./SETUP.md) for the 9-step w
 | `/inscribe` | (Usually auto-invoked by `/ponder`) — write PRD, file issues, triage |
 | `/triage` | Move issues through `needs-triage` → `ready-for-agent` etc. |
 | `/forge [--phase <id>]` | Drain the `ready-for-agent` queue |
-| `/hammer <N>` | Build one slice (usually dispatched by forge) |
+| `/temper <N>` | Build one slice (usually dispatched by forge) |
 | `/sharpen` | Hone a rough idea into a precise prompt |
 | `/diagnose` | Disciplined debugging loop for hard bugs |
 | `/sync-mission-control` | Reconcile `MISSION-CONTROL.md` after merges |
@@ -91,7 +91,7 @@ For the full pipeline, see [`docs/workflow/README.md`](./docs/workflow/README.md
 
 ## Heritage
 
-Extracted from a real-world Claude Code workflow built up over multiple production projects. The metalworking vocabulary (hammer, forge, inscribe, sharpen) reflects how the original author thinks about the loop. Rename them per project if you like — they're just skill files.
+Extracted from a real-world Claude Code workflow built up over multiple production projects. The metalworking vocabulary (temper, forge, inscribe, sharpen) reflects how the original author thinks about the loop. Rename them per project if you like — they're just skill files.
 
 ## License
 

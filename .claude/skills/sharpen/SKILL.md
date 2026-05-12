@@ -20,7 +20,7 @@ Takes a fuzzy "I want to do X" and produces a prompt ready to paste into the nex
 ### 1. Understand the target
 
 Determine what the prompt is for:
-- A pipeline skill (`/ponder`, `/hammer`, `/forge`, `/diagnose`, etc.)
+- A pipeline skill (`/ponder`, `/temper`, `/forge`, `/diagnose`, etc.)
 - A subagent dispatch (research, exploration, audit)
 - A standalone task (one-shot ask)
 
@@ -51,7 +51,7 @@ Build the prompt using these fields. Not every field applies to every prompt —
 ### 4. Shape to target
 
 Adapt the prompt to its destination:
-- **Pipeline skills** (`/ponder`, `/hammer`): Keep it to 1-3 sentences. The skill has its own structure — the prompt just seeds direction. Include the sub-phase ID.
+- **Pipeline skills** (`/ponder`, `/temper`): Keep it to 1-3 sentences. The skill has its own structure — the prompt just seeds direction. Include the sub-phase ID.
 - **Subagents**: Be explicit — they have no conversation context. Include file paths, success criteria, and what NOT to do.
 - **Standalone tasks**: Balance between over-specifying (brittle) and under-specifying (drift).
 

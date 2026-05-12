@@ -112,7 +112,7 @@ Forge shows the build queue, you approve, and the dispatch loop runs.
 
 ## Customizing skill names
 
-The metalworking metaphor (hammer, forge, inscribe, sharpen) is just convention. To rename:
+The metalworking metaphor (temper, forge, inscribe, sharpen) is just convention. To rename:
 
 1. Rename the `.claude/skills/<old>/` directory.
 2. Edit the `name:` frontmatter in `SKILL.md`.

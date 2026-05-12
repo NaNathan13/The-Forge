@@ -1,15 +1,15 @@
 ---
 name: forge
-description: The hammer master — orchestrates the full execution lifecycle (build, test, CI, merge) by dispatching and overseeing hammer workers. Invoked as /forge after ponder has triaged all slices.
+description: The temper master — orchestrates the full execution lifecycle (build, test, CI, merge) by dispatching and overseeing temper workers. Invoked as /forge after ponder has triaged all slices.
 ---
 
-# Forge — The Hammer Master
+# Forge — The Temper Master
 
 Forge is an **autonomous dispatch loop**. It pulls slices from the build queue, dispatches
-hammer workers as fresh subagents, monitors their progress, handles results, and moves to the
+temper workers as fresh subagents, monitors their progress, handles results, and moves to the
 next slice — repeating until the queue is drained or the user intervenes.
 
-Ponder plans the work; forge executes it. Each hammer handles one slice end-to-end:
+Ponder plans the work; forge executes it. Each temper handles one slice end-to-end:
 build → test → PR → CI → merge.
 
 ## Invocation
@@ -36,17 +36,17 @@ Before dispatching any workers:
 
 For each approved slice, in order:
 1. Note the start timestamp
-2. Dispatch hammer as a subagent:
+2. Dispatch temper as a subagent:
    ```
    Agent({
      subagent_type: "general-purpose",
-     description: "hammer #<N>",
-     prompt: "Read .claude/skills/hammer/SKILL.md, then execute /hammer <N>.",
+     description: "temper #<N>",
+     prompt: "Read .claude/skills/temper/SKILL.md, then execute /temper <N>.",
      isolation: "worktree"
    })
    ```
-3. Max 2 concurrent hammer workers. Wait for one to complete before dispatching a third.
-4. On hammer completion, handle the sentinel (see below)
+3. Max 2 concurrent temper workers. Wait for one to complete before dispatching a third.
+4. On temper completion, handle the sentinel (see below)
 5. Loop back to the next slice. This is an autonomous loop — no user confirmation between
    slices unless a `NEEDS_HUMAN` sentinel fires.
 
@@ -54,19 +54,19 @@ For each approved slice, in order:
 
 | Sentinel | Forge action |
 |----------|---------------|
-| `HAMMER:SUCCESS` | Log tokens, move to next slice |
-| `HAMMER:CONTINUE:<N>` | Read `.claude/hammer-continue-<N>.md`, dispatch fresh hammer with continuation context |
-| `HAMMER:NEEDS_HUMAN:<reason>` | Log the reason, notify user, skip to next slice |
-| `HAMMER:FAIL:<reason>` | Retry once with fresh session. If second failure, mark `needs-human`, skip |
+| `TEMPER:SUCCESS` | Log tokens, move to next slice |
+| `TEMPER:CONTINUE:<N>` | Read `.claude/temper-continue-<N>.md`, dispatch fresh temper with continuation context |
+| `TEMPER:NEEDS_HUMAN:<reason>` | Log the reason, notify user, skip to next slice |
+| `TEMPER:FAIL:<reason>` | Retry once with fresh session. If second failure, mark `needs-human`, skip |
 
 ## Context Discipline
 
-Context bloat is the #1 cost driver. Every session — forge and hammer — should stay lean.
+Context bloat is the #1 cost driver. Every session — forge and temper — should stay lean.
 
-### Hammer subagent limits
-- **40% context — warning.** Hammer should finish its current phase and evaluate handoff.
-- **50% context — hard stop.** Write continuation file, emit `HAMMER:CONTINUE:<N>`.
-- Hammer workers start fresh (worktree isolation) and load only the issue + auto-loaded rules.
+### Temper subagent limits
+- **40% context — warning.** Temper should finish its current phase and evaluate handoff.
+- **50% context — hard stop.** Write continuation file, emit `TEMPER:CONTINUE:<N>`.
+- Temper workers start fresh (worktree isolation) and load only the issue + auto-loaded rules.
   No bulk-loading of lessons.md, MISSION-CONTROL.md, or WORKFLOW.md at startup.
 - If CI fails after PR is opened, forge dispatches a **fresh subagent** with just the
   branch name, PR number, and failure log — not the full build context.
@@ -82,23 +82,23 @@ session is negligible compared to the cost of running in a bloated context.
 
 ## Sub-Agent Token Discipline
 
-- **No forced model.** Hammer workers inherit the session's model (typically Opus). Don't
+- **No forced model.** Temper workers inherit the session's model (typically Opus). Don't
   downgrade to Sonnet — it causes more retries and wastes more tokens than it saves.
-- **Poll sub-agents actively.** Check on running hammer workers every ~30s. Don't go silent
+- **Poll sub-agents actively.** Check on running temper workers every ~30s. Don't go silent
   while a subagent runs — the user should see progress updates.
-- **Milestone reporting.** Hammer workers communicate progress at key phases:
+- **Milestone reporting.** Temper workers communicate progress at key phases:
   after setup, after build, after tests pass, after PR opens, after CI completes, after merge.
   Forge relays these milestones to the user.
-- **Lean context loading.** Hammer workers read only the issue and auto-loaded rules.
+- **Lean context loading.** Temper workers read only the issue and auto-loaded rules.
   Everything else is reactive — read it when you need it, not at startup.
-- **Research via skills.** If a hammer worker needs to look something up, use
+- **Research via skills.** If a temper worker needs to look something up, use
   `/playwright-research` or the context7 MCP — don't spawn additional sub-sub-agents
   for research. The only allowed nested subagent is a Playwright-driven visual-review
   worker (for UI/mixed slices).
 
 ## Token Logging
 
-After each hammer completes:
+After each temper completes:
 1. Note the end timestamp
 2. Query ccusage for sessions in the [start, end] time window: `npx ccusage@latest session --json`
 3. Append correlation row to `.claude/token-usage.jsonl`:
@@ -126,8 +126,8 @@ When the build queue is drained:
 
 ## Rules
 - Forge is an autonomous loop — dispatch, handle, loop. No pause between slices.
-- Max 2 concurrent hammer subagents
+- Max 2 concurrent temper subagents
 - Always present build queue before dispatching — never skip user approval
-- Token logging is forge's responsibility, not hammer's
+- Token logging is forge's responsibility, not temper's
 - Poll sub-agents actively; don't go silent
 - Start fresh session at 40% context usage
