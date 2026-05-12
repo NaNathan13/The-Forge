@@ -180,7 +180,7 @@ docs/
 ├── dev/                    # current Forge dev-mode docs
 │   ├── README.md           # how dev mode works
 │   ├── reference.md        # the lifecycle, sentinels, kanban
-│   └── setup.md            # the current SETUP.md content
+│   └── setup.md            # setup walkthrough (relocated from root SETUP.md)
 └── whj/                    # the friendlier docs
     ├── README.md           # how WHJ mode works, in plain English
     ├── how-it-works.md     # the journey from /discover to /demo

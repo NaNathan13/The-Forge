@@ -27,7 +27,7 @@ cd my-new-project
 
 `kindle.sh` checks your tools, offers to remove The Forge's git history (so your project gets its own fresh repo), then launches Claude with the `/kindle` skill. Claude asks ~10 questions (project name, tech stack, first phase, GitHub repo) and fills in `CLAUDE.md`, `MISSION-CONTROL.md`, `CONTEXT.md`, runs `git init`, and creates the GitHub repo for *your* project. After it's done, `kindle.sh` removes itself.
 
-For manual setup, see [`SETUP.md`](./SETUP.md).
+For manual setup, see [`docs/dev/setup.md`](./docs/dev/setup.md).
 
 Full dev-mode docs: [`docs/dev/`](./docs/dev/)
 
