@@ -28,7 +28,7 @@ while IFS= read -r issue; do
 done <<< "$issues"
 
 if [[ "$drift" -gt 0 ]]; then
-  echo "📊 Mission Control: $drift closed issue(s) since last sync — run /sync-mission-control to refresh."
+  echo "📊 Mission Control: $drift closed issue(s) since last sync — run /seal to refresh."
 fi
 
 exit 0

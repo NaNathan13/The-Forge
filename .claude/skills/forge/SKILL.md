@@ -54,7 +54,7 @@ For each approved slice, in order:
 
 | Sentinel | Forge action |
 |----------|---------------|
-| `TEMPER:SUCCESS` | Log tokens, move to next slice |
+| `TEMPER:SUCCESS` | PR is open with CI green. Log tokens, move to next slice (`/seal` will merge later) |
 | `TEMPER:CONTINUE:<N>` | Read `.claude/temper-continue-<N>.md`, dispatch fresh temper with continuation context |
 | `TEMPER:NEEDS_HUMAN:<reason>` | Log the reason, notify user, skip to next slice |
 | `TEMPER:FAIL:<reason>` | Retry once with fresh session. If second failure, mark `needs-human`, skip |
@@ -119,10 +119,11 @@ After all slices in a batch complete:
 
 When the build queue is drained:
 1. Print summary: slices completed, slices skipped (needs-human), total time
-2. Read MISSION-CONTROL.md to identify the next sub-phase or task
-3. Suggest a specific next step with a ready-to-paste prompt, e.g.:
-   > "Phase 2a complete. Next up is 2b (filter sheet). Run: `/ponder 2b — filter sheet with swipe-to-delete`"
-4. Or if all phases are done: "All planned work complete. Review the merged work, then `/ponder` for whatever's next."
+2. **Always recommend `/seal` next.** Every successful temper left a PR open and CI-green; nothing is merged yet. Print:
+   > "All temper workers complete. <N> PRs are open and ready to ship. Run `/seal` to approve, merge, and reconcile MISSION-CONTROL.md."
+3. Then suggest the post-seal next step based on `MISSION-CONTROL.md`:
+   > "After `/seal`: Phase 2a will be complete. Next up is 2b (filter sheet). Run: `/ponder 2b — filter sheet with swipe-to-delete`"
+4. Or if all phases are done after seal: "After `/seal`, all planned work is shipped. Run `/ponder` for whatever's next."
 
 ## Rules
 - Forge is an autonomous loop — dispatch, handle, loop. No pause between slices.

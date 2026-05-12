@@ -12,7 +12,8 @@
 | Skill | Role | Sub-skills |
 |-------|------|------------|
 | `/ponder` | **Planning** — grill, write PRDs, file + triage issues | grill-me, inscribe, triage |
-| `/forge` | **Execution** — autonomous dispatch loop, monitor, merge, log tokens | temper, sync-mission-control |
+| `/forge` | **Execution** — autonomous dispatch loop, monitor temper workers, log tokens | temper |
+| `/seal` | **Closing** — approve and merge open temper PRs, reconcile MISSION-CONTROL.md, clean up | — |
 
 ## Other commands
 
@@ -23,7 +24,7 @@
 | `/diagnose` | Structured debugging for hard bugs |
 | `/sharpen` | Hone a rough idea into a precise prompt |
 | `/write-a-skill` | Meta — author a new skill |
-| `/seal` | Reconcile MISSION-CONTROL.md against GitHub state (alias: `/sync-mission-control`) |
+| `/seal` | Reconcile MISSION-CONTROL.md against GitHub state |
 
 ## Forge (the forgemaster)
 

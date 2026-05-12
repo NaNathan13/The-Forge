@@ -1,8 +1,8 @@
 # The Forge
 
-A drop-in Claude Code workflow for solo-with-AI projects: plan with `/ponder`, build with `/forge` + `/temper`, seal merges with `/seal`. Twelve skills, two safety hooks, four project-root templates. No project-specific code.
+A drop-in Claude Code workflow for solo-with-AI projects: plan with `/ponder`, build with `/forge` + `/temper`, ship the batch with `/seal`. Eleven skills, two safety hooks, four project-root templates. No project-specific code.
 
-Once dropped into a project, The Forge runs a **Ponder → Forge → Temper** pipeline: you **ponder** the design, **inscribe** the spec, **forge** the build queue, and **temper** each slice into a merged PR.
+Once dropped into a project, The Forge runs a **Ponder → Forge → Temper → Seal** pipeline: you **ponder** the design, **inscribe** the spec, **forge** the build queue, **temper** each slice into an open PR with green CI, then **seal** the batch by approving, merging, and reconciling.
 
 ## What's in here
 
@@ -10,9 +10,9 @@ Once dropped into a project, The Forge runs a **Ponder → Forge → Temper** pi
 kindle.sh               # One-shot bootstrap launcher (self-removes after success)
 
 .claude/
-├── skills/             # 12 skills (kindle, ponder, grill-me, inscribe, triage,
-│                       #            forge, temper, sharpen, diagnose,
-│                       #            sync-mission-control, seal, write-a-skill)
+├── skills/             # 11 skills (kindle, ponder, grill-me, inscribe, triage,
+│                       #            forge, temper, seal, sharpen, diagnose,
+│                       #            write-a-skill)
 ├── hooks/              # 2 safety hooks + 1 example
 ├── rules/              # Placeholder for auto-loaded path-scoped rules
 ├── scripts/            # kanban-move.sh, workflow-setup.sh
@@ -30,15 +30,16 @@ docs/workflow/          # README + reference for the pipeline
 ## The pipeline at a glance
 
 ```
-/ponder ──→ /forge ──→ /temper <N>   (temper dispatched as subagents, max 2 concurrent)
+/ponder ──→ /forge ──→ /temper <N> ──→ /seal
+                       (temper dispatched as subagents, max 2 concurrent)
 ```
 
 | Phase | Skill | What happens |
 |-------|-------|---------------|
 | **Plan** | `/ponder` | Grill the idea via `grill-me`, write a PRD (sub-phase) or scope a single slice, file issues, triage them with `/inscribe` |
 | **Preview** | `/forge` | Show the build queue, get user approval |
-| **Build** | `/temper <N>` | Branch → implement → test → PR → CI (via `Monitor`) → merge. Visual review via Playwright for UI slices. |
-| **Reconcile** | `/seal` (alias `/sync-mission-control`) | After merges, advance `MISSION-CONTROL.md` and recommend the next prompt |
+| **Build** | `/temper <N>` | Branch → implement → test → PR → CI (via `Monitor`) → **stop at CI green**. No merge. Visual review via Playwright for UI slices. |
+| **Ship** | `/seal` | Approve + merge each open temper PR (skipping any with `friction` / `needs-human` / failing CI), reconcile `MISSION-CONTROL.md`, clean up runtime artifacts |
 
 Each phase runs in its own Claude session and hands off via on-disk artifacts (issues, PRD, PR body, kanban state). **No session-memory continuity between phases.**
 
@@ -83,7 +84,7 @@ If you'd rather configure by hand, see [`SETUP.md`](./SETUP.md) for the 9-step w
 | `/temper <N>` | Build one slice (usually dispatched by forge) |
 | `/sharpen` | Hone a rough idea into a precise prompt |
 | `/diagnose` | Disciplined debugging loop for hard bugs |
-| `/seal` | Reconcile `MISSION-CONTROL.md` after merges (alias: `/sync-mission-control`) |
+| `/seal` | Close out a build batch — approve + merge open temper PRs, reconcile `MISSION-CONTROL.md`, clean up |
 | `/write-a-skill` | Meta — author a new skill in this format |
 | `/kindle` | First-run bootstrap (project name, tech stack, GitHub repo). Usually invoked via `./kindle.sh`. |
 

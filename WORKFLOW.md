@@ -1,7 +1,7 @@
 # Workflow Reference
 
 ## Pipeline
-`/ponder` (interactive) → `/forge` (autonomous dispatch loop) → `/temper <N>` (subagent per slice, max 2 concurrent)
+`/ponder` (interactive) → `/forge` (autonomous dispatch loop) → `/temper <N>` (subagent per slice, max 2 concurrent) → `/seal` (batch close)
 
 ## Planning phase (interactive)
 `/ponder` → grill → `/inscribe` (PRD → issues → triage) → all slices labelled `ready-for-agent`
@@ -9,7 +9,14 @@
 ## Build phase
 `/forge` presents the build queue → user approves → autonomous dispatch loop begins.
 
-`/temper <N>` per slice: setup → build → verify → PR → CI (Monitor, zero cost) → merge
+`/temper <N>` per slice: setup → build → verify → PR → CI (Monitor, zero cost) → **stop at green CI** (no merge)
+
+## Ship phase
+`/seal` runs after the build queue drains:
+- Lists open PRs from temper branches
+- Approves + squash-merges each one that has green CI and no `friction` / `needs-human` label
+- Reconciles `MISSION-CONTROL.md` (advances rows, updates the Recommended next prompt)
+- Cleans up `.claude/temper-continue-*.md` and `temper-summary-*.md` for shipped slices
 
 ## Context discipline
 - Temper subagents: **40% context = warning** (wrap up current phase), **50% = hard stop** (write continuation, hand off)
@@ -29,10 +36,10 @@
 | `/inscribe` triages | Ready | `.claude/scripts/kanban-move.sh <N> ready` |
 | `/temper <N>` starts | In Progress | `.claude/scripts/kanban-move.sh <N> in-progress` |
 | `/temper <N>` opens PR | In Review | `.claude/scripts/kanban-move.sh <N> in-review` |
-| `/temper <N>` merges | Done | Auto (issue close) |
+| `/seal` merges the PR | Done | Auto (issue close on merge) |
 
 ## Temper sentinels
-- `TEMPER:SUCCESS` — slice merged, forge logs tokens and moves to next
+- `TEMPER:SUCCESS` — PR open, CI green, ready for `/seal` — forge logs tokens and moves to next
 - `TEMPER:CONTINUE:<N>` — context overflow, forge reads continuation file and spawns fresh session
 - `TEMPER:NEEDS_HUMAN:<reason>` — stuck, forge notifies and skips
 - `TEMPER:FAIL:<reason>` — forge retries once, then marks needs-human

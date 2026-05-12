@@ -12,7 +12,7 @@ Each phase runs in its own Claude session. No session-memory continuity between 
 
 ## Temper lifecycle
 
-Each `/temper <N>` handles a single issue end-to-end:
+Each `/temper <N>` handles a single issue from branch to **CI-green PR** (not merge — `/seal` does that as a batch step):
 
 1. **Setup** — read issue, create branch (`feat/#<N>-short-description`), move kanban to In Progress
 2. **Build** — implement per issue spec, write tests (logic functions get unit tests, user-facing surfaces get one happy-path render/integration test)
@@ -20,7 +20,7 @@ Each `/temper <N>` handles a single issue end-to-end:
 4. **Visual review** (UI/mixed only) — by default dispatch a Playwright-driven subagent (or use the Playwright MCP) to drive the running app and capture screenshots to `screenshots/issue-<N>/`. Verify whatever theme variants the project ships. Non-web projects swap Playwright for an equivalent harness and document that in `CLAUDE.md`.
 5. **Open PR** — commit, push, `gh pr create` with `closes #<N>`, move kanban to In Review
 6. **Wait for CI** — Monitor tool watches `gh pr checks <PR> --watch` (zero token cost), fix failures (max 2 cycles)
-7. **Merge** — `gh pr merge <PR> --squash --delete-branch`, run `/sync-mission-control`
+7. **Stop at green CI** — emit `TEMPER:SUCCESS` and exit. The PR stays open for `/seal` to merge later, alongside the rest of the batch.
 
 ### Context discipline
 
@@ -33,7 +33,7 @@ Temper subagents are the biggest token cost. Guard context aggressively:
 
 ### Sentinels
 
-- `TEMPER:SUCCESS` — slice merged successfully
+- `TEMPER:SUCCESS` — PR open, CI green, ready for `/seal` to merge
 - `TEMPER:CONTINUE:<N>` — context overflow, continuation file written
 - `TEMPER:NEEDS_HUMAN:<reason>` — stuck, needs user input
 - `TEMPER:FAIL:<reason>` — unrecoverable failure

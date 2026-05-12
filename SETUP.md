@@ -133,6 +133,6 @@ The Forge doesn't auto-update. To pull in new versions:
 
 **Kanban moves fail** — re-check the IDs in `.claude/scripts/kanban-move.sh`. The pipeline keeps working; only the board column doesn't update.
 
-**Drift hook prints every session even after sync** — the hook reads `mc:open=` markers in `MISSION-CONTROL.md`. After a merge, you must actually run `/sync-mission-control` (it flips `mc:open=` to `mc:done=`).
+**Drift hook prints every session even after sync** — the hook reads `mc:open=` markers in `MISSION-CONTROL.md`. After a merge, you must actually run `/seal` (it flips `mc:open=` to `mc:done=`).
 
 **Hooks don't fire** — confirm `jq` is on your PATH and that `.claude/settings.json` is at the project root (not nested). Check Claude Code version supports `SessionStart` and `PreToolUse` hook types.

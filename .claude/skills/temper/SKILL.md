@@ -45,10 +45,17 @@ stay lean, hand off to fresh sessions when context grows.
 - If CI fails: read only the failure log (not the full run), fix, push, re-monitor
 - Max 2 fix cycles. If still failing: `TEMPER:NEEDS_HUMAN:ci-stuck`
 
-### 6. Merge
-- Once CI is green: `gh pr merge <PR> --squash --delete-branch`
-- Run `/sync-mission-control` to update project state
-- Clean up: delete `.claude/temper-summary-<N>.md` if it exists
+### 6. Stop at green CI
+
+Once CI is green, **emit `TEMPER:SUCCESS` and stop**. Do not merge.
+
+Merging is `/seal`'s job — it runs after the whole batch and approves + squash-merges each
+shippable PR in one pass, then reconciles `MISSION-CONTROL.md`. Temper opening but not
+merging keeps the build queue uniform: every slice ends in the same state (PR open, CI
+green) so seal can act on them as a batch.
+
+If you've written a `.claude/temper-summary-<N>.md` file during the run, leave it — `/seal`
+deletes it as part of cleanup once the slice is merged.
 
 ## Context discipline
 
@@ -78,9 +85,9 @@ When temper hits friction (unexpected failure, confusing spec, missing dependenc
 4. Unresolved friction → `TEMPER:NEEDS_HUMAN:friction` sentinel
 
 ## Sentinels
-- `TEMPER:SUCCESS` — slice merged
+- `TEMPER:SUCCESS` — PR opened, CI green, ready for `/seal` to merge
 - `TEMPER:CONTINUE:<N>` — context overflow, continuation file written
-- `TEMPER:NEEDS_HUMAN:<reason>` — stuck, needs user input
+- `TEMPER:NEEDS_HUMAN:<reason>` — stuck, needs user input (e.g. `ci-stuck`, `friction`)
 - `TEMPER:FAIL:<reason>` — unrecoverable failure
 
 ## Rules
@@ -88,4 +95,5 @@ When temper hits friction (unexpected failure, confusing spec, missing dependenc
 - Rely on auto-loaded design-system rule for UI/mixed; only read deeper design docs for detail.
 - Only read MISSION-CONTROL.md if you need to understand project context (rare).
 - Keep commits atomic and well-scoped.
+- **Do not merge.** Stop when CI is green; `/seal` ships the batch.
 - Token logging is handled by forge after temper completes — temper does not log tokens.

@@ -1,7 +1,7 @@
 # 🚀 {{PROJECT_NAME}} — Mission Control
 
 > Ground station for the project's trajectory — where it stands, and the next burn.
-> Auto-updated by pipeline skills (`/inscribe`, `/temper`, `/sync-mission-control`). Each phase updates the "Recommended next prompt". Drift between this doc and GitHub issue state is surfaced as a SessionStart reminder.
+> Auto-updated by pipeline skills (`/inscribe`, `/temper`, `/seal`). Each phase updates the "Recommended next prompt". Drift between this doc and GitHub issue state is surfaced as a SessionStart reminder.
 
 ## 🛰️ Telemetry — right now
 
@@ -25,7 +25,7 @@
 
 <!--
   Sub-phases live in tables under phase headers. As work is filed and shipped,
-  /inscribe, /temper, and /sync-mission-control update these rows.
+  /inscribe, /temper, and /seal update these rows.
 
   Status emoji: ⏳ queued · 🔥 grilling · 📝 prd-ready · 🚧 in-progress · ✅ shipped · ⏸ deferred
 
@@ -60,11 +60,11 @@
 
 **Statuses:** ⏳ queued · 🔥 grilling · 📝 prd-ready · 🚧 in-progress · ✅ shipped · ⏸ deferred
 
-**Row markers** (HTML comments embedded at the end of the Issues column — invisible when rendered, grep-able from the source. Used by `/sync-mission-control` and the drift hook):
+**Row markers** (HTML comments embedded at the end of the Issues column — invisible when rendered, grep-able from the source. Used by `/seal` and the drift hook):
 - `<!-- mc:none -->` — no issues filed yet
 - `<!-- mc:open=N,N -->` — issue numbers tracked as open
 - `<!-- mc:done=N,N -->` — all listed issues closed (shipped)
 
 **Phase progress bars:** `▓` = shipped sub-phase, `░` = not yet shipped. Format: `▓▓░░░ 2/5`.
 
-**Updated by:** `/inscribe` (PRD + issues + triage), `/temper` (in-progress status), `/sync-mission-control` (post-merge reconciliation). Each phase also updates the "Recommended next prompt".
+**Updated by:** `/inscribe` (PRD + issues + triage), `/temper` (in-progress status), `/seal` (post-merge reconciliation). Each phase also updates the "Recommended next prompt".
