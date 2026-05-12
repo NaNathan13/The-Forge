@@ -1,6 +1,6 @@
 # Workflow Reference
 
-Detailed reference for the Blacksmith development workflow. For the overview, see [README.md](./README.md).
+Detailed reference for The Forge development workflow. For the overview, see [README.md](./README.md).
 
 ## Pipeline
 

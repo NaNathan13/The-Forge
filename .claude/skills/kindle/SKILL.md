@@ -1,15 +1,15 @@
 ---
 name: kindle
-description: Bootstrap a new project on the Blacksmith pipeline — Q&A to fill CLAUDE.md, MISSION-CONTROL.md, and CONTEXT.md, then git init and create the GitHub repo. Use at the very start of a new project (usually launched by ./kindle.sh) or when the user says "kindle this project", "set up Blacksmith here", or "/kindle".
+description: Bootstrap a new project on The Forge — Q&A to fill CLAUDE.md, MISSION-CONTROL.md, and CONTEXT.md, then git init and create the GitHub repo. Use at the very start of a new project (usually launched by ./kindle.sh) or when the user says "kindle this project", "set up The Forge here", or "/kindle".
 ---
 
-# Kindle — light the temper fire
+# Kindle — light the forge
 
-The bootstrap skill for a fresh Blacksmith project. Runs a friendly Q&A, fills in the
+The bootstrap skill for a fresh project adopting The Forge. Runs a friendly Q&A, fills in the
 template placeholders, initializes the git repo, and creates the GitHub remote. By the
 end the project is ready for `/ponder`.
 
-**Audience matters.** Kindle is the very first skill a user runs after copying Blacksmith
+**Audience matters.** Kindle is the very first skill a user runs after copying The Forge
 into a directory. Assume the user may be non-technical, may not know what a "check command"
 is, and may not have a GitHub Project board yet. Be warm. Recommend defaults. Skip nothing
 silently, but don't make every question feel like an exam.
@@ -18,7 +18,7 @@ silently, but don't make every question feel like an exam.
 
 The launcher script (`kindle.sh`) verifies these before Claude starts, but double-check:
 
-- We're in a directory that contains Blacksmith files (`CLAUDE.md`, `MISSION-CONTROL.md`,
+- We're in a directory that contains The Forge files (`CLAUDE.md`, `MISSION-CONTROL.md`,
   `.claude/skills/`). If not, stop and say so.
 - The directory is **not already a git repo with commits** (idempotent re-runs are fine —
   see "Re-running kindle" below).
@@ -31,7 +31,7 @@ If any precondition fails, stop and tell the user what's wrong in one sentence w
 If `CLAUDE.md` already has its `{{PLACEHOLDERS}}` replaced (no `{{` substrings left), kindle
 has already run here. Ask the user once:
 
-> "Looks like Blacksmith is already set up in this project. Re-run kindle anyway (overwrites your CLAUDE.md / MISSION-CONTROL.md / CONTEXT.md)?"
+> "Looks like The Forge is already set up in this project. Re-run kindle anyway (overwrites your CLAUDE.md / MISSION-CONTROL.md / CONTEXT.md)?"
 
 Default to no. If they say yes, proceed.
 
@@ -159,7 +159,7 @@ If a remote was set up:
 
 ```bash
 git add -A
-git commit -m "Initial Blacksmith setup via /kindle
+git commit -m "Initial The Forge setup via /kindle
 
 Co-Authored-By: Claude <noreply@anthropic.com>"
 git push -u origin main
@@ -186,7 +186,7 @@ If the user said "Skip GitHub", just `rm kindle.sh` locally — no commit.
 Print this exact summary (filling in real values):
 
 ```
-🔥 Temper lit.
+🔥 The Forge is lit.
 
 Project:        <name>
 Repo:           <url or "local only">

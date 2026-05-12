@@ -1,4 +1,4 @@
-# Blacksmith Workflow
+# The Forge Workflow
 
 ## How it works
 

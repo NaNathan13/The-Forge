@@ -1,8 +1,8 @@
-# Blacksmith
+# The Forge
 
-A drop-in Claude Code workflow for solo-with-AI projects: plan with `/ponder`, build with `/forge` + `/temper`, sync with `/sync-mission-control`. Ten skills, two safety hooks, four project-root templates. No project-specific code.
+A drop-in Claude Code workflow for solo-with-AI projects: plan with `/ponder`, build with `/forge` + `/temper`, sync with `/sync-mission-control`. Eleven skills, two safety hooks, four project-root templates. No project-specific code.
 
-Blacksmith is the workshop that holds the temper. Once it's installed in a project, the metalworking metaphor cashes out: **ponder** the design, **inscribe** the spec, **temper** the slice, **forge** the run.
+Once dropped into a project, The Forge runs a **Ponder → Forge → Temper** pipeline: you **ponder** the design, **inscribe** the spec, **forge** the build queue, and **temper** each slice into a merged PR.
 
 ## What's in here
 
@@ -23,7 +23,7 @@ CLAUDE.md               # Starter project file — fill in tech stack + key rule
 MISSION-CONTROL.md      # Phase tracker template
 CONTEXT.md              # Ubiquitous-language doc template
 WORKFLOW.md             # Bot-facing workflow cheat-sheet
-SETUP.md                # How to adopt Blacksmith in a new or existing project
+SETUP.md                # How to adopt The Forge in a new or existing project
 docs/workflow/          # README + reference for the pipeline
 ```
 
@@ -57,11 +57,11 @@ Two paths — pick the one that fits.
 ### 🔥 Guided (recommended for new projects)
 
 ```bash
-# 1. Copy Blacksmith into your project directory
-cp -R /path/to/Blacksmith/. ./my-new-project/
+# 1. Copy The Forge into your project directory
+cp -R /path/to/The-Forge/. ./my-new-project/
 cd my-new-project
 
-# 2. Light the temper fire
+# 2. Light the forge
 ./kindle.sh
 ```
 

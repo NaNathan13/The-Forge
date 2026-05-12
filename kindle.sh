@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# kindle.sh — light the temper fire on a new Blacksmith project.
+# kindle.sh — bootstrap a new project on The Forge.
 #
-# Run this once after copying Blacksmith into a new project directory.
+# Run this once after copying The Forge into a new project directory.
 # It checks prerequisites, then launches Claude with the /kindle skill,
 # which asks you ~10 questions and sets everything up.
 #
@@ -29,7 +29,7 @@ cat <<'BANNER'
     ██║  ██╗██║██║ ╚████║██████╔╝███████╗███████╗
     ╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝╚═════╝ ╚══════╝╚══════╝
 
-         Bootstrap your project on Blacksmith.
+         Bootstrap your project on The Forge.
 
 BANNER
 
@@ -81,15 +81,15 @@ if ! gh auth status >/dev/null 2>&1; then
 fi
 green "  ✓ GitHub CLI signed in as: $(gh api user --jq .login 2>/dev/null || echo 'unknown')"
 
-# Check we're in a Blacksmith directory
+# Check we're in a The Forge project directory
 if [[ ! -f "CLAUDE.md" || ! -f "MISSION-CONTROL.md" || ! -d ".claude/skills" ]]; then
   echo
-  red "✗ This doesn't look like a Blacksmith directory."
+  red "✗ This doesn't look like a The Forge project directory."
   echo "      Expected to find CLAUDE.md, MISSION-CONTROL.md, and .claude/skills/ here."
-  echo "      Did you copy Blacksmith into this folder first? See README.md."
+  echo "      Did you copy The Forge into this folder first? See README.md."
   exit 1
 fi
-green "  ✓ Blacksmith files found in this directory"
+green "  ✓ The Forge files found in this directory"
 
 # Check we're not already inside a git repo with commits (that we didn't make)
 if [[ -d ".git" ]] && git rev-parse HEAD >/dev/null 2>&1; then

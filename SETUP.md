@@ -1,8 +1,8 @@
-# Setting up Blacksmith in a project
+# Setting up The Forge in a project
 
-> **Easy path:** copy Blacksmith into your project, then run `./kindle.sh`. That covers steps 1–5 below interactively. The manual walkthrough is here for reference, edge cases, and re-runs.
+> **Easy path:** copy The Forge into your project, then run `./kindle.sh`. That covers steps 1–5 below interactively. The manual walkthrough is here for reference, edge cases, and re-runs.
 
-Adopting Blacksmith takes ~10 minutes plus whatever time you spend personalizing `CONTEXT.md`. The pipeline is GitHub-native (issues + Projects + PRs), so you need a GitHub repo and `gh` CLI auth'd.
+Adopting The Forge takes ~10 minutes plus whatever time you spend personalizing `CONTEXT.md`. The pipeline is GitHub-native (issues + Projects + PRs), so you need a GitHub repo and `gh` CLI auth'd.
 
 ## 0. Prerequisites
 
@@ -11,7 +11,7 @@ Adopting Blacksmith takes ~10 minutes plus whatever time you spend personalizing
 - A GitHub Projects (v2) board attached to the repo, with single-select **Status** field and at least these options: `Backlog`, `Ready`, `In Progress`, `In Review`, `Done`
 - `jq` installed (used by the hooks)
 
-## 1. Copy Blacksmith into your project
+## 1. Copy The Forge into your project
 
 From inside your project root:
 
@@ -19,11 +19,11 @@ From inside your project root:
 # Two common patterns — pick one:
 
 # (a) Plain copy, no upstream link:
-cp -R /path/to/Blacksmith/. ./
+cp -R /path/to/The-Forge/. ./
 
-# (b) Subtree or submodule if you want to track Blacksmith updates:
-git subtree add --prefix=.blacksmith https://github.com/<you>/Blacksmith.git main --squash
-# then symlink or copy the bits you want from .blacksmith/
+# (b) Subtree or submodule if you want to track The Forge updates:
+git subtree add --prefix=.the-forge https://github.com/<you>/The-Forge.git main --squash
+# then symlink or copy the bits you want from .the-forge/
 ```
 
 What lands at your project root after a plain copy:
@@ -60,7 +60,7 @@ If you skip this step, the kanban moves will fail but the rest of the pipeline s
 .claude/scripts/workflow-setup.sh
 ```
 
-This creates the labels Blacksmith uses (`needs-triage`, `ready-for-agent`, `slice:logic`, etc.) and warns about anything missing.
+This creates the labels The Forge uses (`needs-triage`, `ready-for-agent`, `slice:logic`, etc.) and warns about anything missing.
 
 ## 5. Seed `MISSION-CONTROL.md`
 
@@ -120,12 +120,12 @@ The metalworking metaphor (temper, forge, inscribe, sharpen) is just convention.
 
 The skills are self-contained — no hard-coded names outside their own directories and the docs that reference them.
 
-## Updating Blacksmith later
+## Updating The Forge later
 
-Blacksmith doesn't auto-update. To pull in new versions:
+The Forge doesn't auto-update. To pull in new versions:
 
-- (Subtree path) `git subtree pull --prefix=.blacksmith ...`
-- (Plain copy path) diff against the upstream Blacksmith repo and cherry-pick whatever changed in `.claude/skills/`. Your `CLAUDE.md`, `MISSION-CONTROL.md`, `CONTEXT.md`, and `.claude/scripts/kanban-move.sh` are yours — never overwrite them from upstream.
+- (Subtree path) `git subtree pull --prefix=.the-forge ...`
+- (Plain copy path) diff against the upstream The Forge repo and cherry-pick whatever changed in `.claude/skills/`. Your `CLAUDE.md`, `MISSION-CONTROL.md`, `CONTEXT.md`, and `.claude/scripts/kanban-move.sh` are yours — never overwrite them from upstream.
 
 ## Troubleshooting
 

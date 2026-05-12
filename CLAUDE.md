@@ -1,7 +1,7 @@
 # {{PROJECT_NAME}}
 
 <!--
-  This is the starter CLAUDE.md template for the Blacksmith pipeline.
+  This is the starter CLAUDE.md template for The Forge pipeline.
   Replace placeholders below with your project's specifics. Keep this file short —
   it loads at session start, so cost-per-turn scales with its length.
 
