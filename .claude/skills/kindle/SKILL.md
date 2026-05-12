@@ -59,7 +59,15 @@ Ask **one question at a time** using AskUserQuestion. Recommend an answer for ev
      - Rust — cargo, gitignore additions
      - Other / multiple — freeform follow-up
 
-4. **Check command** (freeform, with a recommendation derived from the preset)
+4. **Framework** (AskUserQuestion, options derived from Q3 preset)
+   - "Which framework?" Options depend on the preset:
+     - TypeScript / Node → Next.js / Express / None
+     - Python → Django / FastAPI / None
+     - Rust → Actix / Axum / None
+     - Other → freeform text ("Type your framework, or 'none'")
+   - If "None" or freeform with no framework: record as "none" — CLAUDE.md will say `**Framework:** none`.
+
+5. **Check command** (freeform, with a recommendation derived from the preset)
    - "What single command runs your tests + typecheck + lint? (Temper will run this before opening a PR.)"
    - Recommendations by preset:
      - TS/Node: `pnpm check-all` if pnpm preferred, else `npm test`
@@ -67,15 +75,14 @@ Ask **one question at a time** using AskUserQuestion. Recommend an answer for ev
      - Rust: `cargo check && cargo test && cargo clippy`
      - Other: prompt user to type their own
 
-5. **CI runner** (AskUserQuestion, 3 options)
-   - "Where does CI run?" Options:
-     - GitHub-hosted (`ubuntu-latest`) — (Recommended)
-     - Self-hosted (you'll configure the runner label later)
-     - None — no CI yet
+6. **CI runner** (stated default with opt-out — not a full AskUserQuestion)
+   - Say: "CI will run on GitHub Actions with `ubuntu-latest`. If you need something different, say so now — otherwise we'll go with that."
+   - If the user objects or names a different runner, record their preference. Otherwise default to `ubuntu-latest`.
+   - This is a brief pause, not a multi-option question — 90%+ of users accept the default silently.
 
 ### Block 3 — Visual review
 
-6. **Visual review tool** (AskUserQuestion, 3 options)
+7. **Visual review tool** (AskUserQuestion, 3 options)
    - "How should temper do visual review for UI work?" Options:
      - Playwright (web app) — (Recommended for web projects)
      - Other (mobile simulator, snapshot tester, etc.) — freeform follow-up
@@ -83,26 +90,26 @@ Ask **one question at a time** using AskUserQuestion. Recommend an answer for ev
 
 ### Block 4 — First phase
 
-7. **First sub-phase title** (freeform)
+8. **First sub-phase title** (freeform)
    - "What's the very first thing we'll work on? Give it a short title — like 'Auth & login' or 'CLI scaffold'."
    - This becomes the `0a` row in `MISSION-CONTROL.md`.
 
 ### Block 5 — Domain language (optional)
 
-8. **Key terms** (freeform, can be "skip")
+9. **Key terms** (freeform, can be "skip")
    - "Any domain words you'd want me to lock in upfront? Type a comma-separated list (e.g. 'Widget, Note, Bin') or 'skip' if you'd rather add them as they come up."
    - If provided, each term gets a stub entry in `CONTEXT.md` with a `TODO: define` placeholder.
 
 ### Block 6 — GitHub
 
-9. **Repo creation** (AskUserQuestion, 4 options)
+10. **Repo creation** (AskUserQuestion, 4 options)
    - "What should I do with GitHub?" Options:
      - Create new public repo — (Recommended for open work)
      - Create new private repo
      - Link to an existing repo (I'll ask for the URL)
      - Skip GitHub for now (I'll just `git init` locally)
 
-10. **Repo name** (only if creating; freeform with kebab-cased default)
+11. **Repo name** (only if creating; freeform with kebab-cased default)
     - "Repo name?" Default: kebab-case of the project name. Show the default; user can accept or change.
 
 ## Doing the work
@@ -115,8 +122,9 @@ user just chose. Ask once: "Look right? (yes / let me change something)". On yes
 Replace placeholders:
 - `{{PROJECT_NAME}}` → project name
 - Tech stack lines — fill from preset and check command
+- `**Framework:**` line — fill from Q4 answer (e.g. `**Framework:** Next.js 14`, `**Framework:** Django`, or `**Framework:** none`)
 - Key terms section — add up to 3 most-load-bearing terms from Block 5 (rest go to CONTEXT.md)
-- CI runner line — fill from Block 3 answer
+- CI runner line — fill from Q6 answer (defaults to `ubuntu-latest`)
 
 Use `Edit` per replacement so the diff is reviewable.
 
