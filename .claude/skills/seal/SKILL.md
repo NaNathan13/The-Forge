@@ -73,7 +73,48 @@ gh pr merge   <N> --squash --delete-branch
 
 If the approve step fails because GitHub blocks self-approval (some repo settings disallow it for solo accounts), skip the approve and proceed with the merge — note it in the summary.
 
-If the merge step fails (merge conflict, branch protection, etc.), log it and continue to the next PR. Do not abort the batch on one failure.
+If the merge step fails for reasons other than a merge conflict (branch protection, etc.), log it and continue to the next PR. Do not abort the batch on one failure.
+
+#### 4a. Merge-conflict handoff
+
+If `gh pr merge` fails with a merge-conflict signal — output containing `merge conflict`, `not mergeable`, `Merge conflict`, or the PR's `mergeable` field reporting `CONFLICTING` — **do not resolve inline**. Dispatch a fresh **conflict-resolution subagent** (see [Conflict resolution subagent](#conflict-resolution-subagent) below for the full contract).
+
+Flow:
+
+1. Fetch the conflict context:
+   - `branch` — the PR's head ref (from step 1's `headRefName`).
+   - `issueNumber` — parse from branch name (`feat/#<N>-…`).
+   - `issueBody` — `gh issue view <N> --json body -q .body` (captures intent).
+   - `worktreePath` — current repo root (or a fresh worktree if your harness prefers isolation).
+   - `conflictFiles` — attempt a local rebase to enumerate the conflict set:
+     ```bash
+     git fetch origin
+     git worktree add /tmp/seal-conflict-<N> origin/<branch>
+     cd /tmp/seal-conflict-<N>
+     git rebase origin/main 2>/dev/null || true
+     git diff --name-only --diff-filter=U   # <-- conflictFiles
+     git rebase --abort 2>/dev/null || true
+     ```
+     If the probe rebase fails before producing conflict markers (e.g. shallow clone, missing ref), pass an empty `conflictFiles` and let the subagent discover them.
+
+2. Dispatch the subagent with the inputs above (see contract below).
+
+3. **Retry the merge** once the subagent returns:
+   ```bash
+   gh pr merge <N> --squash --delete-branch
+   ```
+
+4. **On second failure** (merge still conflicts or the subagent reported it couldn't resolve):
+   - Label the PR `friction`: `gh pr edit <N> --add-label friction`
+   - Post a PR comment summarising what was tried:
+     ```
+     ## Friction — conflict resolution failed
+
+     Seal dispatched a conflict-resolution subagent against `<branch>` but the merge still fails after rebase + force-push. Files involved: <conflictFiles>. Human review needed.
+     ```
+   - Continue to the next PR. Do **not** abort the batch.
+
+5. Record the outcome in seal's run summary (step 8) so the user can see which PRs went through the conflict path and which ended in friction.
 
 ### 5. Reconcile MISSION-CONTROL.md
 
@@ -150,9 +191,61 @@ MC:        advanced <K> rows from in-progress → shipped
 Next:      <whatever the new Recommended next prompt is>
 ```
 
+## Conflict resolution subagent
+
+Seal never resolves merge conflicts inline. When step 4 detects a conflict, it dispatches a fresh subagent with a tightly scoped contract. The subagent's job is **resolve and force-push** — nothing else. Seal owns the merge decision.
+
+### Dispatch contract
+
+**Inputs** (passed to the subagent as its task prompt):
+
+| Field            | Type     | Description                                                                                                  |
+|------------------|----------|--------------------------------------------------------------------------------------------------------------|
+| `worktreePath`   | string   | Absolute path the subagent should `cd` into (either the repo root or a dedicated worktree seal prepared).    |
+| `branch`         | string   | Head ref of the conflicting PR (e.g. `feat/#207-empty-states`).                                              |
+| `prNumber`       | number   | PR number — for logging only, the subagent does not touch the PR via `gh`.                                   |
+| `issueNumber`    | number   | Originating issue number, parsed from the branch name.                                                       |
+| `issueBody`      | string   | Full body of the originating GitHub issue, captured by seal via `gh issue view <N>`. Conveys the slice intent so the subagent resolves conflicts in line with the spec rather than guessing. |
+| `conflictFiles`  | string[] | Files seal observed as conflicting during its probe rebase. May be empty if the probe couldn't run; subagent should discover via `git status` after rebase. |
+| `baseBranch`     | string   | Branch to rebase onto. Default `main`.                                                                       |
+
+**Subagent procedure** (this is what seal tells the subagent to do):
+
+1. `cd <worktreePath>` and confirm `git status` is clean.
+2. `git fetch origin` then `git checkout <branch>` and `git pull --ff-only origin <branch>` to ensure local matches remote.
+3. `git rebase origin/<baseBranch>`. If no conflicts arise, jump to step 6.
+4. For each file in conflict (intersect `conflictFiles` with `git diff --name-only --diff-filter=U`):
+   - Read both sides plus `issueBody` to understand intent.
+   - Resolve respecting **both intents**: the slice's purpose (from `issueBody`) and whatever change on `main` introduced the conflict. Prefer additive merges; never silently drop a side.
+   - `git add <file>`.
+5. `git rebase --continue` until the rebase completes. If the subagent cannot resolve a file confidently, it must `git rebase --abort` and return failure (see Output) — never guess.
+6. Verify the working tree builds / passes the project's check command if one is configured in `CLAUDE.md`. If checks fail, abort with failure.
+7. `git push --force-with-lease origin <branch>`.
+8. Return success.
+
+**Output** (the subagent's final message, parsed by seal):
+
+- **Success:** `CONFLICT_RESOLVED:<branch>` plus a one-line summary of which files were resolved.
+- **Failure:** `CONFLICT_FAILED:<branch>:<reason>` (e.g. `CONFLICT_FAILED:feat/#207-empty-states:check-command-failed`). Seal treats this identically to a second merge failure: label `friction`, post comment, continue.
+
+### What the subagent does NOT do
+
+- It does **not** run `gh pr merge`. Merging is seal's responsibility — keeping the merge decision in one place prevents two actors from racing on the same PR.
+- It does **not** modify the PR description, add labels, or comment on the PR. Seal owns all PR-level metadata changes.
+- It does **not** touch `MISSION-CONTROL.md`, `.claude/temper-*.md`, or any other pipeline state. Those are sealed-batch concerns.
+- It does **not** open a new PR or branch. If rebase is impossible, it aborts cleanly and reports failure.
+
+### Why this split
+
+The conflict-resolution subagent runs in a fresh context window — it doesn't carry seal's batch state, MC reconciliation logic, or the other PRs in flight. Two reasons:
+
+1. **Token discipline.** Seal's context is already loaded with PR-list state, MC parsing, and step orchestration. A nested conflict resolution would blow the budget on a single PR.
+2. **Failure isolation.** A subagent that aborts cleanly is much easier to reason about than an inline branch of seal's control flow. Seal's retry-then-friction policy is uniform whether the cause is the first merge attempt failing or the subagent reporting `CONFLICT_FAILED`.
+
 ## Anti-patterns
 
 - **Don't merge PRs that aren't from temper.** The branch-name filter (`feat/#*-*`) is intentional. PRs created by the user outside the pipeline stay untouched.
 - **Don't auto-approve PRs labeled `friction` or `needs-human`.** Those exist exactly because a human needs to look.
 - **Don't run step 5 (MC reconciliation) without step 4 (the merges).** Step 5 reads GitHub issue state; if the PRs haven't merged yet, the issues are still open and nothing will advance.
 - **Don't skip the user-approval prompt in step 3.** Even though /seal is "wrap-up", it does irreversible merges. The one-screen review is a cheap safety belt.
+- **Don't resolve merge conflicts inline.** Step 4a dispatches a fresh subagent — keep seal's context lean and the resolution logic isolated. Seal still owns the retry-merge decision.
