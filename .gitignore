@@ -14,6 +14,9 @@ Thumbs.db
 .claude/worktrees/
 .claude/settings.local.json
 .claude/scheduled_tasks.lock
+.playwright-mcp/
+screenshots/
+/tmp/forge-*.sh
 
 # Tinker scratch dirs (throwaway exploratory work)
 .tinker/
