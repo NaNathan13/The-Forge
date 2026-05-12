@@ -11,22 +11,31 @@ Adopting The Forge takes ~10 minutes plus whatever time you spend personalizing 
 - A GitHub Projects (v2) board attached to the repo, with single-select **Status** field and at least these options: `Backlog`, `Ready`, `In Progress`, `In Review`, `Done`
 - `jq` installed (used by the hooks)
 
-## 1. Copy The Forge into your project
+## 1. Pull down The Forge
 
-From inside your project root:
+Pick one of these patterns:
 
 ```bash
-# Two common patterns — pick one:
+# (a) Recommended — clone, then drop the upstream history so your project
+#     starts with a fresh git repo:
+git clone https://github.com/NaNathan13/The-Forge.git my-new-project
+cd my-new-project
+rm -rf .git
 
-# (a) Plain copy, no upstream link:
-cp -R /path/to/The-Forge/. ./
+# (b) If you already have a project directory and want to merge The Forge in:
+git clone --depth 1 https://github.com/NaNathan13/The-Forge.git /tmp/the-forge
+cp -R /tmp/the-forge/. ./
+rm -rf /tmp/the-forge ./.git  # discard upstream history
+# (then re-init or stay inside your existing repo, your call)
 
-# (b) Subtree or submodule if you want to track The Forge updates:
-git subtree add --prefix=.the-forge https://github.com/<you>/The-Forge.git main --squash
+# (c) Subtree if you want to track upstream The Forge updates:
+git subtree add --prefix=.the-forge https://github.com/NaNathan13/The-Forge.git main --squash
 # then symlink or copy the bits you want from .the-forge/
 ```
 
-What lands at your project root after a plain copy:
+If you'd rather skip the manual walkthrough below and have Claude ask you ~10 questions instead, run `./kindle.sh` after step (a) — it covers steps 2–5 interactively.
+
+What lands at your project root after a clone:
 
 - `.claude/` — skills, hooks, rules placeholder, scripts, `settings.json`, `lessons.md`
 - `CLAUDE.md`, `MISSION-CONTROL.md`, `CONTEXT.md`, `WORKFLOW.md` — templates

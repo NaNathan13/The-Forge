@@ -86,16 +86,38 @@ if [[ ! -f "CLAUDE.md" || ! -f "MISSION-CONTROL.md" || ! -d ".claude/skills" ]];
   echo
   red "✗ This doesn't look like a The Forge project directory."
   echo "      Expected to find CLAUDE.md, MISSION-CONTROL.md, and .claude/skills/ here."
-  echo "      Did you copy The Forge into this folder first? See README.md."
+  echo "      Run this first:"
+  echo "         git clone https://github.com/NaNathan13/The-Forge.git my-project"
+  echo "         cd my-project"
+  echo "         ./kindle.sh"
   exit 1
 fi
 green "  ✓ The Forge files found in this directory"
 
-# Check we're not already inside a git repo with commits (that we didn't make)
-if [[ -d ".git" ]] && git rev-parse HEAD >/dev/null 2>&1; then
-  echo
-  yellow "  ! This directory is already a git repo with commits."
-  yellow "    Kindle will skip 'git init' and try to use the existing repo."
+# If we're inside The Forge's own git history (cloned, not copied), offer to wipe it
+# so /kindle can git init a fresh repo for the user's project.
+if [[ -d ".git" ]]; then
+  remote_url=$(git remote get-url origin 2>/dev/null || echo "")
+  if [[ "$remote_url" == *"NaNathan13/The-Forge"* ]]; then
+    echo
+    yellow "  ! This directory has The Forge's own git history (origin: $remote_url)."
+    yellow "    Kindle needs to create a fresh git repo for your project."
+    read -r -p "    Remove .git/ and start fresh? [Y/n] " answer
+    case "$answer" in
+      n|N|no|No|NO)
+        red "✗ Aborted. Either remove .git/ yourself, or copy The Forge into a separate directory."
+        exit 1
+        ;;
+      *)
+        rm -rf .git
+        green "  ✓ Removed The Forge's git history. Kindle will init a fresh repo."
+        ;;
+    esac
+  elif git rev-parse HEAD >/dev/null 2>&1; then
+    echo
+    yellow "  ! This directory is already a git repo with commits (not The Forge's)."
+    yellow "    Kindle will skip 'git init' and try to use the existing repo."
+  fi
 fi
 
 # ─── launch claude ─────────────────────────────────────────────────────────────

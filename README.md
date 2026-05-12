@@ -58,15 +58,15 @@ Two paths — pick the one that fits.
 ### 🔥 Guided (recommended for new projects)
 
 ```bash
-# 1. Copy The Forge into your project directory
-cp -R /path/to/The-Forge/. ./my-new-project/
+# 1. Pull down The Forge
+git clone https://github.com/NaNathan13/The-Forge.git my-new-project
 cd my-new-project
 
 # 2. Light the forge
 ./kindle.sh
 ```
 
-`kindle.sh` checks your tools, then launches Claude with the `/kindle` skill. Claude asks ~10 questions (project name, tech stack, first phase, GitHub repo) and fills in `CLAUDE.md`, `MISSION-CONTROL.md`, `CONTEXT.md`, runs `git init`, and creates the GitHub repo. After it's done, `kindle.sh` removes itself.
+`kindle.sh` checks your tools, offers to remove The Forge's git history (so your project gets its own fresh repo), then launches Claude with the `/kindle` skill. Claude asks ~10 questions (project name, tech stack, first phase, GitHub repo) and fills in `CLAUDE.md`, `MISSION-CONTROL.md`, `CONTEXT.md`, runs `git init`, and creates the GitHub repo for *your* project. After it's done, `kindle.sh` removes itself.
 
 ### ⚙️ Manual
 
