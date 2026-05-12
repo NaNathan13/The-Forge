@@ -23,7 +23,7 @@
 | `/diagnose` | Structured debugging for hard bugs |
 | `/sharpen` | Hone a rough idea into a precise prompt |
 | `/write-a-skill` | Meta — author a new skill |
-| `/sync-mission-control` | Reconcile MISSION-CONTROL.md against GitHub state |
+| `/seal` | Reconcile MISSION-CONTROL.md against GitHub state (alias: `/sync-mission-control`) |
 
 ## Forge (the forgemaster)
 
