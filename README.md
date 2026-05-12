@@ -1,36 +1,41 @@
 # The Forge
 
-A drop-in Claude Code workflow for solo-with-AI projects: plan with `/ponder`, build with `/forge` + `/temper`, ship the batch with `/seal`. Thirteen skills, two safety hooks, four project-root templates. No project-specific code.
+Welcome to The Forge. This is a drop-in Claude Code workflow that takes a project from idea to shipped code — autonomously, in phases, with safety rails at every step. You plan with `/ponder`, build with `/forge` + `/temper`, and ship the batch with `/seal`. Thirteen skills, two safety hooks, zero project-specific code. Drop it into any repo and it works.
 
-Once dropped into a project, The Forge runs a **Ponder → Forge → Temper → Seal** pipeline: you **ponder** the design, **inscribe** the spec, **forge** the build queue (autonomously dispatching `/temper` workers, respecting dependencies), **temper** each slice into an open PR with green CI, then auto-**seal** the batch by approving, merging, and reconciling. After the user approves the build-queue pre-flight, the pipeline runs end-to-end without intervention.
+The pipeline is **Ponder → Forge → Temper → Seal**: grill the design, inscribe the spec, forge the build queue (dispatching workers that respect dependencies and rate limits), temper each slice into a PR with green CI, then seal the batch by merging and reconciling. After you approve the build-queue pre-flight, it runs end-to-end without intervention.
 
-## What's in here
+## Two modes
 
-```
-kindle.sh               # One-shot bootstrap launcher (self-removes after success)
+The Forge supports two experiences on a shared core. Both run the same four-phase pipeline. The first question `./kindle.sh` asks is which one you want.
 
-.claude/
-├── skills/             # 13 skills:
-│                       #   Pipeline core (4):     ponder, forge, temper, seal
-│                       #   Ponder sub-skills (3): grill-me, inscribe, triage
-│                       #   Standalone helpers (3): sharpen, diagnose, tinker
-│                       #   Manual-only (3):       kindle, rollback, write-a-skill
-├── hooks/              # 2 safety hooks + 1 example
-├── rules/              # Placeholder for auto-loaded path-scoped rules
-├── scripts/            # kanban-move.sh, workflow-setup.sh
-├── settings.json       # Hook scaffolding
-├── lessons.md          # Index of operational lessons (one line per entry)
-└── knowledge/          # Per-lesson detail files, loaded only when an index entry matches
+**Dev Mode** — You've written code before. You know what a Pull Request is. You want the full keyboard-driven workflow with GitHub Issues, Projects, branches, and ~13 slash commands. Get out of my way.
 
-CLAUDE.md               # Starter project file — fill in tech stack + key rules
-MISSION-CONTROL.md      # Phase tracker template
-CONTEXT.md              # Ubiquitous-language doc template
-WORKFLOW.md             # Bot-facing workflow cheat-sheet
-SETUP.md                # How to adopt The Forge in a new or existing project
-docs/workflow/          # README + reference for the pipeline
+**Weenie Hut Junior Mode** — You're an engineer who doesn't code daily, a PM, a marketer, or anyone who'd rather not look at a terminal. Claude grills you on what you're building, picks the stack for you, scaffolds a real deployed app, and walks you through every feature as it ships. You never touch GitHub. ~6 slash commands.
+
+Pick Dev if you want control. Pick Weenie Hut Junior if you want someone else to drive. The downgrade is not an insult — it's the version built for you.
+
+## Quickstart — Dev Mode
+
+```bash
+# 1. Pull down The Forge
+git clone https://github.com/NaNathan13/The-Forge.git my-new-project
+cd my-new-project
+
+# 2. Light the forge
+./kindle.sh          # Pick "Dev" when asked
 ```
 
-## The pipeline at a glance
+`kindle.sh` checks your tools, offers to remove The Forge's git history (so your project gets its own fresh repo), then launches Claude with the `/kindle` skill. Claude asks ~10 questions (project name, tech stack, first phase, GitHub repo) and fills in `CLAUDE.md`, `MISSION-CONTROL.md`, `CONTEXT.md`, runs `git init`, and creates the GitHub repo for *your* project. After it's done, `kindle.sh` removes itself.
+
+For manual setup, see [`SETUP.md`](./SETUP.md).
+
+Full dev-mode docs: [`docs/dev/`](./docs/dev/)
+
+## Quickstart — Weenie Hut Junior Mode
+
+Coming soon. WHJ mode is designed but not yet built. See [`docs/whj/`](./docs/whj/) for the design and [`docs/future/modes.md`](./docs/future/modes.md) for the full architecture.
+
+## The pipeline
 
 ```
 /ponder ──→ /forge ──→ /temper <N> ──→ /seal
@@ -39,45 +44,12 @@ docs/workflow/          # README + reference for the pipeline
 
 | Phase | Skill | What happens |
 |-------|-------|---------------|
-| **Plan** | `/ponder` | Grill the idea via `grill-me`, write a PRD (sub-phase) or scope a single slice, file issues, triage them with `/inscribe` |
+| **Plan** | `/ponder` | Grill the idea via `grill-me`, write a PRD or scope a single slice, file issues, triage them with `/inscribe` |
 | **Preview** | `/forge` | Show the build queue, get user approval |
-| **Build** | `/temper <N>` | Branch → implement → test → PR → CI (via `Monitor`) → **stop at CI green**. No merge. Visual review via Playwright for UI slices. |
-| **Ship** | `/seal` (auto-invoked by `/forge`) | Approve + merge each open temper PR (skipping any with `friction` / `needs-human` / failing CI), reconcile `MISSION-CONTROL.md`, clean up runtime artifacts |
+| **Build** | `/temper <N>` | Branch → implement → test → PR → CI → **stop at CI green**. No merge. |
+| **Ship** | `/seal` | Approve + merge each open PR, reconcile `MISSION-CONTROL.md`, clean up artifacts |
 
 Each phase runs in its own Claude session and hands off via on-disk artifacts (issues, PRD, PR body, kanban state). **No session-memory continuity between phases.**
-
-## Why it works
-
-- **Context discipline.** Temper workers start fresh in worktrees, load only the issue + auto-loaded rules. Hard-stop at 50% context — write a continuation file, hand off to a new session.
-- **Worktree isolation.** Each temper runs in its own git worktree so parallel builds don't stomp on each other.
-- **Sentinel protocol.** Temper emits one of four sentinels (`SUCCESS`, `CONTINUE`, `NEEDS_HUMAN`, `FAIL`) so the forge orchestrator can react without re-reading the worker's transcript.
-- **Dependency-aware build queue.** Forge parses `Blocked by:` from each issue body, topo-sorts the queue, and never dispatches a temper whose blockers haven't shipped.
-- **Session rate-limit awareness.** Forge polls ccusage; warns at 90%, hard-stops at 95%, and uses `ScheduleWakeup` to resume when the 5-hour window rotates. No more failed builds from hitting the account limit.
-- **Auto-ship by default.** After the user approves the build queue, the pipeline runs end-to-end through `/seal` without intervention.
-- **Lessons that scale.** `lessons.md` is a one-line-per-entry index; `knowledge/<slug>.md` holds the detail. Tempers consult the index reactively, only load the matching detail file when needed.
-- **Token tracking.** Forge logs per-temper ccusage data to `.claude/token-usage.jsonl` and stamps PR bodies, so cost-per-slice is visible.
-- **Drift detection.** A SessionStart hook compares `mc:open=` markers in `MISSION-CONTROL.md` against actual GitHub state and reminds you to `/seal`.
-
-## Quickstart
-
-Two paths — pick the one that fits.
-
-### 🔥 Guided (recommended for new projects)
-
-```bash
-# 1. Pull down The Forge
-git clone https://github.com/NaNathan13/The-Forge.git my-new-project
-cd my-new-project
-
-# 2. Light the forge
-./kindle.sh
-```
-
-`kindle.sh` checks your tools, offers to remove The Forge's git history (so your project gets its own fresh repo), then launches Claude with the `/kindle` skill. Claude asks ~10 questions (project name, tech stack, first phase, GitHub repo) and fills in `CLAUDE.md`, `MISSION-CONTROL.md`, `CONTEXT.md`, runs `git init`, and creates the GitHub repo for *your* project. After it's done, `kindle.sh` removes itself.
-
-### ⚙️ Manual
-
-If you'd rather configure by hand, see [`SETUP.md`](./SETUP.md) for the 9-step walkthrough.
 
 ## Skills reference
 
