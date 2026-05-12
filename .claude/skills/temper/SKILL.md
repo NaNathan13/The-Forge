@@ -35,7 +35,7 @@ stay lean, hand off to fresh sessions when context grows.
 
 ### 4. Open PR
 - Commit all changes with `feat(scope): description (#<N>)`
-- Push branch and open PR via `gh pr create`
+- Push the branch via `.claude/scripts/temper-push.sh <branch>` (direct `git push` is blocked by a hook — see `.claude/knowledge/push-hook.md`), then open the PR via `gh pr create`
 - PR body includes `closes #<N>`, summary, and test plan
 - Move issue: `.claude/scripts/kanban-move.sh <N> in-review`
 - If UI/mixed: post PR comment with screenshot image refs

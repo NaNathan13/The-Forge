@@ -16,3 +16,5 @@ When temper catches a recurring error and overcomes it, append a new entry. Dedu
 ---
 
 <!-- entries below -->
+
+- push-hook-workaround: direct push is blocked by hook; use .claude/scripts/temper-push.sh — see knowledge/push-hook.md
