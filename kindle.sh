@@ -34,12 +34,49 @@ cat <<'BANNER'
 BANNER
 
 echo "This script will:"
-echo "  1. Check that the tools you need are installed"
-echo "  2. Launch Claude with a Q&A that fills in your project files"
-echo "  3. Create a GitHub repo for you (if you want)"
-echo "  4. Get out of your way."
+echo "  1. Ask which mode (Dev or Weenie Hut Junior)"
+echo "  2. Check that the tools you need are installed"
+echo "  3. Launch Claude with a Q&A that fills in your project files"
+echo "  4. Create a GitHub repo for you (if you want)"
+echo "  5. Get out of your way."
 echo
 read -r -p "Press Enter to begin (or Ctrl+C to cancel)..." _
+
+# ─── mode picker ──────────────────────────────────────────────────────────────
+
+echo
+bold "Welcome to The Forge."
+echo
+echo "Quick question to set up the right experience for you:"
+echo
+echo "  [1]  Dev Mode"
+echo "       You've written code before. You know what a Pull Request is."
+echo "       You want the full keyboard-driven workflow with GitHub Issues,"
+echo "       Projects, branches, and ~13 slash commands. Get out of my way."
+echo
+echo "  [2]  Weenie Hut Junior Mode  🍿"
+echo "       You're an engineer who doesn't code daily, a PM, a marketer,"
+echo "       or anyone who'd rather not look at a terminal. I'll grill you"
+echo "       on what you're building, pick the stack for you, scaffold a"
+echo "       real deployed app, and walk you through every feature as it ships."
+echo "       You'll never touch GitHub. ~6 slash commands."
+echo
+read -r -p "Which mode?  [1/2] (default: 1) " mode_choice
+
+case "$mode_choice" in
+  2)
+    mkdir -p .claude
+    echo "whj" > .claude/mode.txt
+    echo
+    yellow "Weenie Hut Junior mode is not yet built."
+    yellow "Re-run ./kindle.sh and pick Dev for now."
+    exit 0
+    ;;
+  *)
+    mkdir -p .claude
+    echo "dev" > .claude/mode.txt
+    ;;
+esac
 
 # ─── prereq checks ─────────────────────────────────────────────────────────────
 
