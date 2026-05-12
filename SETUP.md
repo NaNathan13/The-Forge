@@ -1,3 +1,3 @@
 # Setup
 
-Setup instructions have moved to [docs/dev/setup.md](docs/dev/setup.md).
+Setup instructions have moved to [docs/setup.md](docs/setup.md).

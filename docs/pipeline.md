@@ -1,22 +1,22 @@
 # The Pipeline
 
-The Forge runs a four-phase pipeline. Both modes (Dev and WHJ) share this shape exactly — only the data layer beneath each phase differs.
+The Forge runs a four-phase pipeline.
 
 ## The four phases
 
-1. **Ponder** — Grill the user on the feature, write a PRD, file issues/tasks, triage them into slices.
+1. **Ponder** — Grill the user on the feature, write a PRD, file issues, triage them into slices.
 2. **Forge** — Show the build queue (all slices, order, summaries). User approves or adjusts. Then run an autonomous dispatch loop: temper workers implement, test, PR, and wait for CI.
 3. **Temper** — Build a single slice end-to-end: branch, implement, test, open PR, wait for green CI. Temper does not merge — it stops at "PR open, CI green."
 4. **Seal** — Close out the batch: approve and merge every open temper PR, reconcile project state, clean up runtime artifacts.
 
 ## Invariants
 
-These hold in both modes. If a future change wants to touch any of the below, the change applies to both modes simultaneously. There is no "dev-mode pipeline" or "WHJ-mode pipeline."
+These define the shape of the pipeline. Touch them only with deliberate intent.
 
-- The four-phase shape (Ponder, Forge, Temper, Seal) is identical.
-- The dependency-aware queue (topo-sort by blockers) is identical — only how blockers are parsed differs (issue body vs task frontmatter).
-- The dispatch loop logic in Forge is identical — only the queue source differs (GitHub Issues vs local task files).
-- The knowledge library pattern (`.claude/lessons.md` index + `.claude/knowledge/<slug>.md` details) is identical.
+- The four-phase shape (Ponder, Forge, Temper, Seal) is canonical.
+- The dependency-aware queue (topo-sort by blockers, parsed from issue bodies) drives dispatch order.
+- The dispatch loop logic in Forge is fixed — temper workers, max 2 concurrent, sentinel-driven advancement.
+- The knowledge library pattern (`.claude/lessons.md` index + `.claude/knowledge/<slug>.md` details) is how lessons compound.
 
 ## Sentinel protocol
 
@@ -96,8 +96,8 @@ TEMPER:RESULT {"status":"fail","issue":21,"pr":null,"branch":"feat/#21-temper-se
 If no `TEMPER:RESULT` line is present in temper's output, Forge treats the run as
 `status: "fail"` with reason `"no result sentinel"` and applies the fail branch.
 
-Sentinels are internal protocol — they are never shown to end users in WHJ mode.
-Dev-mode users may see them in forge output.
+Sentinels are internal protocol. They surface in forge output for human inspection
+but are intended for machine parsing by the orchestrator.
 
 ### Legacy (removed)
 

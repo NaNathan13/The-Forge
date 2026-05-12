@@ -300,7 +300,7 @@ When that's done, run /ponder and we'll plan the first slice.
 ```
 
 If Block 6 was "Skip GitHub", omit the Projects/labels bullets and instead say:
-"When you're ready to enable the full pipeline, create a GitHub repo, then re-run kindle or follow docs/dev/setup.md."
+"When you're ready to enable the full pipeline, create a GitHub repo, then re-run kindle or follow docs/setup.md."
 
 ## Anti-patterns
 
@@ -310,7 +310,7 @@ If Block 6 was "Skip GitHub", omit the Projects/labels bullets and instead say:
   files get edited.
 - **Don't proceed if `gh auth status` fails.** Tell them to run `gh auth login` and stop.
 - **Don't create the Projects v2 board.** It's awkward via gh CLI for v2 boards. Print
-  clear next-steps and link to docs/dev/setup.md instead.
+  clear next-steps and link to docs/setup.md instead.
 - **Don't invent placeholder ID values in kanban-move.sh.** Leave the `REPLACE_ME`
   values — the user fills these once their Projects board exists.
 - **Don't ask Block 2 (tech stack) questions when `/examine` will run.** The whole point

@@ -1,6 +1,6 @@
-# Dev Mode
+# The Forge — Workflow Reference
 
-Dev mode is The Forge's build pipeline. You describe what to build; the pipeline plans, implements, tests, and ships it as a sequence of PRs.
+The Forge's build pipeline. You describe what to build; the pipeline plans, implements, tests, and ships it as a sequence of PRs.
 
 ## How it works
 

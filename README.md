@@ -4,17 +4,7 @@ Welcome to The Forge. This is a drop-in Claude Code workflow that takes a projec
 
 The pipeline is **Ponder → Forge → Temper → Seal**: grill the design, inscribe the spec, forge the build queue (dispatching workers that respect dependencies and rate limits), temper each slice into a PR with green CI, then seal the batch by merging and reconciling. After you approve the build-queue pre-flight, it runs end-to-end without intervention.
 
-## Two modes
-
-The Forge supports two experiences on a shared core. Both run the same four-phase pipeline. The first question `./kindle.sh` asks is which one you want.
-
-**Dev Mode** — You've written code before. You know what a Pull Request is. You want the full keyboard-driven workflow with GitHub Issues, Projects, branches, and ~13 slash commands. Get out of my way.
-
-**Weenie Hut Junior Mode** — You're an engineer who doesn't code daily, a PM, a marketer, or anyone who'd rather not look at a terminal. Claude grills you on what you're building, picks the stack for you, scaffolds a real deployed app, and walks you through every feature as it ships. You never touch GitHub. ~6 slash commands.
-
-Pick Dev if you want control. Pick Weenie Hut Junior if you want someone else to drive. The downgrade is not an insult — it's the version built for you.
-
-## Quickstart — Dev Mode
+## Quickstart
 
 ```bash
 # 1. Pull down The Forge
@@ -22,18 +12,12 @@ git clone https://github.com/NaNathan13/The-Forge.git my-new-project
 cd my-new-project
 
 # 2. Light the forge
-./kindle.sh          # Pick "Dev" when asked
+./kindle.sh
 ```
 
 `kindle.sh` checks your tools, offers to remove The Forge's git history (so your project gets its own fresh repo), then launches Claude with the `/kindle` skill. Claude asks ~10 questions (project name, tech stack, first phase, GitHub repo) and fills in `CLAUDE.md`, `MISSION-CONTROL.md`, `CONTEXT.md`, runs `git init`, and creates the GitHub repo for *your* project. After it's done, `kindle.sh` removes itself.
 
-For manual setup, see [`docs/dev/setup.md`](./docs/dev/setup.md).
-
-Full dev-mode docs: [`docs/dev/`](./docs/dev/)
-
-## Quickstart — Weenie Hut Junior Mode
-
-Coming soon. WHJ mode is designed but not yet built. See [`docs/whj/`](./docs/whj/) for the design and [`docs/future/modes.md`](./docs/future/modes.md) for the full architecture.
+For manual setup, see [`docs/setup.md`](./docs/setup.md). Full workflow reference: [`docs/`](./docs/).
 
 ## The pipeline
 

@@ -1,6 +1,6 @@
 # Context Discipline
 
-The pipeline is designed to keep sessions lean. Bloated context means higher cost and degraded output quality. Both modes (Dev and WHJ) enforce the same limits.
+The pipeline is designed to keep sessions lean. Bloated context means higher cost and degraded output quality.
 
 ## Context-window budget (per-session token limits)
 

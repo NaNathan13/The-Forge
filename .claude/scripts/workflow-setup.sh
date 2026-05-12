@@ -57,7 +57,7 @@ fi
 # --- 4. Verify kanban-move.sh is configured -----------------------------------
 
 if grep -q "REPLACE_ME" .claude/scripts/kanban-move.sh 2>/dev/null; then
-    warn ".claude/scripts/kanban-move.sh still has REPLACE_ME placeholders — fill in your Project IDs (see docs/dev/setup.md)"
+    warn ".claude/scripts/kanban-move.sh still has REPLACE_ME placeholders — fill in your Project IDs (see docs/setup.md)"
 else
     ok ".claude/scripts/kanban-move.sh is configured"
 fi

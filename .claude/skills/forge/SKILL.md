@@ -109,7 +109,7 @@ If you find yourself doing anything else, stop — dispatch a subagent instead.
 
 Temper emits exactly one `TEMPER:RESULT` JSON line at the end of every run. Forge parses
 that line — never the prose summary above it — to decide what happens next. Schema is
-defined in `docs/shared/pipeline.md`.
+defined in `docs/pipeline.md`.
 
 **Parsing:**
 1. Scan the temper subagent's output for the last line beginning with `TEMPER:RESULT `.
