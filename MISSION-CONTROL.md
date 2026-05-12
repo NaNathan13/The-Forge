@@ -5,7 +5,7 @@
 
 ## 🛰️ Telemetry — right now
 
-**Phase:** P0 Foundations ⏳ (0/0) — fill in once the first phase exists
+**Phase:** P0 Foundations ✅ (1/1)
 **In flight:** —
 **Workflow:** Ponder → Forge → Temper pipeline. See [`docs/workflow/`](docs/workflow/) for details.
 
@@ -15,7 +15,7 @@
 /ponder
 ```
 
-> Start the first sub-phase.
+> All phase 0a slices shipped. Run `/ponder` when you have a new direction in mind.
 
 ## ☄️ In flight
 
@@ -35,11 +35,11 @@
     <!-- mc:done=N,N -->        all listed issues closed (shipped)
 -->
 
-### P0 Foundations ░ 0/0
+### P0 Foundations ▓ 1/1
 
 | # | Sub-phase | Status | PRD | Issues |
 | --- | --- | --- | --- | --- |
-| 0a | Example sub-phase row — delete this | ⏳ queued | — | — <!-- mc:none --> |
+| 0a | Dev mode + docs v0 | ✅ shipped | [modes-v0-pr.md](docs/future/modes-v0-pr.md) | #1, #2, #3, #4, #5, #6, #7, #8 <!-- mc:done=1,2,3,4,5,6,7,8 --> |
 
 ## 🛸 Architectural items
 
