@@ -170,7 +170,18 @@ If the push fails because gh is auth'd as a different account than the repo owne
 the remote from `git@github.com:...` to `https://github.com/...`, run `gh auth setup-git`,
 and retry. Report the switch in plain language.
 
-### 7. Delete `kindle.sh`
+### 7. Auto-run workflow-setup.sh
+
+If a remote was set up (not the "Skip GitHub" path), run the label-creation script:
+
+```bash
+.claude/scripts/workflow-setup.sh
+```
+
+This creates the GitHub labels the pipeline needs (`slice:logic`, `slice:ui`, etc.). The
+script is idempotent — safe to re-run.
+
+### 8. Delete `kindle.sh`
 
 Kindle is a one-shot. After success, ask once: "Remove `kindle.sh` from the repo? (it's done its job)". Default yes. If yes, `rm kindle.sh` and add it to the next commit:
 
@@ -197,9 +208,7 @@ Next command:   /ponder
 Still TODO (one-time):
   □ Set up your GitHub Projects (v2) board with columns:
       Backlog, Ready, In Progress, In Review, Done
-  □ Edit .claude/scripts/kanban-move.sh — fill in PROJECT_ID, STATUS_FIELD_ID, and the
-    five OPTION_ID_* values (see SETUP.md step 3 for the gh commands to look them up)
-  □ Run .claude/scripts/workflow-setup.sh to create the GitHub labels
+  □ Run .claude/scripts/setup-kanban.sh to configure your GitHub Projects board
 
 When that's done, run /ponder and we'll plan the first slice.
 ```
