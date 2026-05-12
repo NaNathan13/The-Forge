@@ -1,6 +1,7 @@
 ---
 name: kindle
 description: Bootstrap a new project on The Forge — Q&A to fill CLAUDE.md, MISSION-CONTROL.md, and CONTEXT.md, then git init and create the GitHub repo. Use at the very start of a new project (usually launched by ./kindle.sh) or when the user says "kindle this project", "set up The Forge here", or "/kindle".
+disable-model-invocation: true
 ---
 
 # Kindle — light the forge

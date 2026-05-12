@@ -18,7 +18,7 @@ stay lean, hand off to fresh sessions when context grows.
 ### 1. Setup
 - Create branch: `feat/#<N>-short-description`
 - Move issue to In Progress: `.claude/scripts/kanban-move.sh <N> in-progress`
-- Do NOT bulk-load `.claude/lessons.md` — consult it reactively if you hit a wall
+- Do NOT bulk-load `.claude/lessons.md` or any `.claude/knowledge/*.md` file. Consult them reactively if you hit a wall — read the lessons.md index first, then load specific knowledge files only when an entry matches your error.
 
 ### 2. Build
 - Implement the feature per the issue spec
@@ -59,23 +59,27 @@ deletes it as part of cleanup once the slice is merged.
 
 ## Context discipline
 
-Temper subagents are the biggest token cost in the pipeline. Guard context aggressively:
+Two distinct concerns. Guard both.
 
-- **40% context usage — warning.** Finish your current phase (build/verify/PR), then
-  evaluate whether to continue or hand off. Prefer handing off.
-- **50% context usage — hard stop.** Write a continuation file and emit `TEMPER:CONTINUE:<N>`
-  immediately. Do not attempt further work.
-- **Don't load heavy docs proactively.** No MISSION-CONTROL.md, WORKFLOW.md, or
-  lessons.md at session start. Read them reactively and only the relevant sections.
-- **CI failure fix sessions.** If CI fails after PR is opened, forge can dispatch a
-  fresh subagent with just the branch name, PR number, and failure log — minimal context
-  for a targeted fix.
+### A. Context-window (per-session token budget)
+
+Temper subagents are the biggest token cost in the pipeline.
+
+- **40% context usage — warning.** Finish your current phase (build/verify/PR), then evaluate whether to continue or hand off. Prefer handing off.
+- **50% context usage — hard stop.** Write a continuation file and emit `TEMPER:CONTINUE:<N>` immediately. Do not attempt further work.
+- **Don't load heavy docs proactively.** No MISSION-CONTROL.md, WORKFLOW.md, or knowledge files at startup.
+- **Use the knowledge library only when stuck.** Read `.claude/lessons.md` (the cheap index). If an entry's error signature matches what you're seeing, load `.claude/knowledge/<slug>.md` for the fix. Don't load knowledge files speculatively.
+- **CI failure fix sessions.** If CI fails after PR is opened, forge dispatches a fresh subagent with just the branch name, PR number, and failure log — minimal context for a targeted fix.
+
+### B. Session rate-limit (5-hour rolling account budget)
+
+If your session-usage observation (via ccusage or equivalent) reads >90%, finish the current step you're on (build, test, PR, or CI poll) and then emit `TEMPER:CONTINUE:<N>` with a continuation file. Forge will pause the queue and resume when the rate-limit window rotates. Don't push through past 95% — work past that point will fail outright.
 
 ### Continuation file format
 Write `.claude/temper-continue-<N>.md` with:
 - Issue number, branch name, PR number (if opened)
 - What's done, what's left
-- Any state needed to resume
+- Any state needed to resume (e.g. "blocked on rate limit at 96% — retry CI poll on resume")
 
 ## Friction flagging
 When temper hits friction (unexpected failure, confusing spec, missing dependency, flaky test):

@@ -15,6 +15,9 @@ Thumbs.db
 .claude/settings.local.json
 .claude/scheduled_tasks.lock
 
+# Tinker scratch dirs (throwaway exploratory work)
+.tinker/
+
 # Dependency / build (uncomment per project)
 # node_modules/
 # dist/

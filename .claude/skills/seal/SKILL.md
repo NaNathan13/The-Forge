@@ -12,8 +12,13 @@ Idempotent: running `/seal` twice in a row with no new work between produces no 
 ## Invocation
 
 ```
-/seal             # close out everything ready to ship
+/seal             # interactive — shows the plan, asks for approval before merging
+/seal --auto      # autonomous — used when forge invokes seal at end of run.
+                  #   Skips per-batch confirmation (user already approved at forge pre-flight).
+                  #   Still skips PRs with friction / needs-human / non-green CI.
 ```
+
+When seal is invoked by `/forge` at end of run, it runs in `--auto` mode. When a user types `/seal` directly, it runs interactively (default).
 
 ## Process
 
@@ -54,6 +59,8 @@ Proceed? (yes / no)
 ```
 
 Default `yes` on enter. If the user says no, stop without changes.
+
+**`--auto` mode behavior:** Print the same summary for visibility, but **skip the approval prompt** and proceed directly to step 4. The user already approved this batch at the forge pre-flight. The friction/needs-human/CI-red filter (step 2) still applies — `--auto` doesn't override those skips, it just removes the human confirmation.
 
 ### 4. Ship each shippable PR
 
@@ -127,9 +134,10 @@ If step 5 produced a diff:
 ```bash
 git add MISSION-CONTROL.md
 git commit -m "chore(mc): seal $(date +%Y-%m-%d) — <N> slices shipped"
+git push
 ```
 
-Ask once before pushing the commit. Default yes.
+In interactive mode, ask once before pushing. Default yes. In `--auto` mode, push without prompting.
 
 ### 8. Print the run summary
 

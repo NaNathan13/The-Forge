@@ -40,19 +40,26 @@ Temper subagents are the biggest token cost. Guard context aggressively:
 
 ## Forge dispatch loop
 
-Forge is an **autonomous dispatch loop**. After the user approves the build queue, it runs without intervention until the queue is drained or a `NEEDS_HUMAN` sentinel fires.
+Forge is an **autonomous dispatch loop**. After the user approves the build queue, it runs end-to-end through merged PRs and updated MC without intervention.
 
-1. Query `ready-for-agent` issues (optionally filtered by `--phase <id>`)
-2. Present build queue table for user approval
-3. On approval, begin the autonomous loop:
+1. Query `ready-for-agent` issues (optionally filtered by `--phase <id>`).
+2. **Parse `Blocked by:` from each issue body**; topo-sort the queue; within each unblocked tier, sort logic → mixed → ui then by issue number. Flag cycles.
+3. Present build queue table for user approval (showing the dependency edges).
+4. On approval, begin the autonomous loop:
    a. Dispatch temper workers as subagents with `isolation: "worktree"`
    b. Max 2 concurrent workers — wait for one to finish before starting a third
-   c. Handle sentinels: log tokens on success, retry once on failure, spawn continuations
-   d. Loop to next slice (no user confirmation between slices)
-4. After all slices: review friction-labelled PRs, update lessons.md, suggest next step
+   c. Respect the dependency graph: don't dispatch a temper whose blockers haven't shipped (or aren't currently in flight with green CI)
+   d. Handle sentinels: log tokens on success, retry once on failure, spawn continuations
+   e. Loop to next slice (no user confirmation between slices)
+5. After all slices: review friction-labelled PRs, update `lessons.md` (index) and write detail files to `knowledge/<slug>.md` for new patterns.
+6. **Auto-invoke `/seal --auto`** to merge all shippable PRs, reconcile MC, clean up runtime artifacts. The user's pre-flight approval covered this.
+7. Print MC's "Recommended next prompt" as the suggested next step.
 
 ### Forge context overflow
 At **40% context usage**, forge writes `.claude/forge-continue.md` (queue state, in-flight workers, token log entries, resume invocation) and starts a fresh session.
+
+### Forge session rate-limit
+Forge polls ccusage between dispatches. At **90% session usage**, finish in-flight tempers without dispatching new ones. At **95%**, write `forge-continue.md` and use `ScheduleWakeup` to resume in ~30 minutes (when the 5-hour window rotates).
 
 ## CI
 

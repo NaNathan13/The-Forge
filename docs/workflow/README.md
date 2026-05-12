@@ -20,11 +20,14 @@
 | Command | What it does |
 |---------|-------------|
 | `/temper <N>` | Build issue #N end-to-end (usually dispatched by forge, can run standalone) |
+| `/seal` | Close out a batch — approve/merge open temper PRs, reconcile MC, clean up (auto-invoked by forge) |
 | `/grill-me` | Standalone Q&A on any topic |
 | `/diagnose` | Structured debugging for hard bugs |
 | `/sharpen` | Hone a rough idea into a precise prompt |
-| `/write-a-skill` | Meta — author a new skill |
-| `/seal` | Reconcile MISSION-CONTROL.md against GitHub state |
+| `/tinker <topic>` | Throwaway prototype branch for exploratory work; skips the pipeline |
+| `/rollback <PR>` | Revert a shipped slice that caused a regression (manual-only) |
+| `/write-a-skill` | Meta — author a new skill (manual-only) |
+| `/kindle` | First-run project bootstrap (manual-only; usually invoked via `./kindle.sh`) |
 
 ## Forge (the forgemaster)
 

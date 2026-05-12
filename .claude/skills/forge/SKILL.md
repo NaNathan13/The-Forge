@@ -22,21 +22,45 @@ build → test → PR → CI → merge.
 ## Pre-flight: Build Queue Preview
 
 Before dispatching any workers:
-1. Query: `gh issue list --label ready-for-agent --state open --json number,title,labels`
-2. If `--phase <id>` was passed, filter to issues with `phase:<id>` label
-3. Present the build queue as a numbered table:
 
-| # | Issue | Title | Slice | Summary |
-|---|-------|-------|-------|---------|
+1. **Query open ready-for-agent issues.**
+   ```bash
+   gh issue list --label ready-for-agent --state open --json number,title,labels,body
+   ```
+2. If `--phase <id>` was passed, filter to issues with the `phase:<id>` label.
 
-4. Ask the user to approve, reorder, or remove slices before execution begins
-5. On approval, begin the autonomous dispatch loop
+3. **Parse the dependency graph.** For each issue, scan the body for a `## Blocked by` section. Possible values:
+   - `None - can start immediately` → no dependencies
+   - `#42, #43` (or any comma/newline-separated list of issue numbers) → blocked by those issues
+   - `#42 (logic), #43 (db schema)` → also valid; parse out the `#N` tokens
+   Issues whose blockers are NOT in the current build queue are treated as unblocked (those blockers presumably already shipped on `main`).
+
+4. **Topo-sort the queue.** Within each "stratum" of the DAG (issues whose blockers are all earlier in the queue), apply the slice-type secondary sort: `slice:logic` first, `slice:mixed` second, `slice:ui` third. Within each slice type, sort by issue number ascending (stable).
+
+5. **Detect cycles or stranded slices.** If any issue's blockers create a cycle, or if a blocker isn't in the queue AND isn't already merged on `main`, flag it to the user. Don't proceed with an inconsistent graph.
+
+6. **Present the build queue as a numbered table** with a `Blocked by` column:
+
+   | # | Issue | Title | Slice | Blocked by | Summary |
+   |---|-------|-------|-------|------------|---------|
+   | 1 | #95  | logic: derive-status function | logic | — | … |
+   | 2 | #96  | ui: status chip on cards | ui | #95 | … |
+
+7. **Ask the user to approve, reorder, or remove slices.** Show the dependency edges explicitly: "Building #95 first because #96 is blocked by it." If the user reorders into something that violates a dependency, warn and either re-sort or accept (with their explicit OK).
+
+8. On approval, begin the autonomous dispatch loop.
 
 ## Dispatch Loop
 
 For each approved slice, in order:
-1. Note the start timestamp
-2. Dispatch temper as a subagent:
+
+1. **Respect the dependency graph.** Before dispatching a temper for issue `N`, confirm all of its blockers are either (a) already merged on `main`, or (b) currently being shipped by a temper that's emitted `TEMPER:SUCCESS` (PR open, CI green). If a blocker is still in flight, hold this slice until its blocker resolves.
+
+2. **Check session usage** (see "Session rate-limit awareness" below). If usage is ≥95%, do NOT dispatch — write `forge-continue.md` and pause.
+
+3. Note the start timestamp.
+
+4. Dispatch temper as a subagent:
    ```
    Agent({
      subagent_type: "general-purpose",
@@ -45,10 +69,12 @@ For each approved slice, in order:
      isolation: "worktree"
    })
    ```
-3. Max 2 concurrent temper workers. Wait for one to complete before dispatching a third.
-4. On temper completion, handle the sentinel (see below)
-5. Loop back to the next slice. This is an autonomous loop — no user confirmation between
-   slices unless a `NEEDS_HUMAN` sentinel fires.
+
+5. Max 2 concurrent temper workers. Wait for one to complete before dispatching a third.
+
+6. On temper completion, handle the sentinel (see below).
+
+7. Loop back to the next slice. This is an autonomous loop — no user confirmation between slices unless a `NEEDS_HUMAN` sentinel fires.
 
 ## Sentinel Handling
 
@@ -61,24 +87,43 @@ For each approved slice, in order:
 
 ## Context Discipline
 
-Context bloat is the #1 cost driver. Every session — forge and temper — should stay lean.
+Two distinct constraints; both matter; manage both.
 
-### Temper subagent limits
+### A. Context-window discipline (per-session token budget)
+
+Context bloat is the #1 cost driver inside a single session. Every session — forge and temper — should stay lean.
+
+**Temper subagent limits:**
 - **40% context — warning.** Temper should finish its current phase and evaluate handoff.
 - **50% context — hard stop.** Write continuation file, emit `TEMPER:CONTINUE:<N>`.
-- Temper workers start fresh (worktree isolation) and load only the issue + auto-loaded rules.
-  No bulk-loading of lessons.md, MISSION-CONTROL.md, or WORKFLOW.md at startup.
-- If CI fails after PR is opened, forge dispatches a **fresh subagent** with just the
-  branch name, PR number, and failure log — not the full build context.
+- Temper workers start fresh (worktree isolation) and load only the issue + auto-loaded rules. No bulk-loading of lessons.md, MISSION-CONTROL.md, or WORKFLOW.md at startup. Consult `lessons.md` (the index) reactively when stuck; load `knowledge/<slug>.md` only when the index points there.
+- If CI fails after PR is opened, forge dispatches a **fresh subagent** with just the branch name, PR number, and failure log — not the full build context.
 
-### Forge self-limits
-- **40% context — start fresh.** Write `.claude/forge-continue.md` with queue state,
-  in-flight workers, token log entries, and the resume invocation. Start a new session.
+**Forge self-limits:**
+- **40% context — start fresh.** Write `.claude/forge-continue.md` with queue state, in-flight workers, token log entries, and the resume invocation. Start a new session.
 
-### Why this matters
-As context fills, responses get more expensive (cache misses compound) and quality degrades.
-Fresh sessions are cheap. The overhead of writing a continuation file and spawning a new
-session is negligible compared to the cost of running in a bloated context.
+As context fills, responses get more expensive (cache misses compound) and quality degrades. Fresh sessions are cheap.
+
+### B. Session rate-limit awareness (5-hour rolling account budget)
+
+Claude Code enforces per-account session usage limits on a rolling 5-hour window. Hitting the limit mid-batch causes work to fail outright — much worse than the gradual quality decay of context bloat. Forge proactively monitors:
+
+**Where to read usage:**
+```bash
+npx ccusage@latest session --json
+```
+The exact field name varies by ccusage version; look for usage percent / quota remaining. Cache the value so you're not running ccusage on every loop iteration — once per slice dispatch is enough.
+
+**Thresholds:**
+- **90% session usage — warning.** Finish in-flight tempers. Do not dispatch new ones.
+- **95% session usage — hard stop.** Write `.claude/forge-continue.md` with queue state. Use the `ScheduleWakeup` tool (or equivalent) to resume in ~30 minutes (the 5-hour window will have rotated). Notify the user: "Paused at 95% session usage. Resuming at <time>." Then end the current session.
+
+**On wake-up:**
+1. Re-check usage. If <80%, resume the dispatch loop from `forge-continue.md`.
+2. If still >80%, sleep another 30 minutes via `ScheduleWakeup`.
+3. After 3 consecutive sleeps without recovery, ping the user — something's off (heavy concurrent usage outside this pipeline?).
+
+**Why this matters:** Context-window pressure (A) is gradual — quality degrades. Session-limit pressure (B) is a cliff — work just fails. The 90/95 thresholds give a buffer to land safely.
 
 ## Sub-Agent Token Discipline
 
@@ -109,26 +154,42 @@ After each temper completes:
 
 ## Friction Review
 
-After all slices in a batch complete:
-1. Check for any PRs with the `friction` label: `gh pr list --label friction --state merged --json number,title`
-2. For each, read the friction comment
-3. If a pattern appears across multiple PRs, append a lesson to `.claude/lessons.md`
-4. Report friction summary to the user
+After all temper workers complete (before invoking /seal):
+1. Check for any PRs with the `friction` label: `gh pr list --label friction --state open --json number,title`
+2. For each, read the friction comment.
+3. If a pattern appears across multiple PRs, append a lesson to `.claude/lessons.md` (the index) and a detail file to `.claude/knowledge/<slug>.md` per the format in `.claude/lessons.md`.
+4. Report the friction summary to the user.
 
-## End of Run
+Note: friction-labelled PRs are intentionally **skipped** by `/seal`. They stay open for human review.
 
-When the build queue is drained:
-1. Print summary: slices completed, slices skipped (needs-human), total time
-2. **Always recommend `/seal` next.** Every successful temper left a PR open and CI-green; nothing is merged yet. Print:
-   > "All temper workers complete. <N> PRs are open and ready to ship. Run `/seal` to approve, merge, and reconcile MISSION-CONTROL.md."
-3. Then suggest the post-seal next step based on `MISSION-CONTROL.md`:
-   > "After `/seal`: Phase 2a will be complete. Next up is 2b (filter sheet). Run: `/ponder 2b — filter sheet with swipe-to-delete`"
-4. Or if all phases are done after seal: "After `/seal`, all planned work is shipped. Run `/ponder` for whatever's next."
+## End of Run — Auto-ship
+
+The user's approval at the build-queue pre-flight covers the entire batch. Forge does not pause between dispatch and ship.
+
+When the temper workers have all completed (or been skipped):
+
+1. **Print summary** — slices completed, slices skipped (needs-human / friction), total wall-clock time, total tokens (from token-usage.jsonl rows for this batch).
+
+2. **Invoke `/seal --auto` autonomously.** This is part of forge's job; the user does not need to type /seal manually.
+   - `--auto` mode tells seal to skip the interactive PR-by-PR approval prompt — the user's approval at step 7 of pre-flight already covered the whole batch.
+   - Seal will still skip individual PRs that have `friction` / `needs-human` labels or non-green CI.
+   - Seal handles approval + merge + MC reconciliation + cleanup as documented in seal/SKILL.md.
+
+3. **After seal completes**, read MISSION-CONTROL.md's "Recommended next prompt" and print it as the suggested next step.
+
+   Examples:
+   > "Phase 2a is now complete (6 slices shipped, 0 skipped). Next: `/ponder 2b — filter sheet with swipe-to-delete`"
+   > "All planned work is shipped. Run `/ponder` when you have a new direction in mind."
+
+The user can intervene at any point (Ctrl+C, send a message) but the default flow is end-to-end autonomous from pre-flight approval through merged PRs and updated MC.
 
 ## Rules
-- Forge is an autonomous loop — dispatch, handle, loop. No pause between slices.
-- Max 2 concurrent temper subagents
-- Always present build queue before dispatching — never skip user approval
-- Token logging is forge's responsibility, not temper's
-- Poll sub-agents actively; don't go silent
-- Start fresh session at 40% context usage
+- Forge is an autonomous loop — dispatch, handle, loop, ship. The pre-flight approval is the only required user touch-point.
+- Max 2 concurrent temper subagents.
+- Always present build queue before dispatching — never skip user approval at pre-flight.
+- Respect the dependency graph; never dispatch a temper whose blockers haven't shipped.
+- Token logging is forge's responsibility, not temper's.
+- Poll sub-agents actively; don't go silent.
+- Start fresh session at 40% context usage.
+- Pause at 95% session usage; resume via ScheduleWakeup.
+- Always auto-invoke `/seal --auto` at end of run. The user opted into this when they approved the build queue.

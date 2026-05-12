@@ -7,22 +7,35 @@
 `/ponder` → grill → `/inscribe` (PRD → issues → triage) → all slices labelled `ready-for-agent`
 
 ## Build phase
-`/forge` presents the build queue → user approves → autonomous dispatch loop begins.
+`/forge` presents the build queue (topo-sorted by `Blocked by:` from each issue) → user approves → autonomous dispatch loop begins.
 
 `/temper <N>` per slice: setup → build → verify → PR → CI (Monitor, zero cost) → **stop at green CI** (no merge)
 
 ## Ship phase
-`/seal` runs after the build queue drains:
+`/seal --auto` is invoked automatically by `/forge` at end of run (the user's pre-flight approval covered the whole batch). Manual `/seal` is interactive.
+
+Seal:
 - Lists open PRs from temper branches
-- Approves + squash-merges each one that has green CI and no `friction` / `needs-human` label
-- Reconciles `MISSION-CONTROL.md` (advances rows, updates the Recommended next prompt)
+- Approves + squash-merges each one with green CI and no `friction` / `needs-human` label
+- Reconciles `MISSION-CONTROL.md` (advances rows, updates Recommended next prompt)
 - Cleans up `.claude/temper-continue-*.md` and `temper-summary-*.md` for shipped slices
 
-## Context discipline
-- Temper subagents: **40% context = warning** (wrap up current phase), **50% = hard stop** (write continuation, hand off)
-- Forge: **40% context = start fresh session** with continuation file
-- No bulk-loading heavy docs at startup — read reactively when needed
+## Context discipline (two axes)
+
+**Context-window (per-session token budget):**
+- Temper subagents: 40% = warning (wrap up current phase), 50% = hard stop (write continuation, hand off)
+- Forge: 40% = start fresh session with continuation file
+- No bulk-loading heavy docs at startup — consult `lessons.md` (index) reactively; load `knowledge/<slug>.md` only when an index entry matches
 - CI failure fixes get a fresh subagent with just the failure log + branch info
+
+**Session rate-limit (5-hour rolling account budget):**
+- Forge polls ccusage; 90% = warning (finish in-flight, don't dispatch new); 95% = hard-stop, ScheduleWakeup to resume in ~30 min
+- Temper at >90% finishes current step then emits `TEMPER:CONTINUE:<N>` so forge can pause the queue
+
+## Lessons + knowledge library
+- `.claude/lessons.md` — one-line index (cheap to load)
+- `.claude/knowledge/<slug>.md` — full content per entry (loaded only when matched)
+- Temper reads the index reactively, drills into a specific knowledge file only when needed
 
 ## Slice labels
 - `slice:logic` — code + tests only
