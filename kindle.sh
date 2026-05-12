@@ -40,6 +40,11 @@ echo "  3. Launch Claude with a Q&A that fills in your project files"
 echo "  4. Create a GitHub repo for you (if you want)"
 echo "  5. Get out of your way."
 echo
+echo "Three starting points are supported:"
+echo "  • Fresh project   — scaffold from scratch"
+echo "  • Existing code   — wrap The Forge around a directory or git URL you point at"
+echo "  • Starter template — Claude suggests a real starter; you pick; it clones; /examine fills CLAUDE.md"
+echo
 read -r -p "Press Enter to begin (or Ctrl+C to cancel)..." _
 
 # ─── mode picker ──────────────────────────────────────────────────────────────
@@ -153,8 +158,18 @@ if [[ -d ".git" ]]; then
   elif git rev-parse HEAD >/dev/null 2>&1; then
     echo
     yellow "  ! This directory is already a git repo with commits (not The Forge's)."
-    yellow "    Kindle will skip 'git init' and try to use the existing repo."
+    yellow "    Kindle will reuse the existing repo (existing-codebase / starter-template flow)."
+    yellow "    /examine will detect the stack."
   fi
+fi
+
+# Mid-flow re-launch detection: if a previous /kindle run cloned a starter template
+# or wrapped an existing codebase but Claude exited before finishing, the directory
+# now has user code AND The Forge files. That's expected — just inform the user.
+if [[ -f ".claude/.kindle-in-progress" ]]; then
+  echo
+  yellow "  ! A previous /kindle run was interrupted (marker: .claude/.kindle-in-progress)."
+  yellow "    Re-launching Claude — pick up where you left off, or say 'start over'."
 fi
 
 # ─── launch claude ─────────────────────────────────────────────────────────────
