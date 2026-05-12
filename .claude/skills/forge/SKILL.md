@@ -54,7 +54,7 @@ Before dispatching any workers:
 
 For each approved slice, in order:
 
-1. **Respect the dependency graph.** Before dispatching a temper for issue `N`, confirm all of its blockers are either (a) already merged on `main`, or (b) currently being shipped by a temper that's emitted `TEMPER:SUCCESS` (PR open, CI green). If a blocker is still in flight, hold this slice until its blocker resolves.
+1. **Respect the dependency graph.** Before dispatching a temper for issue `N`, confirm all of its blockers are either (a) already merged on `main`, or (b) currently being shipped by a temper that's emitted `TEMPER:RESULT` with `"status":"success"` (PR open, CI green). If a blocker is still in flight, hold this slice until its blocker resolves.
 
 2. **Check session usage** (see "Session rate-limit awareness" below). If usage is ≥95%, do NOT dispatch — write `forge-continue.md` and pause.
 
@@ -107,12 +107,31 @@ If you find yourself doing anything else, stop — dispatch a subagent instead.
 
 ## Sentinel Handling
 
-| Sentinel | Forge action |
+Temper emits exactly one `TEMPER:RESULT` JSON line at the end of every run. Forge parses
+that line — never the prose summary above it — to decide what happens next. Schema is
+defined in `docs/shared/pipeline.md`.
+
+**Parsing:**
+1. Scan the temper subagent's output for the last line beginning with `TEMPER:RESULT `.
+2. Strip the prefix and `JSON.parse` the remainder.
+3. Read `status`, `issue`, `pr`, `branch`, and (if present) `continuation_file`,
+   `reason`, `friction`. `tokens` is always `null` from temper — Forge fills it in via
+   ccusage during the token-logging step (see "Token Logging").
+4. If no `TEMPER:RESULT` line is found, treat the run as `status: "fail"` with reason
+   `"no result sentinel"` and apply the fail branch below.
+
+**Action by `status`:**
+
+| `status` | Forge action |
 |----------|---------------|
-| `TEMPER:SUCCESS` | PR is open with CI green. Log tokens, move to next slice (`/seal` will merge later) |
-| `TEMPER:CONTINUE:<N>` | Read `.claude/temper-continue-<N>.md`, dispatch fresh temper with continuation context |
-| `TEMPER:NEEDS_HUMAN:<reason>` | Log the reason, notify user, skip to next slice |
-| `TEMPER:FAIL:<reason>` | Retry once with fresh session. If second failure, mark `needs-human`, skip |
+| `success` | PR is open with CI green. Use `pr` and `branch` from the JSON. Log tokens, move to next slice (`/seal` will merge later). |
+| `continue` | Read the file at `continuation_file` (typically `.claude/temper-continue-<issue>.md`), dispatch fresh temper with continuation context. |
+| `needs_human` | Log `reason` (and `friction` text if present), notify user, skip to next slice. |
+| `fail` | Log `reason`. Retry once with fresh session. If second `fail`, mark needs-human, skip. |
+
+The legacy prose sentinels (`TEMPER:SUCCESS`, `TEMPER:CONTINUE:<N>`,
+`TEMPER:NEEDS_HUMAN:<reason>`, `TEMPER:FAIL:<reason>`) are no longer emitted by temper.
+Do not write regex-based parsing for them — `TEMPER:RESULT` JSON is the only protocol.
 
 ## Context Discipline
 
@@ -124,7 +143,7 @@ Context bloat is the #1 cost driver inside a single session. Every session — f
 
 **Temper subagent limits:**
 - **40% context — warning.** Temper should finish its current phase and evaluate handoff.
-- **50% context — hard stop.** Write continuation file, emit `TEMPER:CONTINUE:<N>`.
+- **50% context — hard stop.** Write continuation file, emit `TEMPER:RESULT` with `"status":"continue"`.
 - Temper workers start fresh (worktree isolation) and load only the issue + auto-loaded rules. No bulk-loading of lessons.md, MISSION-CONTROL.md, or WORKFLOW.md at startup. Consult `lessons.md` (the index) reactively when stuck; load `knowledge/<slug>.md` only when the index points there.
 - If CI fails after PR is opened, forge dispatches a **fresh subagent** with just the branch name, PR number, and failure log — not the full build context.
 
@@ -234,13 +253,15 @@ Rules for this file:
 ## Token Logging
 
 After each temper completes:
-1. Note the end timestamp
-2. Query ccusage for sessions in the [start, end] time window: `npx ccusage@latest session --json`
-3. Append correlation row to `.claude/token-usage.jsonl`:
+1. Note the end timestamp.
+2. Pull `issue`, `pr`, and `branch` from the parsed `TEMPER:RESULT` JSON (do not regex
+   the prose summary).
+3. Query ccusage for sessions in the [start, end] time window: `npx ccusage@latest session --json`
+4. Append correlation row to `.claude/token-usage.jsonl`:
    ```json
    {"ts":"<end>","issue":<N>,"pr":<PR>,"branch":"feat/#<N>-...","start":"<start>","end":"<end>","num_turns":<from_ccusage>}
    ```
-4. Stamp the PR description with a token summary (edit via `gh pr edit`)
+5. Stamp the PR description with a token summary (edit via `gh pr edit`).
 
 ## Friction Review
 
