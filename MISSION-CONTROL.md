@@ -5,17 +5,17 @@
 
 ## 🛰️ Telemetry — right now
 
-**Phase:** P0 Foundations ✅ (1/1)
+**Phase:** P1 Workflow hardening 🚧 (0/4)
 **In flight:** —
 **Workflow:** Ponder → Forge → Temper pipeline. See [`docs/workflow/`](docs/workflow/) for details.
 
 **Recommended next prompt:**
 
 ```
-/ponder
+/forge --phase 1b
 ```
 
-> All phase 0a slices shipped. Run `/ponder` when you have a new direction in mind.
+> Phase 0a shipped. Workflow-hardening sub-phases (1b-1e) are filed and ready. Run `/forge` in a **fresh session** to execute — current session has bloated context and would violate its own discipline rules.
 
 ## ☄️ In flight
 
@@ -40,6 +40,17 @@
 | # | Sub-phase | Status | PRD | Issues |
 | --- | --- | --- | --- | --- |
 | 0a | Dev mode + docs v0 | ✅ shipped | [modes-v0-pr.md](docs/future/modes-v0-pr.md) | #1, #2, #3, #4, #5, #6, #7, #8 <!-- mc:done=1,2,3,4,5,6,7,8 --> |
+
+### P1 Workflow hardening ░ 0/4
+
+Drawn from the 2026-05-12 smoke-test debrief. See [`docs/ideas.md`](docs/ideas.md) and the issue bodies for context.
+
+| # | Sub-phase | Status | PRD | Issues |
+| --- | --- | --- | --- | --- |
+| 1b | Orchestrator hygiene — context discipline, conflict subagent, push helper | ⏳ queued | — | #17, #18, #19 <!-- mc:open=17,18,19 --> |
+| 1c | `/prototype` — fast-mode entry point | ⏳ queued | — | #20 <!-- mc:open=20 --> |
+| 1d | Temper sentinel — structured JSON | ⏳ queued | — | #21 <!-- mc:open=21 --> |
+| 1e | Kindle — existing codebase + `/examine` | ⏳ queued | — | #22, #23 <!-- mc:open=22,23 --> |
 
 ## 🛸 Architectural items
 
