@@ -1,13 +1,13 @@
 # 🚀 {{PROJECT_NAME}} — Mission Control
 
 > Ground station for the project's trajectory — where it stands, and the next burn.
-> Auto-updated by pipeline skills (`/inscribe`, `/forge`, `/sync-mission-control`). Each phase updates the "Recommended next prompt". Drift between this doc and GitHub issue state is surfaced as a SessionStart reminder.
+> Auto-updated by pipeline skills (`/inscribe`, `/hammer`, `/sync-mission-control`). Each phase updates the "Recommended next prompt". Drift between this doc and GitHub issue state is surfaced as a SessionStart reminder.
 
 ## 🛰️ Telemetry — right now
 
 **Phase:** P0 Foundations ⏳ (0/0) — fill in once the first phase exists
 **In flight:** —
-**Workflow:** Ponder → Foundry → Forge pipeline. See [`docs/workflow/`](docs/workflow/) for details.
+**Workflow:** Ponder → Forge → Hammer pipeline. See [`docs/workflow/`](docs/workflow/) for details.
 
 **Recommended next prompt:**
 
@@ -25,7 +25,7 @@
 
 <!--
   Sub-phases live in tables under phase headers. As work is filed and shipped,
-  /inscribe, /forge, and /sync-mission-control update these rows.
+  /inscribe, /hammer, and /sync-mission-control update these rows.
 
   Status emoji: ⏳ queued · 🔥 grilling · 📝 prd-ready · 🚧 in-progress · ✅ shipped · ⏸ deferred
 
@@ -67,4 +67,4 @@
 
 **Phase progress bars:** `▓` = shipped sub-phase, `░` = not yet shipped. Format: `▓▓░░░ 2/5`.
 
-**Updated by:** `/inscribe` (PRD + issues + triage), `/forge` (in-progress status), `/sync-mission-control` (post-merge reconciliation). Each phase also updates the "Recommended next prompt".
+**Updated by:** `/inscribe` (PRD + issues + triage), `/hammer` (in-progress status), `/sync-mission-control` (post-merge reconciliation). Each phase also updates the "Recommended next prompt".

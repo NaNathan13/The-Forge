@@ -6,10 +6,10 @@ Thumbs.db
 .vscode/
 .idea/
 
-# Forge / Foundry runtime artifacts
-.claude/forge-continue-*.md
-.claude/foundry-continue.md
-.claude/forge-summary-*.md
+# Forge / Hammer runtime artifacts
+.claude/hammer-continue-*.md
+.claude/forge-continue.md
+.claude/hammer-summary-*.md
 .claude/token-usage.jsonl
 .claude/worktrees/
 .claude/settings.local.json

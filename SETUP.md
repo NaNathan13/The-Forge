@@ -105,14 +105,14 @@ If your project has UI styling conventions, database/migration rules, or canonic
 This grills you on the first piece of work, files issues, triages them, and prints the handoff. Then:
 
 ```
-/foundry --phase 0a
+/forge --phase 0a
 ```
 
-Foundry shows the build queue, you approve, and the dispatch loop runs.
+Forge shows the build queue, you approve, and the dispatch loop runs.
 
 ## Customizing skill names
 
-The metalworking metaphor (forge, foundry, inscribe, sharpen) is just convention. To rename:
+The metalworking metaphor (hammer, forge, inscribe, sharpen) is just convention. To rename:
 
 1. Rename the `.claude/skills/<old>/` directory.
 2. Edit the `name:` frontmatter in `SKILL.md`.
@@ -129,7 +129,7 @@ Blacksmith doesn't auto-update. To pull in new versions:
 
 ## Troubleshooting
 
-**`/foundry` complains about no `ready-for-agent` issues** — run `/ponder` first.
+**`/forge` complains about no `ready-for-agent` issues** — run `/ponder` first.
 
 **Kanban moves fail** — re-check the IDs in `.claude/scripts/kanban-move.sh`. The pipeline keeps working; only the board column doesn't update.
 

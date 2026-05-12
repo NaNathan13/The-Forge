@@ -1,11 +1,11 @@
 ---
 name: inscribe
-description: Write the PRD, file issues, triage all slices, then print the foundry handoff. Sub-skill of Ponder — auto-invoked after grilling. Also callable standalone when decisions are already resolved. Triggered by /inscribe, "write it up", "file the issues".
+description: Write the PRD, file issues, triage all slices, then print the forge handoff. Sub-skill of Ponder — auto-invoked after grilling. Also callable standalone when decisions are already resolved. Triggered by /inscribe, "write it up", "file the issues".
 ---
 
 # Inscribe — write up, file, triage, hand off
 
-The "writing" sub-skill of Ponder. Takes resolved design decisions and produces triaged, labeled issues ready for `/forge`. Handles both sub-phase (PRD + multiple issues) and single-slice (one issue) paths.
+The "writing" sub-skill of Ponder. Takes resolved design decisions and produces triaged, labeled issues ready for `/hammer`. Handles both sub-phase (PRD + multiple issues) and single-slice (one issue) paths.
 
 **Inscribe does NOT grill.** If decisions are unresolved, stop and tell the user to run `/ponder` first. Inscribe's job is to execute the mechanical steps: write → file → triage → hand off.
 
@@ -119,7 +119,7 @@ After all issues are triaged:
 **Recommended next prompt:**
 
 \`\`\`
-/foundry --phase <sub-phase-id>
+/forge --phase <sub-phase-id>
 \`\`\`
 
 > Build all <sub-phase-id> slices
@@ -136,12 +136,12 @@ Filed N issues for sub-phase <sub-phase-id>:
 
 Build order: 101 → 102 → 103 → ...
 
-All slices triaged. Run `/foundry` to begin building.
+All slices triaged. Run `/forge` to begin building.
 ```
 
 ## Anti-patterns
 
 - **Don't grill.** Inscribe writes up resolved decisions. If you're tempted to ask a design question, you're in the wrong skill — hand back to Ponder or `/grill-me`.
 - **Don't leave issues untriaged.** Every issue gets a `slice:*` label. No lazy backfill.
-- **Don't run `/forge` from inside inscribe.** Phases are session-scoped. End the session, hand off.
+- **Don't run `/hammer` from inside inscribe.** Phases are session-scoped. End the session, hand off.
 - **Don't guess the sub-phase ID.** Read it from MISSION-CONTROL.md, or ask the user once.

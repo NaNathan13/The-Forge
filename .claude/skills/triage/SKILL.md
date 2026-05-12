@@ -33,7 +33,7 @@ Five **state** roles:
 - `ready-for-human` — needs human implementation
 - `wontfix` — will not be actioned
 
-Three **slice** roles (consumed by `/forge <N>` to choose its build path):
+Three **slice** roles (consumed by `/hammer <N>` to choose its build path):
 
 - `slice:logic` — pure logic, API hooks, DB / schema, no user-facing surface
 - `slice:ui` — user-facing work + visual review (Playwright) + screenshots
@@ -98,7 +98,7 @@ gh issue edit <N> --add-label slice:<logic|ui|mixed>
 
 ## Picking the phase label
 
-Issues use the title format `<sub-phase>/<slice-type>: <description>`. Whenever you move an issue to `ready-for-agent`, also apply a `phase:<sub-phase>` label derived from the title prefix. This lets `/foundry --phase 2a` scope its run to the current sub-phase.
+Issues use the title format `<sub-phase>/<slice-type>: <description>`. Whenever you move an issue to `ready-for-agent`, also apply a `phase:<sub-phase>` label derived from the title prefix. This lets `/forge --phase 2a` scope its run to the current sub-phase.
 
 ```
 gh issue edit <N> --add-label phase:<sub-phase>
@@ -138,7 +138,7 @@ When called by `/inscribe`, triage receives **all issues at once**. In batch mod
 
 1. **Triage every slice immediately.** Apply labels (`ready-for-agent` + `slice:*`), post an agent brief comment, and move the kanban card to **Ready** for each issue in a single pass.
 
-2. **Build order determines the recommended first forge.** Issues arrive ordered logic-first, then mixed, then UI.
+2. **Build order determines the recommended first hammer.** Issues arrive ordered logic-first, then mixed, then UI.
 
 3. **Per-issue steps:**
    - Apply category label (`enhancement` or `bug`)

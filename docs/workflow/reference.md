@@ -5,14 +5,14 @@ Detailed reference for the Blacksmith development workflow. For the overview, se
 ## Pipeline
 
 ```
-/ponder (interactive) → /foundry (autonomous dispatch loop) → /forge <N> (subagent workers, max 2 concurrent)
+/ponder (interactive) → /forge (autonomous dispatch loop) → /hammer <N> (subagent workers, max 2 concurrent)
 ```
 
 Each phase runs in its own Claude session. No session-memory continuity between phases — handoff is via on-disk artifacts (issues, PRDs, PR bodies, kanban state).
 
-## Forge lifecycle
+## Hammer lifecycle
 
-Each `/forge <N>` handles a single issue end-to-end:
+Each `/hammer <N>` handles a single issue end-to-end:
 
 1. **Setup** — read issue, create branch (`feat/#<N>-short-description`), move kanban to In Progress
 2. **Build** — implement per issue spec, write tests (logic functions get unit tests, user-facing surfaces get one happy-path render/integration test)
@@ -24,43 +24,43 @@ Each `/forge <N>` handles a single issue end-to-end:
 
 ### Context discipline
 
-Forge subagents are the biggest token cost. Guard context aggressively:
+Hammer subagents are the biggest token cost. Guard context aggressively:
 
 - **Start lean.** Load only the issue and auto-loaded path-scoped rules. Do NOT bulk-load lessons.md, MISSION-CONTROL.md, or WORKFLOW.md at startup. Consult them reactively when needed.
 - **40% context = warning.** Finish the current phase, then evaluate whether to continue or write a continuation file and hand off.
-- **50% context = hard stop.** Write `.claude/forge-continue-<N>.md` (issue number, branch, PR number, what's done, what's left) and emit `FORGE:CONTINUE:<N>`. Foundry reads the file and dispatches a fresh session.
-- **CI failure fixes.** If CI fails after the PR is opened, foundry dispatches a fresh subagent with just the branch name, PR number, and failure log — not the full build context.
+- **50% context = hard stop.** Write `.claude/hammer-continue-<N>.md` (issue number, branch, PR number, what's done, what's left) and emit `HAMMER:CONTINUE:<N>`. Forge reads the file and dispatches a fresh session.
+- **CI failure fixes.** If CI fails after the PR is opened, forge dispatches a fresh subagent with just the branch name, PR number, and failure log — not the full build context.
 
 ### Sentinels
 
-- `FORGE:SUCCESS` — slice merged successfully
-- `FORGE:CONTINUE:<N>` — context overflow, continuation file written
-- `FORGE:NEEDS_HUMAN:<reason>` — stuck, needs user input
-- `FORGE:FAIL:<reason>` — unrecoverable failure
+- `HAMMER:SUCCESS` — slice merged successfully
+- `HAMMER:CONTINUE:<N>` — context overflow, continuation file written
+- `HAMMER:NEEDS_HUMAN:<reason>` — stuck, needs user input
+- `HAMMER:FAIL:<reason>` — unrecoverable failure
 
-## Foundry dispatch loop
+## Forge dispatch loop
 
-Foundry is an **autonomous dispatch loop**. After the user approves the build queue, it runs without intervention until the queue is drained or a `NEEDS_HUMAN` sentinel fires.
+Forge is an **autonomous dispatch loop**. After the user approves the build queue, it runs without intervention until the queue is drained or a `NEEDS_HUMAN` sentinel fires.
 
 1. Query `ready-for-agent` issues (optionally filtered by `--phase <id>`)
 2. Present build queue table for user approval
 3. On approval, begin the autonomous loop:
-   a. Dispatch forge workers as subagents with `isolation: "worktree"`
+   a. Dispatch hammer workers as subagents with `isolation: "worktree"`
    b. Max 2 concurrent workers — wait for one to finish before starting a third
    c. Handle sentinels: log tokens on success, retry once on failure, spawn continuations
    d. Loop to next slice (no user confirmation between slices)
 4. After all slices: review friction-labelled PRs, update lessons.md, suggest next step
 
-### Foundry context overflow
-At **40% context usage**, foundry writes `.claude/foundry-continue.md` (queue state, in-flight workers, token log entries, resume invocation) and starts a fresh session.
+### Forge context overflow
+At **40% context usage**, forge writes `.claude/forge-continue.md` (queue state, in-flight workers, token log entries, resume invocation) and starts a fresh session.
 
 ## CI
 
-GitHub Actions on whichever runner you configure (`ubuntu-latest`, self-hosted, etc.). Document the choice in `CLAUDE.md` so forge knows what to target. Both `gh pr checks --watch` and `Monitor` work the same regardless of runner.
+GitHub Actions on whichever runner you configure (`ubuntu-latest`, self-hosted, etc.). Document the choice in `CLAUDE.md` so hammer knows what to target. Both `gh pr checks --watch` and `Monitor` work the same regardless of runner.
 
 ## Token tracking
 
-Foundry logs per-forge correlation data to `.claude/token-usage.jsonl`:
+Forge logs per-hammer correlation data to `.claude/token-usage.jsonl`:
 
 ```json
 {"ts":"<end>","issue":198,"pr":207,"branch":"feat/#198-...","start":"<start>","end":"<end>","num_turns":14}
@@ -76,9 +76,9 @@ GitHub Projects board (one per repo — fill in the IDs in `.claude/scripts/kanb
 |------|--------|---------|
 | `/inscribe` files issues | **Backlog** | Auto (Projects automation) |
 | `/inscribe` triages → `ready-for-agent` | **Ready** | `.claude/scripts/kanban-move.sh <N> ready` |
-| `/forge <N>` starts | **In Progress** | `.claude/scripts/kanban-move.sh <N> in-progress` |
-| `/forge <N>` opens PR | **In Review** | `.claude/scripts/kanban-move.sh <N> in-review` |
-| `/forge <N>` merges | **Done** | Auto (issue close automation) |
+| `/hammer <N>` starts | **In Progress** | `.claude/scripts/kanban-move.sh <N> in-progress` |
+| `/hammer <N>` opens PR | **In Review** | `.claude/scripts/kanban-move.sh <N> in-review` |
+| `/hammer <N>` merges | **Done** | Auto (issue close automation) |
 
 ## Branching
 
@@ -92,29 +92,29 @@ GitHub Projects board (one per repo — fill in the IDs in `.claude/scripts/kanb
 - Save to `screenshots/issue-<N>/`
 - Naming: `<short-state>.png` (e.g. `empty.png`, `dark-mode.png`)
 - Before/after for modifications: `before-<screen>.png`, `after-<screen>.png`
-- Tracked in git — forge posts PR comments with embedded image refs
+- Tracked in git — hammer posts PR comments with embedded image refs
 
 ## Friction flagging
 
-When forge hits unexpected friction:
+When hammer hits unexpected friction:
 
 1. Add `friction` label to the PR
 2. Post PR comment with details (what happened, what was tried, outcome)
 3. If resolved, note how — feeds the self-healing loop
-4. If unresolved: `FORGE:NEEDS_HUMAN:friction` sentinel
+4. If unresolved: `HAMMER:NEEDS_HUMAN:friction` sentinel
 
-Foundry reviews friction-labelled PRs at end of batch. Recurring patterns get added to `.claude/lessons.md`.
+Forge reviews friction-labelled PRs at end of batch. Recurring patterns get added to `.claude/lessons.md`.
 
 ## Troubleshooting
 
-### Stuck slice (`FORGE:NEEDS_HUMAN`)
-Foundry logs the reason and skips to the next slice. Check the PR for the friction comment. Fix manually, then re-run `/forge <N>` standalone.
+### Stuck slice (`HAMMER:NEEDS_HUMAN`)
+Forge logs the reason and skips to the next slice. Check the PR for the friction comment. Fix manually, then re-run `/hammer <N>` standalone.
 
 ### CI failures
-Forge auto-fixes up to 2 cycles. If still failing, it emits `FORGE:NEEDS_HUMAN:ci-stuck`. Read the CI logs, fix locally, push.
+Hammer auto-fixes up to 2 cycles. If still failing, it emits `HAMMER:NEEDS_HUMAN:ci-stuck`. Read the CI logs, fix locally, push.
 
-### Context overflow (`FORGE:CONTINUE`)
-Forge writes `.claude/forge-continue-<N>.md` with state. Foundry spawns a fresh session with continuation context. No manual intervention needed.
+### Context overflow (`HAMMER:CONTINUE`)
+Hammer writes `.claude/hammer-continue-<N>.md` with state. Forge spawns a fresh session with continuation context. No manual intervention needed.
 
-### Foundry context overflow
-At 40% context usage, foundry writes `.claude/foundry-continue.md` and starts fresh. Resume with the same `/foundry` invocation.
+### Forge context overflow
+At 40% context usage, forge writes `.claude/forge-continue.md` and starts fresh. Resume with the same `/forge` invocation.

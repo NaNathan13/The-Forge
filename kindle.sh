@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# kindle.sh — light the forge fire on a new Blacksmith project.
+# kindle.sh — light the hammer fire on a new Blacksmith project.
 #
 # Run this once after copying Blacksmith into a new project directory.
 # It checks prerequisites, then launches Claude with the /kindle skill,

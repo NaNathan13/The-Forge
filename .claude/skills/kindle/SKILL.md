@@ -3,7 +3,7 @@ name: kindle
 description: Bootstrap a new project on the Blacksmith pipeline — Q&A to fill CLAUDE.md, MISSION-CONTROL.md, and CONTEXT.md, then git init and create the GitHub repo. Use at the very start of a new project (usually launched by ./kindle.sh) or when the user says "kindle this project", "set up Blacksmith here", or "/kindle".
 ---
 
-# Kindle — light the forge fire
+# Kindle — light the hammer fire
 
 The bootstrap skill for a fresh Blacksmith project. Runs a friendly Q&A, fills in the
 template placeholders, initializes the git repo, and creates the GitHub remote. By the
@@ -59,7 +59,7 @@ Ask **one question at a time** using AskUserQuestion. Recommend an answer for ev
      - Other / multiple — freeform follow-up
 
 4. **Check command** (freeform, with a recommendation derived from the preset)
-   - "What single command runs your tests + typecheck + lint? (Forge will run this before opening a PR.)"
+   - "What single command runs your tests + typecheck + lint? (Hammer will run this before opening a PR.)"
    - Recommendations by preset:
      - TS/Node: `pnpm check-all` if pnpm preferred, else `npm test`
      - Python: `uv run pytest` or `pytest`
@@ -75,7 +75,7 @@ Ask **one question at a time** using AskUserQuestion. Recommend an answer for ev
 ### Block 3 — Visual review
 
 6. **Visual review tool** (AskUserQuestion, 3 options)
-   - "How should forge do visual review for UI work?" Options:
+   - "How should hammer do visual review for UI work?" Options:
      - Playwright (web app) — (Recommended for web projects)
      - Other (mobile simulator, snapshot tester, etc.) — freeform follow-up
      - None — logic-only project, no UI surface
@@ -139,7 +139,7 @@ Use `Edit` per replacement so the diff is reviewable.
 ### 4. Visual review note
 
 If Block 3 picked "Other" or "None", append a one-paragraph note to `CLAUDE.md` under "Rules"
-documenting the choice so forge knows what to do.
+documenting the choice so hammer knows what to do.
 
 ### 5. Git + GitHub
 
@@ -186,7 +186,7 @@ If the user said "Skip GitHub", just `rm kindle.sh` locally — no commit.
 Print this exact summary (filling in real values):
 
 ```
-🔥 Forge lit.
+🔥 Hammer lit.
 
 Project:        <name>
 Repo:           <url or "local only">

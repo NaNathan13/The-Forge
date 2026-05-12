@@ -1,91 +1,133 @@
 ---
 name: forge
-description: Build a triaged slice end-to-end — branch, implement, test, PR, CI, merge. Invoked as /forge <N> where N is the issue number.
+description: The hammer master — orchestrates the full execution lifecycle (build, test, CI, merge) by dispatching and overseeing hammer workers. Invoked as /forge after ponder has triaged all slices.
 ---
 
-# Forge — Build a Slice
+# Forge — The Hammer Master
 
-Build issue #<N> from branch to merged PR. Forge is context-disciplined: start lean,
-stay lean, hand off to fresh sessions when context grows.
+Forge is an **autonomous dispatch loop**. It pulls slices from the build queue, dispatches
+hammer workers as fresh subagents, monitors their progress, handles results, and moves to the
+next slice — repeating until the queue is drained or the user intervenes.
 
-## Inputs
-- Issue number from argument
-- Read the GitHub issue for spec and acceptance criteria
-- Check slice label: `slice:logic`, `slice:ui`, or `slice:mixed`
+Ponder plans the work; forge executes it. Each hammer handles one slice end-to-end:
+build → test → PR → CI → merge.
 
-## Workflow
+## Invocation
 
-### 1. Setup
-- Create branch: `feat/#<N>-short-description`
-- Move issue to In Progress: `.claude/scripts/kanban-move.sh <N> in-progress`
-- Do NOT bulk-load `.claude/lessons.md` — consult it reactively if you hit a wall
+```
+/forge                    # resume from current ready-for-agent backlog
+/forge --phase <id>       # scope to one sub-phase (e.g. 2a)
+```
 
-### 2. Build
-- Implement the feature per the issue spec
-- For `slice:ui` and `slice:mixed`: rely on any auto-loaded design-system rule under `.claude/rules/`; only read project-wide design docs if you need detail beyond the rule
-- Write tests: logic functions get unit tests, user-facing surfaces get one happy-path render/integration test
-- Run the project's check command (configure in `CLAUDE.md`, e.g. `npm test`, `pnpm check-all`, `cargo test`)
-- Fix any failures before proceeding
+## Pre-flight: Build Queue Preview
 
-### 3. Visual review (UI/mixed slices only)
-- Default tool: **Playwright**. Dispatch a Playwright-driven subagent (or use the Playwright MCP directly) to drive the running app and capture screenshots.
-- Screenshots go to `screenshots/issue-<N>/`
-- Verify both light and dark mode (or whatever theme variants the project supports)
-- For non-web projects, swap Playwright for the project's equivalent visual harness (e.g. simulator driver, snapshot tester) and document the swap in `CLAUDE.md`
+Before dispatching any workers:
+1. Query: `gh issue list --label ready-for-agent --state open --json number,title,labels`
+2. If `--phase <id>` was passed, filter to issues with `phase:<id>` label
+3. Present the build queue as a numbered table:
 
-### 4. Open PR
-- Commit all changes with `feat(scope): description (#<N>)`
-- Push branch and open PR via `gh pr create`
-- PR body includes `closes #<N>`, summary, and test plan
-- Move issue: `.claude/scripts/kanban-move.sh <N> in-review`
-- If UI/mixed: post PR comment with screenshot image refs
+| # | Issue | Title | Slice | Summary |
+|---|-------|-------|-------|---------|
 
-### 5. Wait for CI
-- Use Monitor tool to watch `gh pr checks <PR> --watch` — zero token cost while waiting
-- If CI fails: read only the failure log (not the full run), fix, push, re-monitor
-- Max 2 fix cycles. If still failing: `FORGE:NEEDS_HUMAN:ci-stuck`
+4. Ask the user to approve, reorder, or remove slices before execution begins
+5. On approval, begin the autonomous dispatch loop
 
-### 6. Merge
-- Once CI is green: `gh pr merge <PR> --squash --delete-branch`
-- Run `/sync-mission-control` to update project state
-- Clean up: delete `.claude/forge-summary-<N>.md` if it exists
+## Dispatch Loop
 
-## Context discipline
+For each approved slice, in order:
+1. Note the start timestamp
+2. Dispatch hammer as a subagent:
+   ```
+   Agent({
+     subagent_type: "general-purpose",
+     description: "hammer #<N>",
+     prompt: "Read .claude/skills/hammer/SKILL.md, then execute /hammer <N>.",
+     isolation: "worktree"
+   })
+   ```
+3. Max 2 concurrent hammer workers. Wait for one to complete before dispatching a third.
+4. On hammer completion, handle the sentinel (see below)
+5. Loop back to the next slice. This is an autonomous loop — no user confirmation between
+   slices unless a `NEEDS_HUMAN` sentinel fires.
 
-Forge subagents are the biggest token cost in the pipeline. Guard context aggressively:
+## Sentinel Handling
 
-- **40% context usage — warning.** Finish your current phase (build/verify/PR), then
-  evaluate whether to continue or hand off. Prefer handing off.
-- **50% context usage — hard stop.** Write a continuation file and emit `FORGE:CONTINUE:<N>`
-  immediately. Do not attempt further work.
-- **Don't load heavy docs proactively.** No MISSION-CONTROL.md, WORKFLOW.md, or
-  lessons.md at session start. Read them reactively and only the relevant sections.
-- **CI failure fix sessions.** If CI fails after PR is opened, foundry can dispatch a
-  fresh subagent with just the branch name, PR number, and failure log — minimal context
-  for a targeted fix.
+| Sentinel | Forge action |
+|----------|---------------|
+| `HAMMER:SUCCESS` | Log tokens, move to next slice |
+| `HAMMER:CONTINUE:<N>` | Read `.claude/hammer-continue-<N>.md`, dispatch fresh hammer with continuation context |
+| `HAMMER:NEEDS_HUMAN:<reason>` | Log the reason, notify user, skip to next slice |
+| `HAMMER:FAIL:<reason>` | Retry once with fresh session. If second failure, mark `needs-human`, skip |
 
-### Continuation file format
-Write `.claude/forge-continue-<N>.md` with:
-- Issue number, branch name, PR number (if opened)
-- What's done, what's left
-- Any state needed to resume
+## Context Discipline
 
-## Friction flagging
-When forge hits friction (unexpected failure, confusing spec, missing dependency, flaky test):
-1. Add the `friction` label to the PR
-2. Post a PR comment: `## Friction\n\n<what happened, what was tried, what worked or didn't>`
-3. If the friction was resolved, note how — this feeds the self-healing loop
-4. Unresolved friction → `FORGE:NEEDS_HUMAN:friction` sentinel
+Context bloat is the #1 cost driver. Every session — forge and hammer — should stay lean.
 
-## Sentinels
-- `FORGE:SUCCESS` — slice merged
-- `FORGE:CONTINUE:<N>` — context overflow, continuation file written
-- `FORGE:NEEDS_HUMAN:<reason>` — stuck, needs user input
-- `FORGE:FAIL:<reason>` — unrecoverable failure
+### Hammer subagent limits
+- **40% context — warning.** Hammer should finish its current phase and evaluate handoff.
+- **50% context — hard stop.** Write continuation file, emit `HAMMER:CONTINUE:<N>`.
+- Hammer workers start fresh (worktree isolation) and load only the issue + auto-loaded rules.
+  No bulk-loading of lessons.md, MISSION-CONTROL.md, or WORKFLOW.md at startup.
+- If CI fails after PR is opened, forge dispatches a **fresh subagent** with just the
+  branch name, PR number, and failure log — not the full build context.
+
+### Forge self-limits
+- **40% context — start fresh.** Write `.claude/forge-continue.md` with queue state,
+  in-flight workers, token log entries, and the resume invocation. Start a new session.
+
+### Why this matters
+As context fills, responses get more expensive (cache misses compound) and quality degrades.
+Fresh sessions are cheap. The overhead of writing a continuation file and spawning a new
+session is negligible compared to the cost of running in a bloated context.
+
+## Sub-Agent Token Discipline
+
+- **No forced model.** Hammer workers inherit the session's model (typically Opus). Don't
+  downgrade to Sonnet — it causes more retries and wastes more tokens than it saves.
+- **Poll sub-agents actively.** Check on running hammer workers every ~30s. Don't go silent
+  while a subagent runs — the user should see progress updates.
+- **Milestone reporting.** Hammer workers communicate progress at key phases:
+  after setup, after build, after tests pass, after PR opens, after CI completes, after merge.
+  Forge relays these milestones to the user.
+- **Lean context loading.** Hammer workers read only the issue and auto-loaded rules.
+  Everything else is reactive — read it when you need it, not at startup.
+- **Research via skills.** If a hammer worker needs to look something up, use
+  `/playwright-research` or the context7 MCP — don't spawn additional sub-sub-agents
+  for research. The only allowed nested subagent is a Playwright-driven visual-review
+  worker (for UI/mixed slices).
+
+## Token Logging
+
+After each hammer completes:
+1. Note the end timestamp
+2. Query ccusage for sessions in the [start, end] time window: `npx ccusage@latest session --json`
+3. Append correlation row to `.claude/token-usage.jsonl`:
+   ```json
+   {"ts":"<end>","issue":<N>,"pr":<PR>,"branch":"feat/#<N>-...","start":"<start>","end":"<end>","num_turns":<from_ccusage>}
+   ```
+4. Stamp the PR description with a token summary (edit via `gh pr edit`)
+
+## Friction Review
+
+After all slices in a batch complete:
+1. Check for any PRs with the `friction` label: `gh pr list --label friction --state merged --json number,title`
+2. For each, read the friction comment
+3. If a pattern appears across multiple PRs, append a lesson to `.claude/lessons.md`
+4. Report friction summary to the user
+
+## End of Run
+
+When the build queue is drained:
+1. Print summary: slices completed, slices skipped (needs-human), total time
+2. Read MISSION-CONTROL.md to identify the next sub-phase or task
+3. Suggest a specific next step with a ready-to-paste prompt, e.g.:
+   > "Phase 2a complete. Next up is 2b (filter sheet). Run: `/ponder 2b — filter sheet with swipe-to-delete`"
+4. Or if all phases are done: "All planned work complete. Review the merged work, then `/ponder` for whatever's next."
 
 ## Rules
-- No subagents except the visual-review worker for UI/mixed slices.
-- Rely on auto-loaded design-system rule for UI/mixed; only read deeper design docs for detail.
-- Only read MISSION-CONTROL.md if you need to understand project context (rare).
-- Keep commits atomic and well-scoped.
-- Token logging is handled by foundry after forge completes — forge does not log tokens.
+- Forge is an autonomous loop — dispatch, handle, loop. No pause between slices.
+- Max 2 concurrent hammer subagents
+- Always present build queue before dispatching — never skip user approval
+- Token logging is forge's responsibility, not hammer's
+- Poll sub-agents actively; don't go silent
+- Start fresh session at 40% context usage

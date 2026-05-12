@@ -1,16 +1,16 @@
 ---
 name: ponder
-description: Use when starting new work from a fuzzy idea, want to grill out a feature, write a PRD, or break a sub-phase into issues. First phase of the Ponder → Foundry → Forge workflow. Ends with all slices triaged `ready-for-agent` with `slice:*` labels, ready for `/foundry`.
+description: Use when starting new work from a fuzzy idea, want to grill out a feature, write a PRD, or break a sub-phase into issues. First phase of the Ponder → Forge → Hammer workflow. Ends with all slices triaged `ready-for-agent` with `slice:*` labels, ready for `/forge`.
 ---
 
 # Ponder — think, scope, file work
 
-The planning phase of the pipeline (Ponder → Foundry → Forge). You leave Ponder with **all slices triaged `ready-for-agent`** and kanban cards in **Ready**. Foundry dispatches forge workers to build them.
+The planning phase of the pipeline (Ponder → Forge → Hammer). You leave Ponder with **all slices triaged `ready-for-agent`** and kanban cards in **Ready**. Forge dispatches hammer workers to build them.
 
 **The pipeline shape:**
 
 ```
-/ponder ──→ /foundry ──→ /forge <N> (dispatched as subagents, max 2 concurrent)
+/ponder ──→ /forge ──→ /hammer <N> (dispatched as subagents, max 2 concurrent)
 ```
 
 Each phase runs in its own Claude session and hands off via on-disk artifacts (issues, PRD, screenshots, PR body). No session-memory continuity between phases.
@@ -81,14 +81,14 @@ Inscribe handles everything from here: PRD writing (sub-phase only), issue filin
 - Kanban cards in **Ready**.
 - (Sub-phase path only) PRD saved to `docs/prds/`.
 - `MISSION-CONTROL.md` "Recommended next prompt" updated.
-- Handoff printed: "Run `/foundry` to dispatch the build queue."
-- Session ends. The user runs `/foundry` next, in a fresh session.
+- Handoff printed: "Run `/forge` to dispatch the build queue."
+- Session ends. The user runs `/forge` next, in a fresh session.
 
 ## When NOT to use `/ponder`
 
 | Situation | Use instead |
 | --- | --- |
-| Issue is already triaged `ready-for-agent` with a `slice:*` label | `/forge <N>` directly |
+| Issue is already triaged `ready-for-agent` with a `slice:*` label | `/hammer <N>` directly |
 | Trivial one-liner (typo, copy fix, obvious bug) | Branch + commit + manual PR — no skill needed |
 | Unknown-cause bug (you can't repro or don't know what's broken) | `/diagnose` first — produces a fix or a clear issue body, then `/ponder` reads its output |
 
@@ -97,11 +97,11 @@ Inscribe handles everything from here: PRD writing (sub-phase only), issue filin
 The user picks based on bug shape:
 
 1. **Trivial bug** → trivial path (no skill).
-2. **Known-cause non-trivial bug** → `/ponder` single-slice → `/forge`.
+2. **Known-cause non-trivial bug** → `/ponder` single-slice → `/hammer`.
 3. **Unknown-cause bug** → `/diagnose` first, then `/ponder` → rest of pipeline.
 
 ## Anti-patterns
 
 - **Don't run the size check more than once.** If the user has answered "sub-phase," commit. Re-asking mid-grill burns trust.
 - **Don't skip inscribe.** Ponder grills, inscribe writes up. Don't inline the PRD/issue/triage steps — that's inscribe's job.
-- **Don't run `/forge` from inside Ponder.** Phases are session-scoped. End the session, hand off via the issue.
+- **Don't run `/hammer` from inside Ponder.** Phases are session-scoped. End the session, hand off via the issue.
