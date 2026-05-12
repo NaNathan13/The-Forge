@@ -74,7 +74,36 @@ For each approved slice, in order:
 
 6. On temper completion, handle the sentinel (see below).
 
-7. Loop back to the next slice. This is an autonomous loop — no user confirmation between slices unless a `NEEDS_HUMAN` sentinel fires.
+7. **Context checkpoint — every temper, no exceptions.** After each temper completes (regardless of sentinel), check current context usage before dispatching the next:
+   - **≥40% context usage — warn and stop dispatching.** Print a warning to the user: "Forge context at <X>% — stopping dispatch to avoid quality decay. Writing `.claude/forge-continue.md`." Then proceed as if at the 50% threshold (write the continuation file, emit a continuation message, do NOT start another dispatch).
+   - **≥50% context usage — hard stop.** Write `.claude/forge-continue.md` with full queue state (see "Continuation File Format" below) and emit a continuation message. Do NOT start another dispatch under any circumstance.
+   - **<40% — continue.** Proceed to the next slice in the queue.
+
+   This check happens after *every* temper, not periodically. The cost of one extra check is negligible; the cost of overrunning is a degraded session and wasted tokens.
+
+8. Loop back to the next slice. This is an autonomous loop — no user confirmation between slices unless a `NEEDS_HUMAN` sentinel fires or a context checkpoint fires.
+
+## Forge Orchestrator Does NOT (Anti-Patterns)
+
+Forge is a **dispatcher**, not a worker. Every minute it spends doing actual work inline is a minute its context is bloating and the dispatch loop is starving. The orchestrator MUST NOT:
+
+- **Resolve merge conflicts inline.** If a temper PR hits a conflict, dispatch a fresh subagent (`general-purpose`, worktree-isolated) to rebase and resolve. Forge waits for the sentinel; it does not open the file.
+- **Run `/seal` inline.** Always dispatch seal as a subagent at end-of-run (see "End of Run — Auto-ship"). Never invoke seal's logic in the orchestrator session.
+- **Run validation, tests, or checks inline.** That's temper's job. If a check is needed outside a temper (e.g. a sanity-check before pre-flight), dispatch a subagent.
+- **Read full file bodies, log dumps, or knowledge files.** Forge reads sentinels, queue state, and short status output only. Anything longer than ~100 lines belongs in a subagent's context, not forge's.
+- **Bulk-load `MISSION-CONTROL.md`, `lessons.md`, knowledge files, or design docs.** Forge runs lean. If a slice needs that context, it lives inside the temper worker.
+- **Skip the per-temper context checkpoint.** Even if the queue looks light, run the check after every temper. The check is cheap; missing it is not.
+
+What forge **does** do, and only this:
+1. Parse the pre-flight queue and get user approval.
+2. Dispatch temper workers (max 2 concurrent), respecting the dependency graph.
+3. Parse sentinel output from completed tempers.
+4. Update queue state and decide the next dispatch.
+5. Run the context checkpoint after every temper.
+6. Log tokens (a single ccusage call + one jsonl append per temper).
+7. Dispatch the seal subagent at end-of-run and relay its summary.
+
+If you find yourself doing anything else, stop — dispatch a subagent instead.
 
 ## Sentinel Handling
 
@@ -100,7 +129,9 @@ Context bloat is the #1 cost driver inside a single session. Every session — f
 - If CI fails after PR is opened, forge dispatches a **fresh subagent** with just the branch name, PR number, and failure log — not the full build context.
 
 **Forge self-limits:**
-- **40% context — start fresh.** Write `.claude/forge-continue.md` with queue state, in-flight workers, token log entries, and the resume invocation. Start a new session.
+- **40% context — warn and stop dispatching.** After the current temper completes, do not dispatch another. Warn the user, write `.claude/forge-continue.md`, and end the session for a fresh restart.
+- **50% context — hard stop.** Write `.claude/forge-continue.md` immediately and emit a continuation message. No further dispatch under any circumstance.
+- These checks are enforced in the dispatch loop after every temper (see Dispatch Loop step 7). They are not aspirational — forge must run the check, not assume it's fine.
 
 As context fills, responses get more expensive (cache misses compound) and quality degrades. Fresh sessions are cheap.
 
@@ -124,6 +155,65 @@ The exact field name varies by ccusage version; look for usage percent / quota r
 3. After 3 consecutive sleeps without recovery, ping the user — something's off (heavy concurrent usage outside this pipeline?).
 
 **Why this matters:** Context-window pressure (A) is gradual — quality degrades. Session-limit pressure (B) is a cliff — work just fails. The 90/95 thresholds give a buffer to land safely.
+
+## Continuation File Format (`.claude/forge-continue.md`)
+
+When forge pauses (40% / 50% context checkpoint, 95% session-usage hard stop, or user intervention), it MUST write `.claude/forge-continue.md` with **exactly** the following structure. A fresh forge session reads this file to resume.
+
+```markdown
+# Forge continuation
+
+**Paused at:** <ISO-8601 timestamp>
+**Reason:** <context-40 | context-50 | session-95 | user-intervention | other>
+**Context usage at pause:** <X>%
+**Session usage at pause:** <Y>%
+
+## Resume invocation
+
+```
+/forge --resume
+```
+
+(Or `/forge --phase <id>` if the batch was phase-scoped.)
+
+## Queue snapshot
+
+Approved build queue at pre-flight (in dispatch order):
+
+| # | Issue | Title | Slice | Blocked by | Status |
+|---|-------|-------|-------|------------|--------|
+| 1 | #95 | … | logic | — | shipped (PR #110 merged) |
+| 2 | #96 | … | ui | #95 | in-flight (PR #111, CI green, awaiting seal) |
+| 3 | #97 | … | logic | — | pending |
+
+Status values: `pending`, `in-flight`, `shipped`, `skipped:<reason>`, `failed:<reason>`.
+
+## In-flight tempers
+
+For each temper that was running when forge paused:
+
+- **Issue #<N>** — branch `feat/#<N>-…`, PR `#<PR>` (or "not yet opened"), last sentinel `<TEMPER:...>` at `<timestamp>`. Notes: <free text — e.g. "CI re-run pending", "continuation file at .claude/temper-continue-<N>.md">.
+
+## Last-completed PRs (this batch)
+
+PRs opened during this batch, in completion order:
+
+- #110 (issue #95) — CI green, awaiting seal
+- #111 (issue #96) — CI green, awaiting seal
+
+## Pending seal dispatch
+
+`true` if the batch has PRs awaiting `/seal --auto` and the dispatch did not happen; otherwise `false`. On resume, if `true`, forge picks up at the End-of-Run step (dispatch seal subagent) before re-entering the dispatch loop.
+
+## Notes
+
+Free text — anything the resuming forge needs to know that doesn't fit above. Keep short.
+```
+
+Rules for this file:
+- One canonical file at `.claude/forge-continue.md`. Overwrite on each pause; do not version.
+- Written by forge, read by the next forge session. `/seal` deletes it (along with `temper-continue-*.md` and `temper-summary-*.md`) as part of cleanup once the batch is fully shipped.
+- Keep it under ~100 lines. The point is fast resume, not a full audit log — token-usage.jsonl and PR history are the source of truth for completed work.
 
 ## Sub-Agent Token Discipline
 
@@ -170,12 +260,21 @@ When the temper workers have all completed (or been skipped):
 
 1. **Print summary** — slices completed, slices skipped (needs-human / friction), total wall-clock time, total tokens (from token-usage.jsonl rows for this batch).
 
-2. **Invoke `/seal --auto` autonomously.** This is part of forge's job; the user does not need to type /seal manually.
-   - `--auto` mode tells seal to skip the interactive PR-by-PR approval prompt — the user's approval at step 7 of pre-flight already covered the whole batch.
+2. **Dispatch `/seal --auto` as a fresh subagent.** Do NOT invoke seal inline — that bloats the forge session and violates the "Forge does NOT" rules. Dispatch:
+   ```
+   Agent({
+     subagent_type: "general-purpose",
+     description: "seal batch",
+     prompt: "Read .claude/skills/seal/SKILL.md and execute /seal --auto",
+     isolation: "worktree"
+   })
+   ```
+   - `--auto` mode tells seal to skip the interactive PR-by-PR approval prompt — the user's approval at pre-flight already covered the whole batch.
    - Seal will still skip individual PRs that have `friction` / `needs-human` labels or non-green CI.
    - Seal handles approval + merge + MC reconciliation + cleanup as documented in seal/SKILL.md.
+   - Wait for the subagent to complete. Capture its summary output and relay it verbatim to the user — forge does not re-summarize.
 
-3. **After seal completes**, read MISSION-CONTROL.md's "Recommended next prompt" and print it as the suggested next step.
+3. **After the seal subagent returns**, read MISSION-CONTROL.md's "Recommended next prompt" and print it as the suggested next step.
 
    Examples:
    > "Phase 2a is now complete (6 slices shipped, 0 skipped). Next: `/ponder 2b — filter sheet with swipe-to-delete`"
@@ -190,6 +289,7 @@ The user can intervene at any point (Ctrl+C, send a message) but the default flo
 - Respect the dependency graph; never dispatch a temper whose blockers haven't shipped.
 - Token logging is forge's responsibility, not temper's.
 - Poll sub-agents actively; don't go silent.
-- Start fresh session at 40% context usage.
+- **Run the context checkpoint after every temper.** Warn-and-stop at 40%, hard-stop at 50%. No exceptions.
 - Pause at 95% session usage; resume via ScheduleWakeup.
-- Always auto-invoke `/seal --auto` at end of run. The user opted into this when they approved the build queue.
+- **Dispatch `/seal --auto` as a subagent at end of run** — never inline. The user opted into this when they approved the build queue.
+- **Forge does NOT do work inline** — no conflict resolution, no inline seal, no validation. See "Forge Orchestrator Does NOT" above.
