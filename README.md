@@ -57,7 +57,8 @@ Each phase runs in its own Claude session and hands off via on-disk artifacts (i
 
 | Skill | When |
 |-------|------|
-| `/ponder [hint]` | Starting new work from a fuzzy idea |
+| `/ponder [hint]` | Starting new work from a fuzzy idea — full grill + PRD + triage |
+| `/prototype [idea]` | Fast-mode entry point — skips grill/PRD/triage, files issues directly. Use when you already know the shape. |
 | `/forge [--phase <id>]` | Drain the `ready-for-agent` queue (auto-invokes `/seal` at end) |
 | `/temper <N>` | Build one slice (usually dispatched by forge) |
 | `/seal` | Close out a build batch (usually auto-invoked by forge; can run standalone) |
