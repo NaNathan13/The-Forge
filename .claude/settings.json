@@ -1,0 +1,20 @@
+{
+  "_comment": "Hook scaffolding for the Blacksmith pipeline. Add project-specific PreToolUse hooks under .claude/hooks/ and register them below. See SETUP.md for guidance.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          { "type": "command", "command": ".claude/hooks/block-dangerous-git.sh" }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          { "type": "command", "command": ".claude/hooks/mission-control-drift.sh" }
+        ]
+      }
+    ]
+  }
+}

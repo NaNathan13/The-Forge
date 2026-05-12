@@ -1,0 +1,24 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# Forge / Foundry runtime artifacts
+.claude/forge-continue-*.md
+.claude/foundry-continue.md
+.claude/forge-summary-*.md
+.claude/token-usage.jsonl
+.claude/worktrees/
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
+
+# Dependency / build (uncomment per project)
+# node_modules/
+# dist/
+# build/
+# target/
+# .next/
+# .turbo/
