@@ -1,9 +1,9 @@
 ---
 name: forge
-description: The temper master — orchestrates the full execution lifecycle (build, test, CI, merge) by dispatching and overseeing temper workers. Invoked as /forge after ponder has triaged all slices.
+description: The forgemaster — orchestrates the full execution lifecycle (build, test, CI, merge) by dispatching and overseeing temper workers. Invoked as /forge after ponder has triaged all slices.
 ---
 
-# Forge — The Temper Master
+# Forge — The Forgemaster
 
 Forge is an **autonomous dispatch loop**. It pulls slices from the build queue, dispatches
 temper workers as fresh subagents, monitors their progress, handles results, and moves to the

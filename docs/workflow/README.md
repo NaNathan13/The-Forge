@@ -25,7 +25,7 @@
 | `/write-a-skill` | Meta — author a new skill |
 | `/sync-mission-control` | Reconcile MISSION-CONTROL.md against GitHub state |
 
-## Forge (the temper master)
+## Forge (the forgemaster)
 
 `/forge` is an autonomous dispatch loop. After you approve the build queue, it runs without intervention:
 - Dispatches `/temper <N>` workers as subagents (max 2 concurrent)
