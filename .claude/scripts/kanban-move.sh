@@ -6,7 +6,7 @@ set -euo pipefail
 # Status: backlog | ready | in-progress | in-review | done
 #
 # ──────────────────────────────────────────────────────────────────────
-# CUSTOMIZE THESE PER PROJECT (see SETUP.md for how to look them up):
+# CUSTOMIZE THESE PER PROJECT (see docs/dev/setup.md for how to look them up):
 #
 #   OWNER            GitHub login or org that owns the Project
 #   PROJECT_NUMBER   The number shown in the Project's URL
@@ -32,7 +32,7 @@ OPTION_ID_IN_REVIEW="REPLACE_ME"
 OPTION_ID_DONE="REPLACE_ME"
 
 if [[ "$OWNER" == "REPLACE_ME" ]]; then
-  echo "kanban-move.sh: project IDs not configured. See SETUP.md." >&2
+  echo "kanban-move.sh: project IDs not configured. See docs/dev/setup.md." >&2
   exit 1
 fi
 
