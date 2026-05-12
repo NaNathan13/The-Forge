@@ -1,5 +1,7 @@
 # Setting up Blacksmith in a project
 
+> **Easy path:** copy Blacksmith into your project, then run `./kindle.sh`. That covers steps 1–5 below interactively. The manual walkthrough is here for reference, edge cases, and re-runs.
+
 Adopting Blacksmith takes ~10 minutes plus whatever time you spend personalizing `CONTEXT.md`. The pipeline is GitHub-native (issues + Projects + PRs), so you need a GitHub repo and `gh` CLI auth'd.
 
 ## 0. Prerequisites

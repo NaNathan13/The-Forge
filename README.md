@@ -7,10 +7,12 @@ Blacksmith is the workshop that holds the forge. Once it's installed in a projec
 ## What's in here
 
 ```
+kindle.sh               # One-shot bootstrap launcher (self-removes after success)
+
 .claude/
-├── skills/             # 10 skills (ponder, grill-me, inscribe, triage, foundry,
-│                       #            forge, sharpen, diagnose, sync-mission-control,
-│                       #            write-a-skill)
+├── skills/             # 11 skills (kindle, ponder, grill-me, inscribe, triage,
+│                       #            foundry, forge, sharpen, diagnose,
+│                       #            sync-mission-control, write-a-skill)
 ├── hooks/              # 2 safety hooks + 1 example
 ├── rules/              # Placeholder for auto-loaded path-scoped rules
 ├── scripts/            # kanban-move.sh, workflow-setup.sh
@@ -50,13 +52,24 @@ Each phase runs in its own Claude session and hands off via on-disk artifacts (i
 
 ## Quickstart
 
-Drop these files into a project, then run:
+Two paths — pick the one that fits.
+
+### 🔥 Guided (recommended for new projects)
 
 ```bash
-.claude/scripts/workflow-setup.sh    # creates GH labels, verifies prerequisites
+# 1. Copy Blacksmith into your project directory
+cp -R /path/to/Blacksmith/. ./my-new-project/
+cd my-new-project
+
+# 2. Light the forge fire
+./kindle.sh
 ```
 
-Then customize `CLAUDE.md`, `.claude/scripts/kanban-move.sh`, and the example hook. Full walkthrough in [`SETUP.md`](./SETUP.md).
+`kindle.sh` checks your tools, then launches Claude with the `/kindle` skill. Claude asks ~10 questions (project name, tech stack, first phase, GitHub repo) and fills in `CLAUDE.md`, `MISSION-CONTROL.md`, `CONTEXT.md`, runs `git init`, and creates the GitHub repo. After it's done, `kindle.sh` removes itself.
+
+### ⚙️ Manual
+
+If you'd rather configure by hand, see [`SETUP.md`](./SETUP.md) for the 9-step walkthrough.
 
 ## Skills reference
 
@@ -72,6 +85,7 @@ Then customize `CLAUDE.md`, `.claude/scripts/kanban-move.sh`, and the example ho
 | `/diagnose` | Disciplined debugging loop for hard bugs |
 | `/sync-mission-control` | Reconcile `MISSION-CONTROL.md` after merges |
 | `/write-a-skill` | Meta — author a new skill in this format |
+| `/kindle` | First-run bootstrap (project name, tech stack, GitHub repo). Usually invoked via `./kindle.sh`. |
 
 For the full pipeline, see [`docs/workflow/README.md`](./docs/workflow/README.md) and [`docs/workflow/reference.md`](./docs/workflow/reference.md).
 
