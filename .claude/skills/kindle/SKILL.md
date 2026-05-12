@@ -41,6 +41,65 @@ Default to no. If they say yes, proceed.
 Ask **one question at a time** using AskUserQuestion. Recommend an answer for every question
 (mark with "(Recommended)"). Group related questions together — don't whiplash topics.
 
+### Block 0 — Starting point
+
+This is the very first question, before identity. The answer reshapes the rest of the Q&A:
+"existing codebase" and "starter template" both defer the tech-stack questions (Block 2) to
+the sibling `/examine` skill, which auto-detects from files on disk.
+
+0. **Starting point?** (AskUserQuestion, 3 options)
+   - "How are we starting?" Options:
+     - **Fresh project** — scaffold from scratch, current behavior (Recommended)
+     - **Existing codebase** — point at a directory or paste a git URL; The Forge wraps around what's already there
+     - **Starter template** — tell me what you want to build and I'll suggest a real starter to clone
+
+The branches:
+
+- **Fresh project** — proceed to Block 1 as normal. Current behavior.
+- **Existing codebase** — run the "Existing codebase" subflow (below), then jump to Block 1
+  (Identity). **Skip Block 2 (Tech stack) entirely** — `/examine` will fill it.
+- **Starter template** — run the "Starter template" subflow (below), then jump to Block 1.
+  **Skip Block 2** — `/examine` will fill it.
+
+#### Existing codebase subflow
+
+1. Ask (freeform): "Path to the codebase, or paste a git URL."
+2. **If a git URL** (matches `^(https?://|git@)` or ends in `.git`):
+   - Confirm the current directory is empty of user code (only The Forge files present —
+     `CLAUDE.md`, `MISSION-CONTROL.md`, `.claude/`, `kindle.sh`, and possibly a `.git/`
+     about to be wiped). If not empty, ask once: "This directory has other files. Clone
+     anyway into a subdirectory? (yes / cancel)". On cancel, abort kindle.
+   - `git clone <url> .clone-tmp` then move clone contents up one level (excluding its
+     `.git/`, which we keep separate — see below). Or simpler: clone into a temp dir, then
+     `rsync` non-`.git` contents over The Forge files (Forge files win on conflict).
+   - Record the clone URL for the GitHub linking step (Block 6 default becomes "Link to
+     existing repo: <url>").
+3. **If a path:** verify it's a directory. Don't move the user's files. The user is expected
+   to have already copied The Forge files (`CLAUDE.md`, etc.) into that directory before
+   running `kindle.sh`. Confirm with: "I'll lay The Forge files on top of your existing
+   project at `<path>`. Nothing of yours moves — I just add `CLAUDE.md`, `MISSION-CONTROL.md`,
+   `.claude/`, etc. Continue?"
+4. Once the codebase is in place, **invoke `/examine`** (sibling skill) to detect stack,
+   framework, test runner, check command, and write tailored rules under `.claude/rules/`.
+   `/examine` fills the Block 2 fields directly into `CLAUDE.md`.
+5. Continue with Block 1 (Identity) — kindle still needs the project name, one-liner, etc.
+
+#### Starter template subflow
+
+1. Ask (freeform): "Tell me what you want to build. One or two sentences is plenty."
+2. Based on the description, suggest **2-3 real, working starter repos** as URL options.
+   Pick well-known templates that match the user's intent (e.g. `vercel/next.js/examples/...`,
+   `expo/examples`, `t3-oss/create-t3-app`, `tiangolo/full-stack-fastapi-template`,
+   `actix/examples`, etc.). Keep it concrete — name the repo, a one-line "good for X"
+   pitch, and the URL.
+3. Present via AskUserQuestion with 4 options: the 2-3 templates, plus
+   "Show me more options" (loop back to step 2 with different suggestions) and
+   "Let me paste my own URL" (freeform input).
+4. Once a URL is chosen, clone it into the current directory using the same logic as the
+   "Existing codebase" git-URL path above.
+5. **Invoke `/examine`** to detect what was cloned and fill `CLAUDE.md` Block 2 fields.
+6. Continue with Block 1 (Identity).
+
 ### Block 1 — Identity
 
 1. **Project name** (freeform text — use a plain prompt, not AskUserQuestion)
@@ -51,6 +110,11 @@ Ask **one question at a time** using AskUserQuestion. Recommend an answer for ev
    - "In one sentence, what does it do? (Will show on the GitHub repo and in CLAUDE.md.)"
 
 ### Block 2 — Tech stack
+
+**Skip this entire block if Block 0 was "Existing codebase" or "Starter template".**
+`/examine` already filled these fields by inspecting the codebase. If `/examine` reported
+any field as `unknown`, mention that here and ask the user to fill just those fields
+manually — don't re-run the full Block 2 Q&A.
 
 3. **Stack preset** (AskUserQuestion, 4 options)
    - "What's the tech stack?" Options:
@@ -121,12 +185,16 @@ user just chose. Ask once: "Look right? (yes / let me change something)". On yes
 
 Replace placeholders:
 - `{{PROJECT_NAME}}` → project name
-- Tech stack lines — fill from preset and check command
-- `**Framework:**` line — fill from Q4 answer (e.g. `**Framework:** Next.js 14`, `**Framework:** Django`, or `**Framework:** none`)
+- Tech stack lines — fill from preset and check command (**skipped if `/examine` already filled these**)
+- `**Framework:**` line — fill from Q4 answer (e.g. `**Framework:** Next.js 14`, `**Framework:** Django`, or `**Framework:** none`) (**skipped if `/examine` already filled this**)
 - Key terms section — add up to 3 most-load-bearing terms from Block 5 (rest go to CONTEXT.md)
 - CI runner line — fill from Q6 answer (defaults to `ubuntu-latest`)
 
 Use `Edit` per replacement so the diff is reviewable.
+
+If Block 0 was "Existing codebase" or "Starter template", `/examine` already wrote the
+tech-stack section. Don't overwrite its work — only fill the placeholders it left
+untouched (project name, key terms, CI runner if not detected).
 
 ### 2. Fill `MISSION-CONTROL.md`
 
@@ -189,6 +257,16 @@ If a remote was set up (not the "Skip GitHub" path), run the label-creation scri
 This creates the GitHub labels the pipeline needs (`slice:logic`, `slice:ui`, etc.). The
 script is idempotent — safe to re-run.
 
+### 7.5. Clear in-progress marker
+
+If you wrote `.claude/.kindle-in-progress` during the existing-codebase or starter-template
+clone (recommended: write it right before invoking `/examine` so a mid-flow Claude crash
+leaves a breadcrumb for the next `./kindle.sh` run), delete it now:
+
+```bash
+rm -f .claude/.kindle-in-progress
+```
+
 ### 8. Delete `kindle.sh`
 
 Kindle is a one-shot. After success, ask once: "Remove `kindle.sh` from the repo? (it's done its job)". Default yes. If yes, `rm kindle.sh` and add it to the next commit:
@@ -235,3 +313,9 @@ If Block 6 was "Skip GitHub", omit the Projects/labels bullets and instead say:
   clear next-steps and link to docs/dev/setup.md instead.
 - **Don't invent placeholder ID values in kanban-move.sh.** Leave the `REPLACE_ME`
   values — the user fills these once their Projects board exists.
+- **Don't ask Block 2 (tech stack) questions when `/examine` will run.** The whole point
+  of the existing-codebase / starter-template flow is to skip the manual Q&A and let
+  detection do the work. If `/examine` returns `unknown` for a field, ask only about that
+  specific field — don't fall back to the full preset Q&A.
+- **Don't bundle `/examine` into kindle.** Treat it as a sibling skill — invoke it by name
+  (`/examine`) and let the harness load it. Never inline its detection logic here.
