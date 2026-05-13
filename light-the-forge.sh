@@ -84,7 +84,7 @@ if [[ "$ALREADY_CLONED" == "false" ]]; then
 
   echo "→ copying kit files..."
   # Core docs
-  for f in CLAUDE.md MISSION-CONTROL.md CONTEXT.md WORKFLOW.md SETUP.md; do
+  for f in CLAUDE.md MISSION-CONTROL.md CONTEXT.md WORKFLOW.md; do
     [[ -f "$SRC/$f" ]] && cp "$SRC/$f" "$TARGET/$f"
   done
   # .claude directory (skills, agents, scripts, hooks, settings)

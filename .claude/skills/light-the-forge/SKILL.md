@@ -100,6 +100,20 @@ The branches:
 5. **Invoke `/examine`** to detect what was cloned and fill `CLAUDE.md` Block 4 fields.
 6. Continue with Block 1 (Identity).
 
+#### Research vs. Build intent
+
+After the starting-point question is answered (and any subflow completes), ask this second Block 0 question — **only when Block 0 was "Fresh project"**. "Existing codebase" and "Starter template" paths always skip Block 4 via `/examine` and never need this branch.
+
+0b. **Ready to build, or research first?** (AskUserQuestion, 2 options)
+   - "Are you ready to pick a tech stack, or do you want to research first?"
+   - Options:
+     - **Research first — figure out stack later** *(Recommended when uncertain)* — skip Block 4 entirely; treat the Block 3 first-phase title as the research goal; recommended next prompt is `/ponder`
+     - **Build now — I know my stack** — continue with Block 4 as written
+
+The branches:
+- **Research first** — skip Block 4 entirely. The Block 3 first-phase title becomes the research goal (e.g. "Research: choose a tech stack"). Recommended next prompt in MISSION-CONTROL.md is `/ponder`.
+- **Build now** — proceed through all of Block 4 as written.
+
 ### Block 1 — Identity
 
 1. **Project name** (freeform text — use a plain prompt, not AskUserQuestion)
@@ -116,7 +130,7 @@ The branches:
      - Playwright (web apps) — (Recommended for web projects)
      - iOS Simulator MCP (React Native / Expo) — uses `npx ios-simulator-mcp` for screenshot capture via sim-pilot subagent
      - Other — freeform follow-up (describe your tool and how temper should invoke it)
-     - None — logic-only project, no UI surface
+     - None — logic-only project, no UI surface to screenshot or inspect.
 
 ### Block 3 — First phase
 
@@ -143,12 +157,12 @@ manually — don't re-run the full Block 4 Q&A.
      - TypeScript / Node
      - Python
      - Other / multiple — freeform follow-up
-     - **Figure it out later** — leave tech stack as TBD; fill it when code exists
+     - **Research first — decide stack later** — leave tech stack as TBD; fill it when code exists
        (via `/examine` or manually). CLAUDE.md placeholders stay as `{{TBD}}`.
    - If the recommended stack matches one of the named options, merge them (don't show
-     the same stack twice). Always include "Figure it out later" as the last option.
+     the same stack twice). Always include "Research first — decide stack later" as the last option.
 
-6. **Framework** (skip if user chose "Figure it out later")
+6. **Framework** (skip if user chose "Research first — decide stack later")
    - (AskUserQuestion, options derived from Q5 preset)
    - "Which framework?" Options depend on the preset:
      - TypeScript / Node → Next.js / Express / None
@@ -157,7 +171,7 @@ manually — don't re-run the full Block 4 Q&A.
      - Other → freeform text ("Type your framework, or 'none'")
    - If "None" or freeform with no framework: record as "none" — CLAUDE.md will say `**Framework:** none`.
 
-7. **Check command** (skip if user chose "Figure it out later")
+7. **Check command** (skip if user chose "Research first — decide stack later")
    - (freeform, with a recommendation derived from the preset)
    - "What single command runs your tests + typecheck + lint? (Temper will run this before opening a PR.)"
    - Recommendations by preset:
@@ -193,8 +207,8 @@ user just chose. Ask once: "Look right? (yes / let me change something)". On yes
 
 Replace placeholders:
 - `{{PROJECT_NAME}}` → project name
-- Tech stack lines — fill from preset and check command (**skipped if `/examine` already filled these, or if user chose "Figure it out later"**). If "Figure it out later", replace tech stack placeholders with `{{TBD}}`.
-- `**Framework:**` line — fill from Q6 answer (e.g. `**Framework:** Next.js 14`, `**Framework:** Django`, or `**Framework:** none`) (**skipped if `/examine` already filled this, or if "Figure it out later"**)
+- Tech stack lines — fill from preset and check command (**skipped if `/examine` already filled these, or if user chose "Research first — decide stack later"**). If "Research first — decide stack later", replace tech stack placeholders with `{{TBD}}`.
+- `**Framework:**` line — fill from Q6 answer (e.g. `**Framework:** Next.js 14`, `**Framework:** Django`, or `**Framework:** none`) (**skipped if `/examine` already filled this, or if "Research first — decide stack later"**)
 - Key terms section — add up to 3 most-load-bearing terms from Block 5 (rest go to CONTEXT.md)
 - CI runner line — always set to `ubuntu-latest` (no question asked)
 
@@ -208,7 +222,7 @@ untouched (project name, key terms, CI runner if not detected).
 
 - Replace `{{PROJECT_NAME}}` in the title.
 - Replace `{{FIRST_PHASE}}` in the `0a` row with the Block 3 title.
-- Update the "Recommended next prompt" if needed (default `/ponder` is fine for a fresh project).
+- Replace `{{RECOMMENDED_NEXT_PROMPT}}` with `/ponder` (the right next step for both Research and Build paths — the framing difference is handled by `/ponder` itself, not by this file).
 
 ### 3. Fill `CONTEXT.md`
 
@@ -232,7 +246,9 @@ Always run `git init -b main` first (unless `.git/` already exists).
 
 Then by Block 6 choice:
 
-- **New public/private repo:** `gh repo create <owner>/<name> --<visibility> --description "<desc>" --source=. --remote=origin`. Determine `<owner>` from `gh api user --jq .login` if the user didn't specify.
+- **New public/private repo:** Determine `<owner>` from `gh api user --jq .login` if the user didn't specify, then:
+  1. `gh repo create <owner>/<name> --<visibility> --description "<desc>"`
+  2. `git remote add origin https://github.com/<owner>/<name>.git`
 
 - **Existing repo:** ask for the URL or `owner/name`, then `git remote add origin <url>`.
 
@@ -249,10 +265,6 @@ git commit -m "Initial The Forge setup via /light-the-forge
 Co-Authored-By: Claude <noreply@anthropic.com>"
 git push -u origin main
 ```
-
-If the push fails because gh is auth'd as a different account than the repo owner, switch
-the remote from `git@github.com:...` to `https://github.com/...`, run `gh auth setup-git`,
-and retry. Report the switch in plain language.
 
 ### 7. Auto-run workflow-setup.sh
 
@@ -331,7 +343,7 @@ If Block 6 was "Skip GitHub", omit the Projects/labels bullets and instead say:
   of the existing-codebase / starter-template flow is to skip the manual Q&A and let
   detection do the work. If `/examine` returns `unknown` for a field, ask only about that
   specific field — don't fall back to the full preset Q&A.
-- **Don't force a tech stack decision.** "Figure it out later" is a first-class option.
+- **Don't force a tech stack decision.** "Research first — decide stack later" is a first-class option.
   Users may want to explore during `/ponder` before committing to a stack.
 - **Don't bundle `/examine` into this skill.** Treat it as a sibling skill — invoke it by name
   (`/examine`) and let the harness load it. Never inline its detection logic here.
