@@ -21,6 +21,9 @@ screenshots/
 # Tinker scratch dirs (throwaway exploratory work)
 .tinker/
 
+# The Forge's own dev files (not part of the template)
+.forge-dev/
+
 # Dependency / build (uncomment per project)
 # node_modules/
 # dist/

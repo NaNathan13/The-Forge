@@ -44,7 +44,7 @@ Ask **one question at a time** using AskUserQuestion. Recommend an answer for ev
 ### Block 0 — Starting point
 
 This is the very first question, before identity. The answer reshapes the rest of the Q&A:
-"existing codebase" and "starter template" both defer the tech-stack questions (Block 2) to
+"existing codebase" and "starter template" both defer the tech-stack questions (Block 4) to
 the sibling `/examine` skill, which auto-detects from files on disk.
 
 0. **Starting point?** (AskUserQuestion, 3 options)
@@ -57,9 +57,9 @@ The branches:
 
 - **Fresh project** — proceed to Block 1 as normal. Current behavior.
 - **Existing codebase** — run the "Existing codebase" subflow (below), then jump to Block 1
-  (Identity). **Skip Block 2 (Tech stack) entirely** — `/examine` will fill it.
+  (Identity). **Skip Block 4 (Tech stack) entirely** — `/examine` will fill it.
 - **Starter template** — run the "Starter template" subflow (below), then jump to Block 1.
-  **Skip Block 2** — `/examine` will fill it.
+  **Skip Block 4** — `/examine` will fill it.
 
 #### Existing codebase subflow
 
@@ -81,7 +81,7 @@ The branches:
    `.claude/`, etc. Continue?"
 4. Once the codebase is in place, **invoke `/examine`** (sibling skill) to detect stack,
    framework, test runner, check command, and write tailored rules under `.claude/rules/`.
-   `/examine` fills the Block 2 fields directly into `CLAUDE.md`.
+   `/examine` fills the Block 4 fields directly into `CLAUDE.md`.
 5. Continue with Block 1 (Identity) — kindle still needs the project name, one-liner, etc.
 
 #### Starter template subflow
@@ -97,7 +97,7 @@ The branches:
    "Let me paste my own URL" (freeform input).
 4. Once a URL is chosen, clone it into the current directory using the same logic as the
    "Existing codebase" git-URL path above.
-5. **Invoke `/examine`** to detect what was cloned and fill `CLAUDE.md` Block 2 fields.
+5. **Invoke `/examine`** to detect what was cloned and fill `CLAUDE.md` Block 4 fields.
 6. Continue with Block 1 (Identity).
 
 ### Block 1 — Identity
@@ -109,21 +109,47 @@ The branches:
 2. **One-line description** (freeform)
    - "In one sentence, what does it do? (Will show on the GitHub repo and in CLAUDE.md.)"
 
-### Block 2 — Tech stack
+### Block 2 — Visual review
+
+3. **Visual review tool** (AskUserQuestion, 4 options)
+   - "How should temper do visual review for UI work?" Options:
+     - Playwright (web apps) — (Recommended for web projects)
+     - iOS Simulator MCP (React Native / Expo) — uses `npx ios-simulator-mcp` for screenshot capture via sim-pilot subagent
+     - Other — freeform follow-up (describe your tool and how temper should invoke it)
+     - None — logic-only project, no UI surface
+
+### Block 3 — First phase
+
+4. **First sub-phase title** (freeform)
+   - "What's the very first thing we'll work on? Give it a short title — like 'Auth & login' or 'CLI scaffold'."
+   - This becomes the `0a` row in `MISSION-CONTROL.md`.
+
+### Block 4 — Tech stack (optional)
+
+Now that we know *what* the project does and what the first piece of work is, the tech
+stack question has context. Claude can make an informed suggestion based on Blocks 1-3.
 
 **Skip this entire block if Block 0 was "Existing codebase" or "Starter template".**
 `/examine` already filled these fields by inspecting the codebase. If `/examine` reported
 any field as `unknown`, mention that here and ask the user to fill just those fields
-manually — don't re-run the full Block 2 Q&A.
+manually — don't re-run the full Block 4 Q&A.
 
-3. **Stack preset** (AskUserQuestion, 4 options)
-   - "What's the tech stack?" Options:
-     - TypeScript / Node — sets package manager, check command, gitignore
-     - Python — uv or poetry, pytest, gitignore additions
-     - Rust — cargo, gitignore additions
+5. **Stack preset** (AskUserQuestion, 4 options)
+   - Based on the project description (Block 1) and first phase (Block 3), suggest a
+     stack that fits. Frame as: "Based on what you've described, I'd recommend X — but
+     you can pick something else or skip this entirely and decide later."
+   - Options:
+     - The recommended stack (derived from context) — (Recommended)
+     - TypeScript / Node
+     - Python
      - Other / multiple — freeform follow-up
+     - **Figure it out later** — leave tech stack as TBD; fill it when code exists
+       (via `/examine` or manually). CLAUDE.md placeholders stay as `{{TBD}}`.
+   - If the recommended stack matches one of the named options, merge them (don't show
+     the same stack twice). Always include "Figure it out later" as the last option.
 
-4. **Framework** (AskUserQuestion, options derived from Q3 preset)
+6. **Framework** (skip if user chose "Figure it out later")
+   - (AskUserQuestion, options derived from Q5 preset)
    - "Which framework?" Options depend on the preset:
      - TypeScript / Node → Next.js / Express / None
      - Python → Django / FastAPI / None
@@ -131,7 +157,8 @@ manually — don't re-run the full Block 2 Q&A.
      - Other → freeform text ("Type your framework, or 'none'")
    - If "None" or freeform with no framework: record as "none" — CLAUDE.md will say `**Framework:** none`.
 
-5. **Check command** (freeform, with a recommendation derived from the preset)
+7. **Check command** (skip if user chose "Figure it out later")
+   - (freeform, with a recommendation derived from the preset)
    - "What single command runs your tests + typecheck + lint? (Temper will run this before opening a PR.)"
    - Recommendations by preset:
      - TS/Node: `pnpm check-all` if pnpm preferred, else `npm test`
@@ -139,41 +166,22 @@ manually — don't re-run the full Block 2 Q&A.
      - Rust: `cargo check && cargo test && cargo clippy`
      - Other: prompt user to type their own
 
-6. **CI runner** (stated default with opt-out — not a full AskUserQuestion)
-   - Say: "CI will run on GitHub Actions with `ubuntu-latest`. If you need something different, say so now — otherwise we'll go with that."
-   - If the user objects or names a different runner, record their preference. Otherwise default to `ubuntu-latest`.
-   - This is a brief pause, not a multi-option question — 90%+ of users accept the default silently.
-
-### Block 3 — Visual review
-
-7. **Visual review tool** (AskUserQuestion, 3 options)
-   - "How should temper do visual review for UI work?" Options:
-     - Playwright (web app) — (Recommended for web projects)
-     - Other (mobile simulator, snapshot tester, etc.) — freeform follow-up
-     - None — logic-only project, no UI surface
-
-### Block 4 — First phase
-
-8. **First sub-phase title** (freeform)
-   - "What's the very first thing we'll work on? Give it a short title — like 'Auth & login' or 'CLI scaffold'."
-   - This becomes the `0a` row in `MISSION-CONTROL.md`.
-
 ### Block 5 — Domain language (optional)
 
-9. **Key terms** (freeform, can be "skip")
+8. **Key terms** (freeform, can be "skip")
    - "Any domain words you'd want me to lock in upfront? Type a comma-separated list (e.g. 'Widget, Note, Bin') or 'skip' if you'd rather add them as they come up."
    - If provided, each term gets a stub entry in `CONTEXT.md` with a `TODO: define` placeholder.
 
 ### Block 6 — GitHub
 
-10. **Repo creation** (AskUserQuestion, 4 options)
+9. **Repo creation** (AskUserQuestion, 4 options)
    - "What should I do with GitHub?" Options:
      - Create new public repo — (Recommended for open work)
      - Create new private repo
      - Link to an existing repo (I'll ask for the URL)
      - Skip GitHub for now (I'll just `git init` locally)
 
-11. **Repo name** (only if creating; freeform with kebab-cased default)
+10. **Repo name** (only if creating; freeform with kebab-cased default)
     - "Repo name?" Default: kebab-case of the project name. Show the default; user can accept or change.
 
 ## Doing the work
@@ -185,10 +193,10 @@ user just chose. Ask once: "Look right? (yes / let me change something)". On yes
 
 Replace placeholders:
 - `{{PROJECT_NAME}}` → project name
-- Tech stack lines — fill from preset and check command (**skipped if `/examine` already filled these**)
-- `**Framework:**` line — fill from Q4 answer (e.g. `**Framework:** Next.js 14`, `**Framework:** Django`, or `**Framework:** none`) (**skipped if `/examine` already filled this**)
+- Tech stack lines — fill from preset and check command (**skipped if `/examine` already filled these, or if user chose "Figure it out later"**). If "Figure it out later", replace tech stack placeholders with `{{TBD}}`.
+- `**Framework:**` line — fill from Q6 answer (e.g. `**Framework:** Next.js 14`, `**Framework:** Django`, or `**Framework:** none`) (**skipped if `/examine` already filled this, or if "Figure it out later"**)
 - Key terms section — add up to 3 most-load-bearing terms from Block 5 (rest go to CONTEXT.md)
-- CI runner line — fill from Q6 answer (defaults to `ubuntu-latest`)
+- CI runner line — always set to `ubuntu-latest` (no question asked)
 
 Use `Edit` per replacement so the diff is reviewable.
 
@@ -199,7 +207,7 @@ untouched (project name, key terms, CI runner if not detected).
 ### 2. Fill `MISSION-CONTROL.md`
 
 - Replace `{{PROJECT_NAME}}` in the title.
-- Replace the example `0a` row with a real one using the Block 4 title.
+- Replace `{{FIRST_PHASE}}` in the `0a` row with the Block 3 title.
 - Update the "Recommended next prompt" if needed (default `/ponder` is fine for a fresh project).
 
 ### 3. Fill `CONTEXT.md`
@@ -215,7 +223,7 @@ untouched (project name, key terms, CI runner if not detected).
 
 ### 4. Visual review note
 
-If Block 3 picked "Other" or "None", append a one-paragraph note to `CLAUDE.md` under "Rules"
+If Block 2 picked "Other" or "None", append a one-paragraph note to `CLAUDE.md` under "Rules"
 documenting the choice so temper knows what to do.
 
 ### 5. Git + GitHub
@@ -313,9 +321,11 @@ If Block 6 was "Skip GitHub", omit the Projects/labels bullets and instead say:
   clear next-steps and link to docs/dev/setup.md instead.
 - **Don't invent placeholder ID values in kanban-move.sh.** Leave the `REPLACE_ME`
   values — the user fills these once their Projects board exists.
-- **Don't ask Block 2 (tech stack) questions when `/examine` will run.** The whole point
+- **Don't ask Block 4 (tech stack) questions when `/examine` will run.** The whole point
   of the existing-codebase / starter-template flow is to skip the manual Q&A and let
   detection do the work. If `/examine` returns `unknown` for a field, ask only about that
   specific field — don't fall back to the full preset Q&A.
+- **Don't force a tech stack decision.** "Figure it out later" is a first-class option.
+  Users may want to explore during `/ponder` before committing to a stack.
 - **Don't bundle `/examine` into kindle.** Treat it as a sibling skill — invoke it by name
   (`/examine`) and let the harness load it. Never inline its detection logic here.

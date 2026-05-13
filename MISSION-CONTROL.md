@@ -5,17 +5,15 @@
 
 ## 🛰️ Telemetry — right now
 
-**Phase:** P1 Workflow hardening ✅ (4/4)
+**Phase:** P0 Foundations ⏳ (0/1)
 **In flight:** —
 **Workflow:** Ponder → Forge → Temper pipeline. See [`docs/workflow/`](docs/workflow/) for details.
 
 **Recommended next prompt:**
 
 ```
-_All features shipped or in motion. No recommendation._
+/ponder 0a
 ```
-
-> Phase 1 complete: 1b (#17, #18, #19), 1c (#20), 1d (#21), 1e (#22, #23) all shipped. Pick the next phase via `/ponder <sub-phase-name>` when ready.
 
 ## ☄️ In flight
 
@@ -35,22 +33,11 @@ _All features shipped or in motion. No recommendation._
     <!-- mc:done=N,N -->        all listed issues closed (shipped)
 -->
 
-### P0 Foundations ▓ 1/1
+### P0 Foundations ░ 0/1
 
 | # | Sub-phase | Status | PRD | Issues |
 | --- | --- | --- | --- | --- |
-| 0a | Dev mode + docs v0 | ✅ shipped | [modes-v0-pr.md](docs/future/modes-v0-pr.md) | #1, #2, #3, #4, #5, #6, #7, #8 <!-- mc:done=1,2,3,4,5,6,7,8 --> |
-
-### P1 Workflow hardening ▓▓▓▓ 4/4
-
-Drawn from the 2026-05-12 smoke-test debrief. See [`docs/ideas.md`](docs/ideas.md) and the issue bodies for context.
-
-| # | Sub-phase | Status | PRD | Issues |
-| --- | --- | --- | --- | --- |
-| 1b | Orchestrator hygiene — context discipline, conflict subagent, push helper | ✅ shipped | — | #17, #18, #19 <!-- mc:done=17,18,19 --> |
-| 1c | `/prototype` — fast-mode entry point | ✅ shipped | — | #20 <!-- mc:done=20 --> |
-| 1d | Temper sentinel — structured JSON | ✅ shipped | — | #21 <!-- mc:done=21 --> |
-| 1e | Kindle — existing codebase + `/examine` | ✅ shipped | — | #22, #23 <!-- mc:done=22,23 --> |
+| 0a | {{FIRST_PHASE}} | ⏳ queued | — | — <!-- mc:none --> |
 
 ## 🛸 Architectural items
 
