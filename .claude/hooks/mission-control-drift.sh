@@ -31,4 +31,24 @@ if [[ "$drift" -gt 0 ]]; then
   echo "📊 Mission Control: $drift closed issue(s) since last sync — run /seal to refresh."
 fi
 
+# --- /examine nudge ---
+# Suggest /examine when .claude/rules/ exists but has no real rule files
+# and the repo contains actual source code (not just Forge scaffolding).
+RULES_DIR="$REPO_ROOT/.claude/rules"
+if [[ -d "$RULES_DIR" ]]; then
+  real_rules=$(find "$RULES_DIR" -name '*.md' ! -name 'README.md' 2>/dev/null | head -1)
+  if [[ -z "$real_rules" ]]; then
+    # Check for source code files (not in .claude/ or node_modules/)
+    has_code=$(find "$REPO_ROOT" -maxdepth 3 \
+      \( -name '*.ts' -o -name '*.tsx' -o -name '*.js' -o -name '*.jsx' \
+         -o -name '*.py' -o -name '*.rs' -o -name '*.go' -o -name '*.rb' \
+         -o -name '*.java' -o -name '*.swift' -o -name '*.kt' \) \
+      ! -path '*/.claude/*' ! -path '*/node_modules/*' \
+      2>/dev/null | head -1)
+    if [[ -n "$has_code" ]]; then
+      echo "💡 Tip: Run /examine to auto-detect your stack and generate project-specific rules in .claude/rules/."
+    fi
+  fi
+fi
+
 exit 0
