@@ -1,20 +1,15 @@
 # The Forge
 
-Welcome to The Forge. This is a drop-in Claude Code workflow that takes a project from idea to shipped code — autonomously, in phases, with safety rails at every step. You plan with `/ponder`, build with `/forge` + `/temper`, and ship the batch with `/seal`. Thirteen skills, two safety hooks, zero project-specific code. Drop it into any repo and it works.
+A drop-in Claude Code workflow that takes a project from idea to shipped code. Plan with `/ponder`, build with `/forge` + `/temper`, ship with `/seal`. 16 skills, zero project-specific code.
 
-The pipeline is **Ponder → Forge → Temper → Seal**: grill the design, inscribe the spec, forge the build queue (dispatching workers that respect dependencies and rate limits), temper each slice into a PR with green CI, then seal the batch by merging and reconciling. After you approve the build-queue pre-flight, it runs end-to-end without intervention.
+**Pipeline:** `/ponder` (grill + PRD + triage) --> `/forge` (build queue) --> `/temper <N>` (branch, implement, test, PR, CI) --> `/seal` (merge + reconcile). Runs end-to-end after you approve the build queue.
 
 ## Two modes
 
-The Forge supports two experiences on a shared core. Both run the same four-phase pipeline. The first question the setup script asks is which one you want.
+- **Dev Mode** -- Full keyboard-driven workflow: GitHub Issues, branches, 16 slash commands.
+- **Weenie Hut Junior Mode** -- Claude drives everything. You never touch GitHub. *(Designed, not yet built.)*
 
-**Dev Mode** — You've written code before. You know what a Pull Request is. You want the full keyboard-driven workflow with GitHub Issues, Projects, branches, and ~13 slash commands. Get out of my way.
-
-**Weenie Hut Junior Mode** — You're an engineer who doesn't code daily, a PM, a marketer, or anyone who'd rather not look at a terminal. Claude grills you on what you're building, picks the stack for you, scaffolds a real deployed app, and walks you through every feature as it ships. You never touch GitHub. ~6 slash commands.
-
-Pick Dev if you want control. Pick Weenie Hut Junior if you want someone else to drive. The downgrade is not an insult — it's the version built for you.
-
-## Quickstart — Dev Mode
+## Quickstart
 
 ```bash
 # One command — run from your project directory
@@ -29,74 +24,49 @@ cd my-new-project
 ./light-the-forge.sh          # Pick "Dev" when asked
 ```
 
-The script checks your tools, copies The Forge's kit files into your directory, then launches Claude with the `/kindle` skill. Claude asks ~10 questions (project name, tech stack, first phase, GitHub repo) and fills in `CLAUDE.md`, `MISSION-CONTROL.md`, `CONTEXT.md`, runs `git init`, and creates the GitHub repo for *your* project.
+`light-the-forge.sh` checks your tools, copies The Forge's kit files into your directory, then launches `/kindle`. Claude asks ~10 questions and fills in `CLAUDE.md`, `MISSION-CONTROL.md`, `CONTEXT.md`, inits git, and creates your GitHub repo.
 
-For manual setup, see [`docs/dev/setup.md`](./docs/dev/setup.md).
+For manual setup, see [`docs/dev/setup.md`](./docs/dev/setup.md). Full dev-mode docs: [`docs/dev/`](./docs/dev/).
 
-Full dev-mode docs: [`docs/dev/`](./docs/dev/)
+## Skills
 
-## Quickstart — Weenie Hut Junior Mode
+**Pipeline core:**
 
-Coming soon. WHJ mode is designed but not yet built. See [`docs/whj/`](./docs/whj/) for the design and [`docs/future/modes.md`](./docs/future/modes.md) for the full architecture.
+| Skill | What it does |
+|-------|-------------|
+| `/ponder` | Grill the idea, write a PRD, file and triage issues |
+| `/prototype` | Fast-mode: skip grill/PRD, file issues directly |
+| `/forge` | Drain the build queue (auto-invokes `/seal` at end) |
+| `/temper <N>` | Build one slice: branch, implement, test, PR, CI |
+| `/seal` | Merge open PRs, reconcile `MISSION-CONTROL.md`, clean up |
 
-## The pipeline
+**Sub-skills of `/ponder`:**
 
-```
-/ponder ──→ /forge ──→ /temper <N> ──→ /seal
-                       (temper dispatched as subagent with up to 2 support agents)
-```
+| Skill | What it does |
+|-------|-------------|
+| `/grill-me` | Interview Q&A on a design (also standalone) |
+| `/inscribe` | Write PRD, file issues, triage |
+| `/triage` | Move issues through the state machine |
 
-| Phase | Skill | What happens |
-|-------|-------|---------------|
-| **Plan** | `/ponder` | Grill the idea via `grill-me`, write a PRD or scope a single slice, file issues, triage them with `/inscribe` |
-| **Preview** | `/forge` | Show the build queue, get user approval |
-| **Build** | `/temper <N>` | Branch → implement → test → PR → CI → **stop at CI green**. No merge. |
-| **Ship** | `/seal` | Approve + merge each open PR, reconcile `MISSION-CONTROL.md`, clean up artifacts |
+**Standalone helpers:**
 
-Each phase runs in its own Claude session and hands off via on-disk artifacts (issues, PRD, PR body, kanban state). **No session-memory continuity between phases.**
+| Skill | What it does |
+|-------|-------------|
+| `/sharpen` | Turn a rough idea into a precise prompt |
+| `/diagnose` | Disciplined debugging loop |
+| `/tinker` | Throwaway prototype branch, skips the pipeline |
+| `/scrub` | Clean up orphaned worktrees, stale files, temp artifacts |
+| `/examine` | Detect stack and tailor The Forge to an existing codebase |
 
-## Skills reference
+**Manual-only (not auto-invoked):**
 
-**Pipeline core (use these all the time):**
+| Skill | What it does |
+|-------|-------------|
+| `/kindle` | First-run bootstrap (invoked by `light-the-forge.sh`) |
+| `/rollback <PR>` | Revert a shipped slice |
+| `/write-a-skill` | Author a new skill |
 
-| Skill | When |
-|-------|------|
-| `/ponder [hint]` | Starting new work from a fuzzy idea — full grill + PRD + triage |
-| `/prototype [idea]` | Fast-mode entry point — skips grill/PRD/triage, files issues directly. Use when you already know the shape. |
-| `/forge [--phase <id>]` | Drain the `ready-for-agent` queue (auto-invokes `/seal` at end) |
-| `/temper <N>` | Build one slice (usually dispatched by forge) |
-| `/seal` | Close out a build batch (usually auto-invoked by forge; can run standalone) |
-
-**Sub-skills of `/ponder` (run inside the planning phase):**
-
-| Skill | When |
-|-------|------|
-| `/grill-me` | Interview Q&A on any design — also callable standalone |
-| `/inscribe` | Write PRD, file issues, triage (auto-invoked at end of `/ponder`) |
-| `/triage` | Move issues through `needs-triage` → `ready-for-agent` etc. |
-
-**Standalone helpers (call when relevant):**
-
-| Skill | When |
-|-------|------|
-| `/sharpen` | Hone a rough idea into a precise prompt |
-| `/diagnose` | Disciplined debugging loop for hard bugs |
-| `/tinker <topic>` | Throwaway prototype branch for exploratory work — skips the full pipeline |
-| `/scrub` | Clean up runtime artifacts — orphaned worktrees, stale continuation files, temp files |
-
-**Manual-only (rare, high-stakes; not auto-invoked by Claude):**
-
-| Skill | When |
-|-------|------|
-| `/kindle` | First-run bootstrap. Usually invoked via `light-the-forge.sh`. |
-| `/rollback <PR>` | Revert a shipped slice that caused a regression |
-| `/write-a-skill` | Meta — author a new skill in this format |
-
-For the full pipeline, see [`docs/workflow/README.md`](./docs/workflow/README.md) and [`docs/workflow/reference.md`](./docs/workflow/reference.md).
-
-## Heritage
-
-Extracted from a real-world Claude Code workflow built up over multiple production projects. The metalworking vocabulary (temper, forge, inscribe, sharpen) reflects how the original author thinks about the loop. Rename them per project if you like — they're just skill files.
+Full reference: [`docs/workflow/README.md`](./docs/workflow/README.md) and [`docs/workflow/reference.md`](./docs/workflow/reference.md).
 
 ## License
 
