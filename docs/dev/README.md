@@ -38,7 +38,7 @@ Each phase runs in its own Claude session. No session-memory continuity between 
 | `/tinker <topic>` | Throwaway prototype branch for exploratory work; skips the pipeline |
 | `/rollback <PR>` | Revert a shipped slice that caused a regression (manual-only) |
 | `/write-a-skill` | Meta -- author a new skill (manual-only) |
-| `/kindle` | First-run project bootstrap (manual-only; usually invoked via `./kindle.sh`) |
+| `/kindle` | First-run project bootstrap (manual-only; usually invoked via `./light-the-forge.sh`) |
 
 ## Forge (the forgemaster)
 
