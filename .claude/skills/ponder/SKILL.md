@@ -57,6 +57,16 @@ Only run the size check **once** per session. Do not re-litigate.
 
 Also identify the **sub-phase ID** from `MISSION-CONTROL.md` (e.g. `2a`, `3b`). If the work doesn't belong to an existing sub-phase, note that for inscribe.
 
+**Also read the dev-mode line** from `CLAUDE.md` during the size check. Grep for the line:
+
+```bash
+grep -E '^\*\*Dev mode:\*\*' CLAUDE.md
+```
+
+Parse the value after `**Dev mode:**` (trim whitespace, lowercase). Accept only `fast`, `balanced`, or `tdd`. **Default to `balanced`** if the line is missing, malformed, or the value is unrecognized — no warning, no prompt; just proceed.
+
+Pass the resolved mode to `/inscribe` alongside the size decision. When mode=`tdd` and size=`single-slice`, inscribe will write a PRD before filing the issue (the tdd discipline tier requires a written spec even for one-issue work). When mode=`fast` or `balanced`, single-slice behavior is unchanged from today.
+
 ### 3. Summarise resolved decisions
 
 Output a short bulleted summary of everything the grill resolved. Ask:
@@ -70,8 +80,9 @@ Use AskUserQuestion. If "more to grill", continue. If ready, proceed to inscribe
 Invoke the `/inscribe` sub-skill, passing:
 - **Size decision:** `sub-phase` or `single-slice`
 - **Sub-phase ID:** e.g. `2a` (or "none" for standalone work)
+- **Dev mode:** `fast`, `balanced`, or `tdd` (resolved in step 2)
 
-Inscribe handles everything from here: PRD writing (sub-phase only), issue filing, triaging all slices, updating MISSION-CONTROL.md, and printing the handoff.
+Inscribe handles everything from here: PRD writing (sub-phase always; single-slice only when mode=`tdd`), issue filing, triaging all slices, updating MISSION-CONTROL.md, and printing the handoff.
 
 **Do not** duplicate inscribe's work. Once inscribe is invoked, Ponder is done.
 
