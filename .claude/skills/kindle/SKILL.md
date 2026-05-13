@@ -139,41 +139,37 @@ manually — don't re-run the full Block 2 Q&A.
      - Rust: `cargo check && cargo test && cargo clippy`
      - Other: prompt user to type their own
 
-6. **CI runner** (stated default with opt-out — not a full AskUserQuestion)
-   - Say: "CI will run on GitHub Actions with `ubuntu-latest`. If you need something different, say so now — otherwise we'll go with that."
-   - If the user objects or names a different runner, record their preference. Otherwise default to `ubuntu-latest`.
-   - This is a brief pause, not a multi-option question — 90%+ of users accept the default silently.
-
 ### Block 3 — Visual review
 
-7. **Visual review tool** (AskUserQuestion, 3 options)
+6. **Visual review tool** (AskUserQuestion, 4 options)
    - "How should temper do visual review for UI work?" Options:
-     - Playwright (web app) — (Recommended for web projects)
-     - Other (mobile simulator, snapshot tester, etc.) — freeform follow-up
+     - Playwright (web apps) — (Recommended for web projects)
+     - iOS Simulator MCP (React Native / Expo) — uses `npx ios-simulator-mcp` for screenshot capture via sim-pilot subagent
+     - Other — freeform follow-up (describe your tool and how temper should invoke it)
      - None — logic-only project, no UI surface
 
 ### Block 4 — First phase
 
-8. **First sub-phase title** (freeform)
+7. **First sub-phase title** (freeform)
    - "What's the very first thing we'll work on? Give it a short title — like 'Auth & login' or 'CLI scaffold'."
    - This becomes the `0a` row in `MISSION-CONTROL.md`.
 
 ### Block 5 — Domain language (optional)
 
-9. **Key terms** (freeform, can be "skip")
+8. **Key terms** (freeform, can be "skip")
    - "Any domain words you'd want me to lock in upfront? Type a comma-separated list (e.g. 'Widget, Note, Bin') or 'skip' if you'd rather add them as they come up."
    - If provided, each term gets a stub entry in `CONTEXT.md` with a `TODO: define` placeholder.
 
 ### Block 6 — GitHub
 
-10. **Repo creation** (AskUserQuestion, 4 options)
+9. **Repo creation** (AskUserQuestion, 4 options)
    - "What should I do with GitHub?" Options:
      - Create new public repo — (Recommended for open work)
      - Create new private repo
      - Link to an existing repo (I'll ask for the URL)
      - Skip GitHub for now (I'll just `git init` locally)
 
-11. **Repo name** (only if creating; freeform with kebab-cased default)
+10. **Repo name** (only if creating; freeform with kebab-cased default)
     - "Repo name?" Default: kebab-case of the project name. Show the default; user can accept or change.
 
 ## Doing the work
@@ -188,7 +184,7 @@ Replace placeholders:
 - Tech stack lines — fill from preset and check command (**skipped if `/examine` already filled these**)
 - `**Framework:**` line — fill from Q4 answer (e.g. `**Framework:** Next.js 14`, `**Framework:** Django`, or `**Framework:** none`) (**skipped if `/examine` already filled this**)
 - Key terms section — add up to 3 most-load-bearing terms from Block 5 (rest go to CONTEXT.md)
-- CI runner line — fill from Q6 answer (defaults to `ubuntu-latest`)
+- CI runner line — always set to `ubuntu-latest` (no question asked)
 
 Use `Edit` per replacement so the diff is reviewable.
 
