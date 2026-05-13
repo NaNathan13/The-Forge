@@ -1,6 +1,6 @@
 ---
 name: kindle
-description: Bootstrap a new project on The Forge — Q&A to fill CLAUDE.md, MISSION-CONTROL.md, and CONTEXT.md, then git init and create the GitHub repo. Use at the very start of a new project (usually launched by ./kindle.sh) or when the user says "kindle this project", "set up The Forge here", or "/kindle".
+description: Bootstrap a new project on The Forge — Q&A to fill CLAUDE.md, MISSION-CONTROL.md, and CONTEXT.md, then git init and create the GitHub repo. Use at the very start of a new project (usually launched by ./light-the-forge.sh) or when the user says "kindle this project", "set up The Forge here", or "/kindle".
 disable-model-invocation: true
 ---
 
@@ -17,7 +17,7 @@ silently, but don't make every question feel like an exam.
 
 ## Preconditions
 
-The launcher script (`kindle.sh`) verifies these before Claude starts, but double-check:
+The launcher script (`light-the-forge.sh`) verifies these before Claude starts, but double-check:
 
 - We're in a directory that contains The Forge files (`CLAUDE.md`, `MISSION-CONTROL.md`,
   `.claude/skills/`). If not, stop and say so.
@@ -66,7 +66,7 @@ The branches:
 1. Ask (freeform): "Path to the codebase, or paste a git URL."
 2. **If a git URL** (matches `^(https?://|git@)` or ends in `.git`):
    - Confirm the current directory is empty of user code (only The Forge files present —
-     `CLAUDE.md`, `MISSION-CONTROL.md`, `.claude/`, `kindle.sh`, and possibly a `.git/`
+     `CLAUDE.md`, `MISSION-CONTROL.md`, `.claude/`, `light-the-forge.sh`, and possibly a `.git/`
      about to be wiped). If not empty, ask once: "This directory has other files. Clone
      anyway into a subdirectory? (yes / cancel)". On cancel, abort kindle.
    - `git clone <url> .clone-tmp` then move clone contents up one level (excluding its
@@ -76,7 +76,7 @@ The branches:
      existing repo: <url>").
 3. **If a path:** verify it's a directory. Don't move the user's files. The user is expected
    to have already copied The Forge files (`CLAUDE.md`, etc.) into that directory before
-   running `kindle.sh`. Confirm with: "I'll lay The Forge files on top of your existing
+   running `light-the-forge.sh`. Confirm with: "I'll lay The Forge files on top of your existing
    project at `<path>`. Nothing of yours moves — I just add `CLAUDE.md`, `MISSION-CONTROL.md`,
    `.claude/`, etc. Continue?"
 4. Once the codebase is in place, **invoke `/examine`** (sibling skill) to detect stack,
@@ -269,23 +269,23 @@ script is idempotent — safe to re-run.
 
 If you wrote `.claude/.kindle-in-progress` during the existing-codebase or starter-template
 clone (recommended: write it right before invoking `/examine` so a mid-flow Claude crash
-leaves a breadcrumb for the next `./kindle.sh` run), delete it now:
+leaves a breadcrumb for the next `./light-the-forge.sh` run), delete it now:
 
 ```bash
 rm -f .claude/.kindle-in-progress
 ```
 
-### 8. Delete `kindle.sh`
+### 8. Delete `light-the-forge.sh`
 
-Kindle is a one-shot. After success, ask once: "Remove `kindle.sh` from the repo? (it's done its job)". Default yes. If yes, `rm kindle.sh` and add it to the next commit:
+Kindle is a one-shot. After success, ask once: "Remove `light-the-forge.sh` from the repo? (it's done its job)". Default yes. If yes, `rm light-the-forge.sh` and add it to the next commit:
 
 ```bash
-git rm kindle.sh
-git commit -m "chore: remove kindle.sh after bootstrap"
+git rm light-the-forge.sh
+git commit -m "chore: remove light-the-forge.sh after bootstrap"
 git push
 ```
 
-If the user said "Skip GitHub", just `rm kindle.sh` locally — no commit.
+If the user said "Skip GitHub", just `rm light-the-forge.sh` locally — no commit.
 
 ## Final handoff
 
@@ -303,9 +303,15 @@ Still TODO (one-time):
   □ Set up your GitHub Projects (v2) board with columns:
       Backlog, Ready, In Progress, In Review, Done
   □ Run .claude/scripts/setup-kanban.sh to configure your GitHub Projects board
+  □ Once you have code in the repo, run /examine to auto-detect your stack
+    and generate .claude/rules/ (tailored conventions for your project)
 
 When that's done, run /ponder and we'll plan the first slice.
 ```
+
+The `/examine` nudge only applies to **fresh projects** (Block 0 = "Fresh project"). For
+"Existing codebase" and "Starter template" flows, `/examine` already ran during kindle —
+omit that bullet.
 
 If Block 6 was "Skip GitHub", omit the Projects/labels bullets and instead say:
 "When you're ready to enable the full pipeline, create a GitHub repo, then re-run kindle or follow docs/dev/setup.md."
