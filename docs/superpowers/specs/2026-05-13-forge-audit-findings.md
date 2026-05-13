@@ -24,7 +24,7 @@ Per the audit-design severity gate: only `blocker` + `important` findings became
 
 ## Proposed issues
 
-### #1 — Drop legacy "Kindle" references in light-the-forge.sh
+### #66 — Drop legacy "Kindle" references in light-the-forge.sh
 - **Slice:** slice:logic
 - **Severity:** blocker
 - **Files:** `light-the-forge.sh:173`, `light-the-forge.sh:182`, `light-the-forge.sh:188`
@@ -32,7 +32,7 @@ Per the audit-design severity gate: only `blocker` + `important` findings became
 - **Fix:** Replace each `Kindle` with `/light-the-forge` (or "the setup wizard"), matching the rest of the script.
 - **Blocked by:** —
 
-### #2 — Fix `/light-the-forge` step 8 in curl-pipe-bash install path
+### #67 — Fix `/light-the-forge` step 8 in curl-pipe-bash install path
 - **Slice:** slice:mixed
 - **Severity:** blocker
 - **Files:** `.claude/skills/light-the-forge/SKILL.md:318-328`, `light-the-forge.sh:87-103`
@@ -40,7 +40,7 @@ Per the audit-design severity gate: only `blocker` + `important` findings became
 - **Fix:** Gate step 8 on `[[ -f light-the-forge.sh ]]` before deleting, OR have `light-the-forge.sh:87-103` copy itself into `$TARGET` so the deletion is meaningful in both install paths.
 - **Blocked by:** —
 
-### #3 — Replace deprecated prose sentinels with structured `TEMPER:RESULT` contract
+### #68 — Replace deprecated prose sentinels with structured `TEMPER:RESULT` contract
 - **Slice:** slice:docs
 - **Severity:** blocker
 - **Files:** `WORKFLOW.md:54-58`, `.claude/skills/temper/SKILL.md:211`, `.claude/skills/temper/SKILL.md:99-100`, `.claude/skills/forge/SKILL.md:214`, `.claude/skills/seal/SKILL.md:42`
@@ -48,7 +48,7 @@ Per the audit-design severity gate: only `blocker` + `important` findings became
 - **Fix:** Replace the `Temper sentinels` section in `WORKFLOW.md` with the structured `TEMPER:RESULT { "status": "...", "reason": "...", "friction": "...", ... }` contract that temper and forge actually use today; rewrite the friction-flagging section in `temper/SKILL.md` to emit `TEMPER:RESULT` with `status:"needs_human"` and `reason:"friction"`; sweep prose references in temper/forge/seal to drop the legacy strings.
 - **Blocked by:** —
 
-### #4 — `/inscribe` — write MISSION-CONTROL row marker and update sub-phase status on handoff
+### #69 — `/inscribe` — write MISSION-CONTROL row marker and update sub-phase status on handoff
 - **Slice:** slice:docs
 - **Severity:** blocker
 - **Files:** `.claude/skills/inscribe/SKILL.md:135-145`, `MISSION-CONTROL.md:30-34,61-64`
@@ -56,7 +56,7 @@ Per the audit-design severity gate: only `blocker` + `important` findings became
 - **Fix:** Add a step in the §Handoff section that edits the sub-phase row to set `mc:open=` (comma-joined issue numbers from step A2) and flips the status emoji to `📝 prd-ready` (sub-phase) or `🚧 in-progress` (single-slice).
 - **Blocked by:** —
 
-### #5 — `/inscribe` + `/triage` — fix phase routing across sub-phase and single-slice flows
+### #70 — `/inscribe` + `/triage` — fix phase routing across sub-phase and single-slice flows
 - **Slice:** slice:docs
 - **Severity:** blocker
 - **Files:** `.claude/skills/inscribe/SKILL.md:30-31,55,96-100,138-145`, `.claude/skills/triage/SKILL.md:99-107,144-148`
@@ -67,7 +67,7 @@ Per the audit-design severity gate: only `blocker` + `important` findings became
 - **Fix:** Branch the inscribe handoff — when sub-phase-id is `"none"`, emit `/temper <N>` (single issue) or `/forge` (no flag); only emit `/forge --phase <id>` when a real id was resolved. Add a `phase:<sub-phase>` label step to both `inscribe/SKILL.md:96-100` and `triage/SKILL.md:144-148`. Clarify in triage that unprefixed titles are "no phase" and inscribe drops `--phase` accordingly.
 - **Blocked by:** —
 
-### #6 — Reconcile slice label vocabulary across PRD, scripts, skills, and WORKFLOW.md
+### #71 — Reconcile slice label vocabulary across PRD, scripts, skills, and WORKFLOW.md
 - **Slice:** slice:mixed
 - **Severity:** blocker
 - **Files:** `docs/prds/developer-modes.md:34,97-100`, `WORKFLOW.md:41-43`, `.claude/skills/triage/SKILL.md:38-40`, `.claude/scripts/workflow-setup.sh:45-47`, `.claude/skills/forge/SKILL.md:38`
@@ -77,15 +77,15 @@ Per the audit-design severity gate: only `blocker` + `important` findings became
   - **(b)** Extend the canonical slice vocabulary — add `slice:docs` and `slice:skill` to `WORKFLOW.md`, `triage/SKILL.md`, `workflow-setup.sh` (with colors/descriptions), and `forge/SKILL.md` (topo-sort order including the new labels).
 - **Blocked by:** —
 
-### #7 — `/temper` + `/forge` — apply `needs-human` label when emitting `status:needs_human`
+### #72 — `/temper` + `/forge` — apply `needs-human` label when emitting `status:needs_human`
 - **Slice:** slice:docs
 - **Severity:** blocker
 - **Files:** `.claude/skills/temper/SKILL.md:58`, `.claude/skills/forge/SKILL.md:129`, `.claude/skills/seal/SKILL.md:39,42`
 - **Problem:** When temper emits `status:"needs_human"` for a non-friction reason (e.g. `ci-stuck`) with a PR already open, nothing applies the `needs-human` label to the PR. Seal classifies merge-vs-skip purely by labels — so a ci-stuck PR with green CI checks gets auto-merged by `/seal --auto`. Active foot-gun: an actually-broken PR ships because the only signal that says "stop" is the label, and nothing sets it.
 - **Fix:** In temper's `ci-stuck` branch (and any other non-friction `needs_human` path) add `gh pr edit <PR> --add-label needs-human` before emitting the result. Mirror in forge's `needs_human` handler when a `pr` field is present.
-- **Blocked by:** #3 (touches the same emit point)
+- **Blocked by:** #68 (touches the same emit point)
 
-### #8 — Populate live repo-root docs with The Forge's own metadata
+### #73 — Populate live repo-root docs with The Forge's own metadata
 - **Slice:** slice:docs
 - **Severity:** blocker
 - **Files:** `CLAUDE.md:1-37`, `MISSION-CONTROL.md:1,15,36-40`, `CONTEXT.md:1`
@@ -95,7 +95,7 @@ Per the audit-design severity gate: only `blocker` + `important` findings became
 
 ---
 
-### #9 — Add README template for downstream projects
+### #74 — Add README template for downstream projects
 - **Slice:** slice:mixed
 - **Severity:** important
 - **Files:** `light-the-forge.sh:87`, `.claude/skills/light-the-forge/SKILL.md:1-end`
@@ -103,7 +103,7 @@ Per the audit-design severity gate: only `blocker` + `important` findings became
 - **Fix:** Add a `README.md` template (with `{{PROJECT_NAME}}` placeholder); have `SKILL.md` step 1 fill it in alongside the other templates, and have `light-the-forge.sh` copy it.
 - **Blocked by:** —
 
-### #10 — `/light-the-forge` — add Rust to Q5 stack presets (or restructure stack detection)
+### #75 — `/light-the-forge` — add Rust to Q5 stack presets (or restructure stack detection)
 - **Slice:** slice:docs
 - **Severity:** important
 - **Files:** `.claude/skills/light-the-forge/SKILL.md:170,189,199`
@@ -111,7 +111,7 @@ Per the audit-design severity gate: only `blocker` + `important` findings became
 - **Fix:** Either add Rust as a top-level preset in Q5, or rewrite Q6/Q7 to key on parsed text of the "Other" answer (so any typed stack name routes to its matching branch). Fix the "4 options" / "5 options" wording at line 170 to be accurate after de-dupe.
 - **Blocked by:** —
 
-### #11 — `/light-the-forge` — write `.claude/.ltf-in-progress` marker explicitly
+### #76 — `/light-the-forge` — write `.claude/.ltf-in-progress` marker explicitly
 - **Slice:** slice:docs
 - **Severity:** important
 - **Files:** `.claude/skills/light-the-forge/SKILL.md:308-316`, `light-the-forge.sh:194-198`
@@ -119,15 +119,15 @@ Per the audit-design severity gate: only `blocker` + `important` findings became
 - **Fix:** Add an explicit step (before the Existing-codebase and Starter-template `/examine` invocation) that writes `.claude/.ltf-in-progress`.
 - **Blocked by:** —
 
-### #12 — Ponder/inscribe — surface missing dev-mode line instead of silent default
+### #77 — Ponder/inscribe — surface missing dev-mode line instead of silent default
 - **Slice:** slice:docs
 - **Severity:** important
 - **Files:** `.claude/skills/ponder/SKILL.md:60-68`, `.claude/skills/inscribe/SKILL.md:32-40`, `docs/prds/developer-modes.md:64,106`
 - **Problem:** Both skills grep `CLAUDE.md` for `^\*\*Dev mode:\*\*` and default silently to `balanced` when missing. PRD #64's acceptance gate only covers projects bootstrapped *after* `/light-the-forge` got the dev-mode question — any project bootstrapped earlier (including The Forge itself today) hits the silent default with no warning. PRD §Behavior already documents a "log one-line note when missing" pattern for temper at `developer-modes.md:64` but ponder/inscribe don't follow it.
 - **Fix:** Have ponder/inscribe log a one-line note when the dev-mode line is missing ("No dev-mode line in CLAUDE.md — defaulting to balanced. Run `/light-the-forge` or add the line manually."). Optionally: offer to write the line on first encounter.
-- **Blocked by:** #8 (The Forge's own CLAUDE.md should have the line first, so the dogfood case stops triggering the warning)
+- **Blocked by:** #73 (The Forge's own CLAUDE.md should have the line first, so the dogfood case stops triggering the warning)
 
-### #13 — `/inscribe` standalone path — skip Q2 when Q1 is single-slice
+### #78 — `/inscribe` standalone path — skip Q2 when Q1 is single-slice
 - **Slice:** slice:docs
 - **Severity:** important
 - **Files:** `.claude/skills/inscribe/SKILL.md:30-31,55`
@@ -135,7 +135,7 @@ Per the audit-design severity gate: only `blocker` + `important` findings became
 - **Fix:** Skip Q2 when Q1 is `single-slice`; only ask for the sub-phase id when Q1 is `sub-phase` (or the user has nominated one).
 - **Blocked by:** —
 
-### #14 — `/prototype` — fix new-repo Q3 path and align issue body with agent-brief contract
+### #79 — `/prototype` — fix new-repo Q3 path and align issue body with agent-brief contract
 - **Slice:** slice:docs
 - **Severity:** important
 - **Files:** `.claude/skills/prototype/SKILL.md:64-69,74-115`
@@ -145,7 +145,7 @@ Per the audit-design severity gate: only `blocker` + `important` findings became
 - **Fix:** Drop the new-repo option from Q3 (prototypes graduate via `/tinker --graduate`, not a fresh repo), OR document that picking new-repo exits the Forge pipeline. Expand the prototype issue body to include the agent-brief sections (Category, Current/Desired, Key interfaces, Out-of-scope), OR document explicitly in `/temper` that prototype-filed issues use a thinner brief.
 - **Blocked by:** —
 
-### #15 — `/grill-me` — restore MISSION-CONTROL status emoji on grill exit/abort
+### #80 — `/grill-me` — restore MISSION-CONTROL status emoji on grill exit/abort
 - **Slice:** slice:docs
 - **Severity:** important
 - **Files:** `.claude/skills/grill-me/SKILL.md:14-18`
@@ -153,7 +153,7 @@ Per the audit-design severity gate: only `blocker` + `important` findings became
 - **Fix:** Either (a) move the `🔥 grilling` write into `/inscribe`'s entry so it only flips on commit, or (b) add a cleanup hook on abort that restores the prior emoji.
 - **Blocked by:** —
 
-### #16 — `kanban-move.sh` — temper should detect-and-skip when not configured
+### #81 — `kanban-move.sh` — temper should detect-and-skip when not configured
 - **Slice:** slice:mixed
 - **Severity:** important
 - **Files:** `.claude/scripts/kanban-move.sh:23-32`, `.claude/skills/temper/SKILL.md:20,52`, `.claude/skills/rollback/SKILL.md:86`
@@ -161,7 +161,7 @@ Per the audit-design severity gate: only `blocker` + `important` findings became
 - **Fix:** Have `kanban-move.sh` exit with a distinct code (e.g. `78` / EX_CONFIG) and an explicit "not configured" message when placeholders are present; have temper and rollback detect that code and warn-and-continue rather than abort. Document the convention in `.claude/scripts/`.
 - **Blocked by:** —
 
-### #17 — `/forge` concurrency contract — slot-release rule + WORKFLOW.md reconcile
+### #82 — `/forge` concurrency contract — slot-release rule + WORKFLOW.md reconcile
 - **Slice:** slice:docs
 - **Severity:** important
 - **Files:** `.claude/skills/forge/SKILL.md:73,99,309`, `.claude/skills/temper/SKILL.md:174,232,237`, `WORKFLOW.md:4`
@@ -169,7 +169,7 @@ Per the audit-design severity gate: only `blocker` + `important` findings became
 - **Fix:** Add a sentence to `temper/SKILL.md`: "release the support-agent slot when the agent exits (background or foreground), regardless of which agent it was". Update `WORKFLOW.md:4` to say "1 temper worker concurrent; each temper may run up to 2 support agents internally" (or whatever the actual contract is — forge is source of truth).
 - **Blocked by:** —
 
-### #18 — `/scrub` — use `git worktree list` as worktree source of truth
+### #83 — `/scrub` — use `git worktree list` as worktree source of truth
 - **Slice:** slice:logic
 - **Severity:** important
 - **Files:** `.claude/skills/scrub/SKILL.md:25,30-32`
@@ -177,7 +177,7 @@ Per the audit-design severity gate: only `blocker` + `important` findings became
 - **Fix:** Use `git worktree list` as the source of truth; treat `.claude/worktrees/*` as a hint for legacy/manual worktrees.
 - **Blocked by:** —
 
-### #19 — `/seal` — concrete construction of merged-issue list for cleanup loop
+### #84 — `/seal` — concrete construction of merged-issue list for cleanup loop
 - **Slice:** slice:docs
 - **Severity:** important
 - **Files:** `.claude/skills/seal/SKILL.md:155-167`
@@ -185,7 +185,7 @@ Per the audit-design severity gate: only `blocker` + `important` findings became
 - **Fix:** Change `<list-of-merged-issues>` to a concrete construction in prose: "collect issue numbers parsed from the `closes #N` references of each PR that seal merged in step 4."
 - **Blocked by:** —
 
-### #20 — Resolve "delete this README" files in `.claude/rules/` and `.claude/knowledge/`
+### #85 — Resolve "delete this README" files in `.claude/rules/` and `.claude/knowledge/`
 - **Slice:** slice:docs
 - **Severity:** important
 - **Files:** `.claude/rules/README.md:33-35`, `.claude/knowledge/README.md:7`
@@ -193,7 +193,7 @@ Per the audit-design severity gate: only `blocker` + `important` findings became
 - **Fix:** Delete both READMEs OR rewrite as permanent docs that ship with every Forge install (explain the dir's purpose without the self-deleting note). Decide consistently — probably permanent, since they show up in every cloned Forge.
 - **Blocked by:** —
 
-### #21 — `WORKFLOW.md` — add `setup-kanban.sh` bootstrap note in Kanban section
+### #86 — `WORKFLOW.md` — add `setup-kanban.sh` bootstrap note in Kanban section
 - **Slice:** slice:docs
 - **Severity:** important
 - **Files:** `WORKFLOW.md:46-52`
@@ -201,7 +201,7 @@ Per the audit-design severity gate: only `blocker` + `important` findings became
 - **Fix:** Add a one-liner at the top of the Kanban section: "First-time setup: run `.claude/scripts/setup-kanban.sh` once after `/light-the-forge` finishes."
 - **Blocked by:** —
 
-### #22 — `mission-control-drift` hook — broaden source-file extension list
+### #87 — `mission-control-drift` hook — broaden source-file extension list
 - **Slice:** slice:logic
 - **Severity:** important
 - **Files:** `.claude/hooks/mission-control-drift.sh:38-51`
@@ -209,7 +209,7 @@ Per the audit-design severity gate: only `blocker` + `important` findings became
 - **Fix:** Broaden the extension list to cover at least the major mainstream stacks (add `.c`, `.cpp`, `.cc`, `.h`, `.hpp`, `.ex`, `.exs`, `.php`, `.zig`, `.lua`), or invert the logic to "any non-doc/non-config source file" (skip `.md`, `.json`, `.yml`, `.toml`, `.lock`).
 - **Blocked by:** —
 
-### #23 — Tighten trigger phrases on `/tinker` and `/prototype` to disambiguate
+### #88 — Tighten trigger phrases on `/tinker` and `/prototype` to disambiguate
 - **Slice:** slice:docs
 - **Severity:** important
 - **Files:** `.claude/skills/tinker/SKILL.md:22,64`, `.claude/skills/prototype/SKILL.md:3`
