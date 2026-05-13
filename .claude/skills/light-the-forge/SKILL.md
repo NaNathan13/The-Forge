@@ -34,7 +34,9 @@ skill has already run here. Ask the user once:
 
 > "Looks like The Forge is already set up in this project. Re-run anyway (overwrites your CLAUDE.md / MISSION-CONTROL.md / CONTEXT.md)?"
 
-Default to no. If they say yes, proceed.
+Default to no. If they say yes, proceed through the full Q&A again — including Block 0c
+(Developer mode), which updates the existing `**Dev mode:**` line in `CLAUDE.md` in place
+rather than appending a duplicate.
 
 ## The Q&A
 
@@ -82,7 +84,8 @@ The branches:
 4. Once the codebase is in place, **invoke `/examine`** (sibling skill) to detect stack,
    framework, test runner, check command, and write tailored rules under `.claude/rules/`.
    `/examine` fills the Block 4 fields directly into `CLAUDE.md`.
-5. Continue with Block 1 (Identity) — still needs the project name, one-liner, etc.
+5. Ask Block 0c (Developer mode) — see below.
+6. Continue with Block 1 (Identity) — still needs the project name, one-liner, etc.
 
 #### Starter template subflow
 
@@ -98,7 +101,8 @@ The branches:
 4. Once a URL is chosen, clone it into the current directory using the same logic as the
    "Existing codebase" git-URL path above.
 5. **Invoke `/examine`** to detect what was cloned and fill `CLAUDE.md` Block 4 fields.
-6. Continue with Block 1 (Identity).
+6. Ask Block 0c (Developer mode) — see below.
+7. Continue with Block 1 (Identity).
 
 #### Research vs. Build intent
 
@@ -113,6 +117,21 @@ After the starting-point question is answered (and any subflow completes), ask t
 The branches:
 - **Research first** — skip Block 4 entirely. The Block 3 first-phase title becomes the research goal (e.g. "Research: choose a tech stack"). Recommended next prompt in MISSION-CONTROL.md is `/ponder`.
 - **Build now** — proceed through all of Block 4 as written.
+
+#### Developer mode
+
+Ask this question on **every** starting-point path:
+- For **Fresh project**, ask it immediately after Block 0b (research/build-intent), before Block 1.
+- For **Existing codebase** and **Starter template**, ask it after the subflow completes (and after `/examine` runs), before Block 1. Block 0b is skipped on these paths, but Block 0c is not.
+
+0c. **Developer mode?** (AskUserQuestion, 3 options)
+   - "How disciplined should the build pipeline be? You can change this later by editing one line in `CLAUDE.md`."
+   - Options:
+     - **fast** — skip tests; check command runs for info but doesn't block. Best for spikes and throwaway prototypes.
+     - **balanced** *(Recommended)* — tests after implementation; check command runs and is advisory. The current Forge default.
+     - **tdd** — red→green→refactor with tests first; check command is a hard PR gate; reviewer agent runs before every PR. Best for load-bearing or contract-driven work.
+
+The answer is persisted as a one-line `**Dev mode:** <choice>` declaration in `CLAUDE.md` during the "Doing the work" phase (see step 1 below). Downstream skills (`/temper`, `/ponder`, `/inscribe`) read this line to branch behavior; absent or unrecognized values default to `balanced`.
 
 ### Block 1 — Identity
 
@@ -201,7 +220,8 @@ manually — don't re-run the full Block 4 Q&A.
 ## Doing the work
 
 After all questions are answered, **show a one-screen confirmation** with everything the
-user just chose. Ask once: "Look right? (yes / let me change something)". On yes, proceed.
+user just chose — including the chosen developer mode (Block 0c) on its own line. Ask
+once: "Look right? (yes / let me change something)". On yes, proceed.
 
 ### 1. Fill `CLAUDE.md`
 
@@ -211,6 +231,14 @@ Replace placeholders:
 - `**Framework:**` line — fill from Q6 answer (e.g. `**Framework:** Next.js 14`, `**Framework:** Django`, or `**Framework:** none`) (**skipped if `/examine` already filled this, or if "Research first — decide stack later"**)
 - Key terms section — add up to 3 most-load-bearing terms from Block 5 (rest go to CONTEXT.md)
 - CI runner line — always set to `ubuntu-latest` (no question asked)
+
+Additionally, **insert the developer-mode declaration** as a single line directly under the project's one-line description and above the `## Tech stack` heading:
+
+```markdown
+**Dev mode:** balanced
+```
+
+(Or `fast` / `tdd` depending on the Block 0c answer.) Insert via `Edit` so the diff is reviewable. If the line already exists (re-run case), update it in place rather than duplicating.
 
 Use `Edit` per replacement so the diff is reviewable.
 
