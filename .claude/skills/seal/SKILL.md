@@ -114,9 +114,31 @@ Flow:
      ```
    - Continue to the next PR. Do **not** abort the batch.
 
-5. Record the outcome in seal's run summary (step 8) so the user can see which PRs went through the conflict path and which ended in friction.
+5. Record the outcome in seal's run summary (step 9) so the user can see which PRs went through the conflict path and which ended in friction.
 
-### 5. Reconcile MISSION-CONTROL.md
+### 5. Branch guard — never write MC on `main`
+
+`main` is the template branch: it ships to fresh users via `light-the-forge.sh` and must keep `{{PROJECT_NAME}}` / `{{FIRST_PHASE}}` / `<!-- mc:none -->` placeholders. **Real-state MC entries (`✅ shipped`, `<!-- mc:done=... -->`, populated phase rows) belong only on working branches.**
+
+Before doing any MC edits, ensure HEAD is not `main`:
+
+```bash
+current=$(git rev-parse --abbrev-ref HEAD)
+if [[ "$current" == "main" ]]; then
+  # Create or fast-forward a dedicated seal branch, then switch to it.
+  seal_branch="chore/mc-seal-$(date +%Y-%m-%d)"
+  if git show-ref --verify --quiet "refs/heads/$seal_branch"; then
+    git checkout "$seal_branch"
+    git merge --ff-only main 2>/dev/null || true   # catch up if main moved
+  else
+    git checkout -b "$seal_branch"
+  fi
+fi
+```
+
+After this guard, every subsequent MC edit + commit + push lands on the seal branch, never on `main`. The seal branch is a long-lived parking spot — it is **not** opened as a PR (see step 8).
+
+### 6. Reconcile MISSION-CONTROL.md
 
 a. **Read MISSION-CONTROL.md.** Identify every row carrying a `<!-- mc:open=N,N,N -->` marker.
 
@@ -149,7 +171,7 @@ f. **Recompute the "Recommended next prompt".** Priority order — first match w
 
 g. **Show the MC diff.** Run `git diff MISSION-CONTROL.md`. If empty, note "MISSION-CONTROL already in sync."
 
-### 6. Final cleanup
+### 7. Final cleanup
 
 Remove runtime artifacts that only mattered while the batch was in flight:
 
@@ -168,26 +190,28 @@ fi
 
 Do NOT delete `.claude/token-usage.jsonl` — that's a historical record.
 
-### 7. Commit MC changes
+### 8. Commit MC changes on the seal branch
 
-If step 5 produced a diff:
+If step 6 produced a diff:
 
 ```bash
 git add MISSION-CONTROL.md
 git commit -m "chore(mc): seal $(date +%Y-%m-%d) — <N> slices shipped"
-git push
+git push -u origin "$(git rev-parse --abbrev-ref HEAD)"
 ```
 
 In interactive mode, ask once before pushing. Default yes. In `--auto` mode, push without prompting.
 
-### 8. Print the run summary
+**Do not open a PR for the seal branch.** Real-state MC is not meant to merge to `main` — `main` is the template (see step 5). The seal branch is a parking spot the next forge run can resume from; the user decides later whether anything on it needs to land on `main` (typically: no).
+
+### 9. Print the run summary
 
 ```
 🔒 Sealed.
 
 Merged:    <N> PRs (#207 → main, #211 → main, #214 → main)
 Skipped:   <M> PRs (with reasons listed above)
-MC:        advanced <K> rows from in-progress → shipped
+MC:        advanced <K> rows from in-progress → shipped (on <seal-branch>)
 Next:      <whatever the new Recommended next prompt is>
 ```
 
@@ -246,6 +270,7 @@ The conflict-resolution subagent runs in a fresh context window — it doesn't c
 
 - **Don't merge PRs that aren't from temper.** The branch-name filter (`feat/#*-*`) is intentional. PRs created by the user outside the pipeline stay untouched.
 - **Don't auto-approve PRs labeled `friction` or `needs-human`.** Those exist exactly because a human needs to look.
-- **Don't run step 5 (MC reconciliation) without step 4 (the merges).** Step 5 reads GitHub issue state; if the PRs haven't merged yet, the issues are still open and nothing will advance.
+- **Don't run step 6 (MC reconciliation) without step 4 (the merges).** Step 6 reads GitHub issue state; if the PRs haven't merged yet, the issues are still open and nothing will advance.
 - **Don't skip the user-approval prompt in step 3.** Even though /seal is "wrap-up", it does irreversible merges. The one-screen review is a cheap safety belt.
 - **Don't resolve merge conflicts inline.** Step 4a dispatches a fresh subagent — keep seal's context lean and the resolution logic isolated. Seal still owns the retry-merge decision.
+- **Don't commit MC changes on `main`.** `main` is the template branch (`{{PROJECT_NAME}}`, `<!-- mc:none -->`). The step-5 branch guard switches to a `chore/mc-seal-<date>` working branch before any MC edit; never bypass it. The seal branch is a parking spot, not a PR candidate.
