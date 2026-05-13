@@ -6,7 +6,7 @@ The pipeline is **Ponder → Forge → Temper → Seal**: grill the design, insc
 
 ## Two modes
 
-The Forge supports two experiences on a shared core. Both run the same four-phase pipeline. The first question `./kindle.sh` asks is which one you want.
+The Forge supports two experiences on a shared core. Both run the same four-phase pipeline. The first question the setup script asks is which one you want.
 
 **Dev Mode** — You've written code before. You know what a Pull Request is. You want the full keyboard-driven workflow with GitHub Issues, Projects, branches, and ~13 slash commands. Get out of my way.
 
@@ -17,15 +17,19 @@ Pick Dev if you want control. Pick Weenie Hut Junior if you want someone else to
 ## Quickstart — Dev Mode
 
 ```bash
-# 1. Pull down The Forge
-git clone https://github.com/NaNathan13/The-Forge.git my-new-project
-cd my-new-project
-
-# 2. Light the forge
-./kindle.sh          # Pick "Dev" when asked
+# One command — run from your project directory
+curl -fsSL https://raw.githubusercontent.com/NaNathan13/The-Forge/main/light-the-forge.sh | bash
 ```
 
-`kindle.sh` checks your tools, offers to remove The Forge's git history (so your project gets its own fresh repo), then launches Claude with the `/kindle` skill. Claude asks ~10 questions (project name, tech stack, first phase, GitHub repo) and fills in `CLAUDE.md`, `MISSION-CONTROL.md`, `CONTEXT.md`, runs `git init`, and creates the GitHub repo for *your* project. After it's done, `kindle.sh` removes itself.
+Or if you prefer to inspect the source first:
+
+```bash
+git clone https://github.com/NaNathan13/The-Forge.git my-new-project
+cd my-new-project
+./light-the-forge.sh          # Pick "Dev" when asked
+```
+
+The script checks your tools, copies The Forge's kit files into your directory, then launches Claude with the `/kindle` skill. Claude asks ~10 questions (project name, tech stack, first phase, GitHub repo) and fills in `CLAUDE.md`, `MISSION-CONTROL.md`, `CONTEXT.md`, runs `git init`, and creates the GitHub repo for *your* project.
 
 For manual setup, see [`docs/dev/setup.md`](./docs/dev/setup.md).
 
@@ -39,7 +43,7 @@ Coming soon. WHJ mode is designed but not yet built. See [`docs/whj/`](./docs/wh
 
 ```
 /ponder ──→ /forge ──→ /temper <N> ──→ /seal
-                       (temper dispatched as subagents, max 2 concurrent)
+                       (temper dispatched as subagent with up to 2 support agents)
 ```
 
 | Phase | Skill | What happens |
@@ -78,12 +82,13 @@ Each phase runs in its own Claude session and hands off via on-disk artifacts (i
 | `/sharpen` | Hone a rough idea into a precise prompt |
 | `/diagnose` | Disciplined debugging loop for hard bugs |
 | `/tinker <topic>` | Throwaway prototype branch for exploratory work — skips the full pipeline |
+| `/scrub` | Clean up runtime artifacts — orphaned worktrees, stale continuation files, temp files |
 
 **Manual-only (rare, high-stakes; not auto-invoked by Claude):**
 
 | Skill | When |
 |-------|------|
-| `/kindle` | First-run bootstrap. Usually invoked via `./kindle.sh`. |
+| `/kindle` | First-run bootstrap. Usually invoked via `light-the-forge.sh`. |
 | `/rollback <PR>` | Revert a shipped slice that caused a regression |
 | `/write-a-skill` | Meta — author a new skill in this format |
 
