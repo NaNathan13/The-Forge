@@ -5,14 +5,14 @@
 
 ## 🛰️ Telemetry — right now
 
-**Phase:** P0 Foundations ✅ (1/1)
+**Phase:** P0 Foundations ░ 0/1
 **In flight:** —
 **Workflow:** Ponder → Forge → Temper pipeline. See [`docs/workflow/`](docs/workflow/) for details.
 
 **Recommended next prompt:**
 
 ```
-_All features shipped or in motion. No recommendation._
+{{RECOMMENDED_NEXT_PROMPT}}
 ```
 
 ## ☄️ In flight
@@ -33,11 +33,11 @@ _All features shipped or in motion. No recommendation._
     <!-- mc:done=N,N -->        all listed issues closed (shipped)
 -->
 
-### P0 Foundations ▓ 1/1
+### P0 Foundations ░ 0/1
 
 | # | Sub-phase | Status | PRD | Issues |
 | --- | --- | --- | --- | --- |
-| 0a | Setup, agents, /scrub | ✅ shipped | — | #33,#34,#35,#36,#37,#38,#39,#40,#41,#42,#43 <!-- mc:done=33,34,35,36,37,38,39,40,41,42,43 --> |
+| 0a | {{FIRST_PHASE}} | ⏳ queued | — | <!-- mc:none --> |
 
 ## 🛸 Architectural items
 
