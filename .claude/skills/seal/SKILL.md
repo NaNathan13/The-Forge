@@ -15,7 +15,7 @@ Idempotent: running `/seal` twice in a row with no new work between produces no 
 /seal             # interactive — shows the plan, asks for approval before merging
 /seal --auto      # autonomous — used when forge invokes seal at end of run.
                   #   Skips per-batch confirmation (user already approved at forge pre-flight).
-                  #   Still skips PRs with friction / needs-human / non-green CI.
+                  #   Still skips PRs with friction / agent-stuck / non-green CI.
 ```
 
 When seal is invoked by `/forge` at end of run, it runs in `--auto` mode. When a user types `/seal` directly, it runs interactively (default).
@@ -36,10 +36,10 @@ For each candidate PR, decide:
 
 | Status | Action |
 |--------|--------|
-| CI green AND no `friction` / `needs-human` label AND not draft | **ship** — approve + merge |
+| CI green AND no `friction` / `agent-stuck` label AND not draft | **ship** — approve + merge |
 | CI red or pending | **skip** — note reason ("CI not green — wait for it to finish or re-run /temper <N>") |
 | Has `friction` label | **skip** — note reason ("flagged for human review") |
-| Has `needs-human` label | **skip** — note reason ("temper emitted NEEDS_HUMAN") |
+| Has `agent-stuck` label | **skip** — note reason ("temper emitted NEEDS_HUMAN") |
 | Draft | **skip** — note reason ("PR is draft") |
 
 ### 3. Show the plan, get approval
@@ -60,7 +60,7 @@ Proceed? (yes / no)
 
 Default `yes` on enter. If the user says no, stop without changes.
 
-**`--auto` mode behavior:** Print the same summary for visibility, but **skip the approval prompt** and proceed directly to step 4. The user already approved this batch at the forge pre-flight. The friction/needs-human/CI-red filter (step 2) still applies — `--auto` doesn't override those skips, it just removes the human confirmation.
+**`--auto` mode behavior:** Print the same summary for visibility, but **skip the approval prompt** and proceed directly to step 4. The user already approved this batch at the forge pre-flight. The friction/agent-stuck/CI-red filter (step 2) still applies — `--auto` doesn't override those skips, it just removes the human confirmation.
 
 ### 4. Ship each shippable PR
 
@@ -245,7 +245,7 @@ The conflict-resolution subagent runs in a fresh context window — it doesn't c
 ## Anti-patterns
 
 - **Don't merge PRs that aren't from temper.** The branch-name filter (`feat/#*-*`) is intentional. PRs created by the user outside the pipeline stay untouched.
-- **Don't auto-approve PRs labeled `friction` or `needs-human`.** Those exist exactly because a human needs to look.
+- **Don't auto-approve PRs labeled `friction` or `agent-stuck`.** Those exist exactly because a human needs to look.
 - **Don't run step 5 (MC reconciliation) without step 4 (the merges).** Step 5 reads GitHub issue state; if the PRs haven't merged yet, the issues are still open and nothing will advance.
 - **Don't skip the user-approval prompt in step 3.** Even though /seal is "wrap-up", it does irreversible merges. The one-screen review is a cheap safety belt.
 - **Don't resolve merge conflicts inline.** Step 4a dispatches a fresh subagent — keep seal's context lean and the resolution logic isolated. Seal still owns the retry-merge decision.

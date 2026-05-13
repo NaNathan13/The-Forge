@@ -38,7 +38,7 @@ create_label() {
 
 create_label "needs-triage"    "ededed" "Maintainer needs to evaluate"
 create_label "needs-info"      "fef2c0" "Waiting on reporter for more information"
-create_label "needs-human"     "d73a4a" "Temper got stuck; needs human attention"
+create_label "agent-stuck"      "d73a4a" "Temper got stuck; needs human attention"
 create_label "ready-for-agent" "0e8a16" "Triaged and ready for temper"
 create_label "ready-for-human" "1d76db" "Triaged but needs human implementation"
 create_label "friction"        "FBCA04" "Temper hit unexpected friction during build"

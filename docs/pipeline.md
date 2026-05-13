@@ -91,7 +91,7 @@ TEMPER:RESULT {"status":"fail","issue":21,"pr":null,"branch":"feat/#21-temper-se
 | `success` | PR open, CI green — log tokens, advance the queue. Seal merges later. |
 | `continue` | Read the file at `continuation_file`, dispatch a fresh temper to resume. |
 | `needs_human` | Log `reason` (and `friction` text if present), notify the user, skip to the next slice. |
-| `fail` | Retry once with a fresh session. On second `fail`, mark needs-human and skip. |
+| `fail` | Retry once with a fresh session. On second `fail`, mark agent-stuck and skip. |
 
 If no `TEMPER:RESULT` line is present in temper's output, Forge treats the run as
 `status: "fail"` with reason `"no result sentinel"` and applies the fail branch.

@@ -71,7 +71,7 @@ Each phase runs in its own Claude session and hands off via on-disk artifacts (i
 | `/rollback <PR>` | Revert a shipped slice that caused a regression |
 | `/write-a-skill` | Meta — author a new skill in this format |
 
-For the full pipeline, see [`docs/workflow/README.md`](./docs/workflow/README.md) and [`docs/workflow/reference.md`](./docs/workflow/reference.md).
+For the full pipeline, see [`docs/README.md`](./docs/README.md) and [`docs/pipeline.md`](./docs/pipeline.md).
 
 ## Heritage
 

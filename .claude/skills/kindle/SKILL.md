@@ -267,6 +267,21 @@ leaves a breadcrumb for the next `./kindle.sh` run), delete it now:
 rm -f .claude/.kindle-in-progress
 ```
 
+### 7.6. Post-bootstrap validation
+
+Grep `CLAUDE.md`, `MISSION-CONTROL.md`, and `CONTEXT.md` for any remaining `{{` patterns.
+If any are found, print a warning listing each file and the leftover placeholders — but
+**do not fail**. The user may intentionally leave some placeholders for later.
+
+```
+⚠ Unreplaced placeholders detected:
+  CLAUDE.md:6        — {{e.g. TypeScript / Node 20, Rust, Go 1.22}}
+  CONTEXT.md:3       — {{PROJECT_NAME}}
+Review these and fill them manually, or leave them if intentional.
+```
+
+If none are found, skip silently.
+
 ### 8. Delete `kindle.sh`
 
 Kindle is a one-shot. After success, ask once: "Remove `kindle.sh` from the repo? (it's done its job)". Default yes. If yes, `rm kindle.sh` and add it to the next commit:

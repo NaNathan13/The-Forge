@@ -39,6 +39,11 @@ Three **slice** roles (consumed by `/temper <N>` to choose its build path):
 - `slice:ui` — user-facing work + visual review (Playwright) + screenshots
 - `slice:mixed` — both — logic and UI work in one slice
 
+Two **operational** labels (applied by temper/forge/seal during builds, not during triage):
+
+- `agent-stuck` — temper or forge hit a wall; needs human intervention
+- `friction` — unexpected difficulty encountered during build
+
 Every triaged issue should carry exactly one category role, one state role, and (when moving to `ready-for-agent` or `ready-for-human`) one slice role. If state roles conflict, flag it and ask the maintainer before doing anything else.
 
 State transitions: an unlabeled issue normally goes to `needs-triage` first; from there it moves to `needs-info`, `ready-for-agent`, `ready-for-human`, or `wontfix`. `needs-info` returns to `needs-triage` once the reporter replies. The maintainer can override at any time — flag transitions that look unusual and ask before proceeding.

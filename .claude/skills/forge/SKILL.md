@@ -127,7 +127,7 @@ defined in `docs/pipeline.md`.
 | `success` | PR is open with CI green. Use `pr` and `branch` from the JSON. Log tokens, move to next slice (`/seal` will merge later). |
 | `continue` | Read the file at `continuation_file` (typically `.claude/temper-continue-<issue>.md`), dispatch fresh temper with continuation context. |
 | `needs_human` | Log `reason` (and `friction` text if present), notify user, skip to next slice. |
-| `fail` | Log `reason`. Retry once with fresh session. If second `fail`, mark needs-human, skip. |
+| `fail` | Log `reason`. Retry once with fresh session. If second `fail`, mark agent-stuck, skip. |
 
 The legacy prose sentinels (`TEMPER:SUCCESS`, `TEMPER:CONTINUE:<N>`,
 `TEMPER:NEEDS_HUMAN:<reason>`, `TEMPER:FAIL:<reason>`) are no longer emitted by temper.
@@ -279,19 +279,18 @@ The user's approval at the build-queue pre-flight covers the entire batch. Forge
 
 When the temper workers have all completed (or been skipped):
 
-1. **Print summary** — slices completed, slices skipped (needs-human / friction), total wall-clock time, total tokens (from token-usage.jsonl rows for this batch).
+1. **Print summary** — slices completed, slices skipped (agent-stuck / friction), total wall-clock time, total tokens (from token-usage.jsonl rows for this batch).
 
 2. **Dispatch `/seal --auto` as a fresh subagent.** Do NOT invoke seal inline — that bloats the forge session and violates the "Forge does NOT" rules. Dispatch:
    ```
    Agent({
      subagent_type: "general-purpose",
      description: "seal batch",
-     prompt: "Read .claude/skills/seal/SKILL.md and execute /seal --auto",
-     isolation: "worktree"
+     prompt: "Read .claude/skills/seal/SKILL.md and execute /seal --auto"
    })
    ```
    - `--auto` mode tells seal to skip the interactive PR-by-PR approval prompt — the user's approval at pre-flight already covered the whole batch.
-   - Seal will still skip individual PRs that have `friction` / `needs-human` labels or non-green CI.
+   - Seal will still skip individual PRs that have `friction` / `agent-stuck` labels or non-green CI.
    - Seal handles approval + merge + MC reconciliation + cleanup as documented in seal/SKILL.md.
    - Wait for the subagent to complete. Capture its summary output and relay it verbatim to the user — forge does not re-summarize.
 

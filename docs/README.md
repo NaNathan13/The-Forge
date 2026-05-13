@@ -40,6 +40,27 @@ Each phase runs in its own Claude session. No session-memory continuity between 
 | `/write-a-skill` | Meta -- author a new skill (manual-only) |
 | `/kindle` | First-run project bootstrap (manual-only; usually invoked via `./kindle.sh`) |
 
+## Agents
+
+Reusable agent definitions in `.claude/agents/`. These are dispatched by the orchestrator with a specific task prompt — they don't self-direct.
+
+| Agent | Role | Tools | Guardrails |
+|-------|------|-------|------------|
+| `forge-maint` | One scoped maintenance fix per dispatch — doc edits, config changes, script tweaks, skill updates | Read, Edit, Write, Bash, Grep, Glob, LS | No git ops, no skill invocations, no new files unless told, announces before editing, maxTurns=25 |
+| `forge-scout` | Read-only investigation — verify behavior, gather info, answer codebase questions | Read, Bash, Grep, Glob, LS | No file mutations, no git write ops, no skills, under 200 words, maxTurns=20 |
+
+**Dispatch pattern:** The orchestrator sends one scoped task per dispatch. Each agent runs ~1 min (bounded by maxTurns), returns a structured sentinel (`MAINT:RESULT` or `SCOUT:RESULT`), and the orchestrator reviews before dispatching the next task. Max 2 concurrent agents.
+
+## Choosing your entry point
+
+Not every idea needs the full pipeline. Pick the lightest path that fits:
+
+- **Know exactly what you want, small scope (5 slices or fewer)?** Use `/prototype`. Lightweight planning -- no grill, no PRD. Issues are filed directly as `ready-for-agent`. Downstream is the same: forge, temper, seal.
+- **Fuzzy requirements, need to think it through?** Use `/ponder`. Full ceremony: grill session, PRD, issue filing, triage. Best for complex or multi-phase features.
+- **Just exploring, throwaway work?** Use `/tinker <topic>`. Creates a scratch branch and skips the pipeline entirely. If the experiment works out, graduate it to a real slice with `--graduate`.
+
+When in doubt, start with `/ponder` -- you can always skip the grill if requirements become clear mid-conversation.
+
 ## Forge (the forgemaster)
 
 `/forge` is an autonomous dispatch loop. After you approve the build queue, it runs without intervention:
@@ -83,7 +104,7 @@ Each `/temper <N>` handles a single issue from branch to **CI-green PR** (not me
 4. **Visual review** (UI/mixed only) -- by default dispatch a Playwright-driven subagent (or use the Playwright MCP) to drive the running app and capture screenshots to `screenshots/issue-<N>/`. Verify whatever theme variants the project ships. Non-web projects swap Playwright for an equivalent harness and document that in `CLAUDE.md`.
 5. **Open PR** -- commit, push, `gh pr create` with `closes #<N>`, move kanban to In Review
 6. **Wait for CI** -- Monitor tool watches `gh pr checks <PR> --watch` (zero token cost), fix failures (max 2 cycles)
-7. **Stop at green CI** -- emit `TEMPER:SUCCESS` and exit. The PR stays open for `/seal` to merge later.
+7. **Stop at green CI** -- emit `TEMPER:RESULT` JSON and exit. The PR stays open for `/seal` to merge later.
 
 ## Context discipline
 
@@ -104,10 +125,20 @@ The pipeline is designed to keep sessions lean. Bloated context = expensive + de
 
 ## Sentinels
 
-- `TEMPER:SUCCESS` -- PR open, CI green, ready for `/seal` to merge
-- `TEMPER:CONTINUE:<N>` -- context overflow, continuation file written
-- `TEMPER:NEEDS_HUMAN:<reason>` -- stuck, needs user input
-- `TEMPER:FAIL:<reason>` -- unrecoverable failure
+Temper workers emit a single structured sentinel at session end:
+
+```
+TEMPER:RESULT {"status":"<status>","issue":<N>,"pr":<N|null>,"branch":"<branch|null>","tokens":null,"friction":"<text|null>"}
+```
+
+| `status` | Meaning | Extra fields |
+|---|---|---|
+| `success` | PR open, CI green, ready for `/seal` to merge | -- |
+| `continue` | Context overflow, continuation file written | `continuation_file` (string) |
+| `needs_human` | Stuck, needs user input | `reason` (string) |
+| `fail` | Unrecoverable failure | `reason` (string) |
+
+Full schema and examples: see [`pipeline.md` -- Sentinel protocol](./pipeline.md#sentinel-protocol).
 
 ## Kanban mapping
 
@@ -142,7 +173,7 @@ When temper hits unexpected friction:
 1. Add `friction` label to the PR
 2. Post PR comment with details (what happened, what was tried, outcome)
 3. If resolved, note how -- feeds the self-healing loop
-4. If unresolved: `TEMPER:NEEDS_HUMAN:friction` sentinel
+4. If unresolved: `TEMPER:RESULT` with `"status":"needs_human","reason":"friction"`
 
 Forge reviews friction-labelled PRs at end of batch. Recurring patterns get added to `.claude/lessons.md`.
 
@@ -162,10 +193,10 @@ GitHub Actions on whichever runner you configure (`ubuntu-latest`, self-hosted, 
 
 ## Troubleshooting
 
-**Stuck slice (`TEMPER:NEEDS_HUMAN`)** -- Forge logs the reason and skips to the next slice. Check the PR for the friction comment. Fix manually, then re-run `/temper <N>` standalone.
+**Stuck slice (`needs_human`)** -- Forge logs the reason and skips to the next slice. Check the PR for the friction comment. Fix manually, then re-run `/temper <N>` standalone.
 
-**CI failures** -- Temper auto-fixes up to 2 cycles. If still failing, it emits `TEMPER:NEEDS_HUMAN:ci-stuck`. Read the CI logs, fix locally, push.
+**CI failures** -- Temper auto-fixes up to 2 cycles. If still failing, it emits `TEMPER:RESULT` with `"status":"needs_human","reason":"ci-stuck"`. Read the CI logs, fix locally, push.
 
-**Context overflow (`TEMPER:CONTINUE`)** -- Temper writes `.claude/temper-continue-<N>.md` with state. Forge spawns a fresh session with continuation context. No manual intervention needed.
+**Context overflow (`continue`)** -- Temper writes `.claude/temper-continue-<N>.md` with state. Forge spawns a fresh session with continuation context. No manual intervention needed.
 
 **Forge context overflow** -- At 40% context usage, forge writes `.claude/forge-continue.md` and starts fresh. Resume with the same `/forge` invocation.

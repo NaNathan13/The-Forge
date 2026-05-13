@@ -44,5 +44,5 @@ load-bearing terms here so they're in every session:
 - [`.claude/rules/`](./.claude/rules/) — auto-loaded path-scoped rules. Add as you find patterns worth enforcing.
 - [`docs/adr/`](./docs/adr/) — architectural decisions (create the dir on first ADR).
 - [`docs/prds/`](./docs/prds/) — feature PRDs (created by `/inscribe`).
-- [`docs/workflow/`](./docs/workflow/) — pipeline reference docs.
+- [`docs/README.md`](./docs/README.md) + [`docs/pipeline.md`](./docs/pipeline.md) — pipeline reference.
 - [`WORKFLOW.md`](./WORKFLOW.md) — bot-facing workflow cheat-sheet (on-demand, not every turn).

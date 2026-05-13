@@ -39,7 +39,7 @@ What lands at your project root after a clone:
 
 - `.claude/` -- skills, hooks, rules placeholder, scripts, `settings.json`, `lessons.md`
 - `CLAUDE.md`, `MISSION-CONTROL.md`, `CONTEXT.md`, `WORKFLOW.md` -- templates
-- `docs/workflow/` -- pipeline reference
+- `docs/README.md`, `docs/pipeline.md` -- pipeline reference
 - `README.md` -- keep or replace
 
 If the project already has a `CLAUDE.md` or `.gitignore`, merge by hand -- don't clobber.

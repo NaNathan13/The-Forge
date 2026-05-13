@@ -1,6 +1,6 @@
 ---
 name: temper
-description: Build a triaged slice end-to-end — branch, implement, test, PR, CI, merge. Invoked as /temper <N> where N is the issue number.
+description: Build a triaged slice end-to-end — branch, implement, test, PR, CI. Invoked as /temper <N> where N is the issue number.
 ---
 
 # Temper — Build a Slice
@@ -35,7 +35,7 @@ stay lean, hand off to fresh sessions when context grows.
 
 ### 4. Open PR
 - Commit all changes with `feat(scope): description (#<N>)`
-- Push the branch via `.claude/scripts/temper-push.sh <branch>` (direct `git push` is blocked by a hook — see `.claude/knowledge/push-hook.md`), then open the PR via `gh pr create`
+- Push the branch (`git push -u origin <branch>`), then open the PR via `gh pr create`
 - PR body includes `closes #<N>`, summary, and test plan
 - Move issue: `.claude/scripts/kanban-move.sh <N> in-review`
 - If UI/mixed: post PR comment with screenshot image refs
@@ -157,7 +157,7 @@ sentinel-handling table.
 | `success` | PR open, CI green — log tokens, advance the queue (seal merges later). |
 | `continue` | Read `continuation_file`, dispatch a fresh temper to resume. |
 | `needs_human` | Log `reason`, notify user, skip to the next slice. |
-| `fail` | Retry once with a fresh session; on second `fail`, mark needs-human and skip. |
+| `fail` | Retry once with a fresh session; on second `fail`, mark agent-stuck and skip. |
 
 The legacy prose sentinels (`TEMPER:SUCCESS`, `TEMPER:CONTINUE:<N>`,
 `TEMPER:NEEDS_HUMAN:<reason>`, `TEMPER:FAIL:<reason>`) are no longer emitted. The prose

@@ -7,7 +7,7 @@
 
 **Phase:** P1 Workflow hardening ✅ (4/4)
 **In flight:** —
-**Workflow:** Ponder → Forge → Temper pipeline. See [`docs/workflow/`](docs/workflow/) for details.
+**Workflow:** Ponder → Forge → Temper pipeline. See [`docs/README.md`](docs/README.md) for details.
 
 **Recommended next prompt:**
 
