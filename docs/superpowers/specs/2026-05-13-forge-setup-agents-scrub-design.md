@@ -24,7 +24,28 @@ Run from the directory where you want the project.
 
 ### How it works
 
-1. **Banner** — new forge-themed ASCII art (replaces KINDLE banner).
+1. **Banner** — forge-themed ASCII art with colored pipeline bar (same style as cool-fse):
+   ```
+   if [[ -t 1 ]]; then
+     F=$'\033[38;5;208m' B=$'\033[38;5;75m' G=$'\033[38;5;78m'
+     Y=$'\033[38;5;178m' R=$'\033[38;5;203m' D=$'\033[38;5;240m' N=$'\033[0m'
+   else
+     F='' B='' G='' Y='' R='' D='' N=''
+   fi
+
+   printf '%s\n' "" \
+     "${F}    _____ _            _____                    ${N}" \
+     "${F}   |_   _| |__   ___  |  ___|__  _ __ __ _  ___ ${N}" \
+     "${F}     | | | '_ \\ / _ \\ | |_ / _ \\| '__/ _\` |/ _ \\${N}" \
+     "${F}     | | | | | |  __/ |  _| (_) | | | (_| |  __/${N}" \
+     "${F}     |_| |_| |_|\\___| |_|  \\___/|_|  \\__, |\\___| ${N}" \
+     "${F}                                      |___/      ${N}" \
+     "" \
+     "  ${D}──────────────────────────────────────────────────${N}" \
+     "  💭 ${G}ponder${N}  →  🔥 ${Y}forge${N}  →  🧊 ${B}temper${N}  →  🗡️  ${R}seal${N}" \
+     "  ${D}──────────────────────────────────────────────────${N}" \
+     ""
+   ```
 2. **Clone to temp** — `mktemp -d` with `trap 'rm -rf "$TMPDIR"' EXIT` cleanup.
    - `git clone --depth 1 https://github.com/NaNathan13/The-Forge.git "$TMPDIR/repo"`
 3. **Detect mode:**
