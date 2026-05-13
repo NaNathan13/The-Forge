@@ -4,11 +4,6 @@ A drop-in Claude Code workflow that takes a project from idea to shipped code. P
 
 **Pipeline:** `/ponder` (grill + PRD + triage) --> `/forge` (build queue) --> `/temper <N>` (branch, implement, test, PR, CI) --> `/seal` (merge + reconcile). Runs end-to-end after you approve the build queue.
 
-## Two modes
-
-- **Dev Mode** -- Full keyboard-driven workflow: GitHub Issues, branches, 16 slash commands.
-- **Weenie Hut Junior Mode** -- Claude drives everything. You never touch GitHub. *(Designed, not yet built.)*
-
 ## Quickstart
 
 ```bash
