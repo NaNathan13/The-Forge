@@ -18,6 +18,7 @@ The "writing" sub-skill of Ponder. Takes resolved design decisions and produces 
 Or auto-invoked by `/ponder` after the grill, which passes:
 - **Size decision:** `sub-phase` or `single-slice`
 - **Sub-phase ID:** e.g. `2a`, `3b` (from MISSION-CONTROL.md)
+- **Dev mode:** `fast`, `balanced`, or `tdd` (resolved during ponder's size check)
 
 ## Inputs
 
@@ -28,6 +29,15 @@ Inscribe receives resolved design decisions from one of:
 If called standalone:
 1. Ask **once** via AskUserQuestion: "Sub-phase or single-slice?"
 2. Ask **once**: "What's the sub-phase ID?" (e.g. `2a`). If standalone work unrelated to any sub-phase, the user can say "none" — titles omit the sub-phase prefix.
+3. **Read the dev mode** from `CLAUDE.md` at entry:
+
+   ```bash
+   grep -E '^\*\*Dev mode:\*\*' CLAUDE.md
+   ```
+
+   Parse the value after `**Dev mode:**` (trim whitespace, lowercase). Accept only `fast`, `balanced`, or `tdd`. **Default to `balanced`** if the line is missing, malformed, or the value is unrecognized — no warning, no prompt; just proceed.
+
+   The mode controls one branch in Path B (single-slice): when mode=`tdd`, write a PRD before filing the issue. Sub-phase (Path A) writes a PRD regardless of mode.
 
 ## Issue title format
 
@@ -105,9 +115,18 @@ Determine the **recommended build order**: logic slices first, then mixed, then 
 
 | Step | Action | Pause? | Artifact |
 | --- | --- | --- | --- |
+| B0 | Write PRD (**tdd mode only**; skip for `fast` / `balanced`) | No | `docs/prds/<feature>.md` |
 | B1 | `gh issue create` | No | One issue filed |
 | B2 | Invoke `/triage` on that issue | No | Issue labeled + agent brief + kanban → **Ready** |
 | B3 | Update MC + print handoff | No | `MISSION-CONTROL.md` updated; next command printed |
+
+#### B0. Write PRD (tdd mode only)
+
+When the resolved dev mode is `tdd`, write a PRD even for single-slice work — the tdd discipline tier requires a written spec regardless of size.
+
+Synthesise the conversation into `docs/prds/<feature>.md` using the same shape as Path A's A1. Keep it scoped to the one slice — no need to enumerate sibling slices that don't exist. The issue body filed in B1 should reference the PRD (e.g. `See \`docs/prds/<feature>.md\` for the full PRD.`).
+
+When mode is `fast` or `balanced`, skip this step entirely and go straight to B1 — single-slice behavior is unchanged from today.
 
 ## Handoff (both paths)
 
