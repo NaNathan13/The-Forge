@@ -1,14 +1,6 @@
 {
   "_comment": "Hook scaffolding for The Forge pipeline. Add project-specific PreToolUse hooks under .claude/hooks/ and register them below. See docs/dev/setup.md for guidance.",
   "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          { "type": "command", "command": ".claude/hooks/block-dangerous-git.sh" }
-        ]
-      }
-    ],
     "SessionStart": [
       {
         "hooks": [
