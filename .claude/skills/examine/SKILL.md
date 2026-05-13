@@ -253,7 +253,7 @@ When `/kindle` detects either:
 
 - The directory contains source files beyond The Forge boilerplate (any non-Forge file
   outside `.claude/`, `docs/`, `CLAUDE.md`, `MISSION-CONTROL.md`, `CONTEXT.md`,
-  `WORKFLOW.md`, `kindle.sh`, `.gitignore`, `LICENSE`, `README.md`)
+  `WORKFLOW.md`, `light-the-forge.sh`, `.gitignore`, `LICENSE`, `README.md`)
 - A recognized stack manifest is present (`package.json`, `pyproject.toml`, `Cargo.toml`,
   `go.mod`, `Gemfile`)
 

@@ -6,7 +6,7 @@ set -euo pipefail
 #
 # Usage: .claude/scripts/setup-kanban.sh
 #
-# Replaces the manual GraphQL ID lookup documented in SETUP.md step 3.
+# Replaces the manual GraphQL ID lookup documented in docs/dev/setup.md.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 KANBAN_SCRIPT="$SCRIPT_DIR/kanban-move.sh"
