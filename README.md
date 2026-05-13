@@ -24,7 +24,7 @@ cd my-new-project
 ./light-the-forge.sh          # Pick "Dev" when asked
 ```
 
-`light-the-forge.sh` checks your tools, copies The Forge's kit files into your directory, then launches `/kindle`. Claude asks ~10 questions and fills in `CLAUDE.md`, `MISSION-CONTROL.md`, `CONTEXT.md`, inits git, and creates your GitHub repo.
+`light-the-forge.sh` checks your tools, copies The Forge's kit files into your directory, then launches `/light-the-forge`. Claude asks ~10 questions and fills in `CLAUDE.md`, `MISSION-CONTROL.md`, `CONTEXT.md`, inits git, and creates your GitHub repo.
 
 For manual setup, see [`docs/dev/setup.md`](./docs/dev/setup.md). Full dev-mode docs: [`docs/dev/`](./docs/dev/).
 
@@ -62,7 +62,7 @@ For manual setup, see [`docs/dev/setup.md`](./docs/dev/setup.md). Full dev-mode 
 
 | Skill | What it does |
 |-------|-------------|
-| `/kindle` | First-run bootstrap (invoked by `light-the-forge.sh`) |
+| `/light-the-forge` | First-run bootstrap (invoked by `light-the-forge.sh`) |
 | `/rollback <PR>` | Revert a shipped slice |
 | `/write-a-skill` | Author a new skill |
 

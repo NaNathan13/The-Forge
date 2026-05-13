@@ -8,7 +8,7 @@
 #   ./light-the-forge.sh
 #
 # Checks prerequisites, copies kit files (if run via curl), then launches
-# Claude with the /kindle skill for interactive Q&A.
+# Claude with the /light-the-forge skill for interactive Q&A.
 
 set -uo pipefail
 
@@ -228,9 +228,9 @@ if [[ -d ".git" ]]; then
 fi
 
 # Mid-flow re-launch detection
-if [[ -f ".claude/.kindle-in-progress" ]]; then
+if [[ -f ".claude/.ltf-in-progress" ]]; then
   echo
-  yellow "  ! A previous /kindle run was interrupted (marker: .claude/.kindle-in-progress)."
+  yellow "  ! A previous /light-the-forge run was interrupted (marker: .claude/.ltf-in-progress)."
   yellow "    Re-launching Claude — pick up where you left off, or say 'start over'."
 fi
 
@@ -244,4 +244,4 @@ cyan "     option if you're unsure — you can always change things later."
 echo
 sleep 1
 
-exec claude "/kindle"
+exec claude "/light-the-forge"

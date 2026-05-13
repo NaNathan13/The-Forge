@@ -1,16 +1,16 @@
 ---
-name: kindle
-description: Bootstrap a new project on The Forge — Q&A to fill CLAUDE.md, MISSION-CONTROL.md, and CONTEXT.md, then git init and create the GitHub repo. Use at the very start of a new project (usually launched by ./light-the-forge.sh) or when the user says "kindle this project", "set up The Forge here", or "/kindle".
+name: light-the-forge
+description: Bootstrap a new project on The Forge — Q&A to fill CLAUDE.md, MISSION-CONTROL.md, and CONTEXT.md, then git init and create the GitHub repo. Use at the very start of a new project (usually launched by ./light-the-forge.sh) or when the user says "light the forge", "set up The Forge here", or "/light-the-forge".
 disable-model-invocation: true
 ---
 
-# Kindle — light the forge
+# Light the Forge
 
 The bootstrap skill for a fresh project adopting The Forge. Runs a friendly Q&A, fills in the
 template placeholders, initializes the git repo, and creates the GitHub remote. By the
 end the project is ready for `/ponder`.
 
-**Audience matters.** Kindle is the very first skill a user runs after copying The Forge
+**Audience matters.** This is the very first skill a user runs after copying The Forge
 into a directory. Assume the user may be non-technical, may not know what a "check command"
 is, and may not have a GitHub Project board yet. Be warm. Recommend defaults. Skip nothing
 silently, but don't make every question feel like an exam.
@@ -22,17 +22,17 @@ The launcher script (`light-the-forge.sh`) verifies these before Claude starts, 
 - We're in a directory that contains The Forge files (`CLAUDE.md`, `MISSION-CONTROL.md`,
   `.claude/skills/`). If not, stop and say so.
 - The directory is **not already a git repo with commits** (idempotent re-runs are fine —
-  see "Re-running kindle" below).
+  see "Re-running" below).
 - `gh auth status` reports an authenticated GitHub account.
 
 If any precondition fails, stop and tell the user what's wrong in one sentence with a fix.
 
-## Re-running kindle
+## Re-running
 
-If `CLAUDE.md` already has its `{{PLACEHOLDERS}}` replaced (no `{{` substrings left), kindle
-has already run here. Ask the user once:
+If `CLAUDE.md` already has its `{{PLACEHOLDERS}}` replaced (no `{{` substrings left), this
+skill has already run here. Ask the user once:
 
-> "Looks like The Forge is already set up in this project. Re-run kindle anyway (overwrites your CLAUDE.md / MISSION-CONTROL.md / CONTEXT.md)?"
+> "Looks like The Forge is already set up in this project. Re-run anyway (overwrites your CLAUDE.md / MISSION-CONTROL.md / CONTEXT.md)?"
 
 Default to no. If they say yes, proceed.
 
@@ -68,7 +68,7 @@ The branches:
    - Confirm the current directory is empty of user code (only The Forge files present —
      `CLAUDE.md`, `MISSION-CONTROL.md`, `.claude/`, `light-the-forge.sh`, and possibly a `.git/`
      about to be wiped). If not empty, ask once: "This directory has other files. Clone
-     anyway into a subdirectory? (yes / cancel)". On cancel, abort kindle.
+     anyway into a subdirectory? (yes / cancel)". On cancel, abort.
    - `git clone <url> .clone-tmp` then move clone contents up one level (excluding its
      `.git/`, which we keep separate — see below). Or simpler: clone into a temp dir, then
      `rsync` non-`.git` contents over The Forge files (Forge files win on conflict).
@@ -82,7 +82,7 @@ The branches:
 4. Once the codebase is in place, **invoke `/examine`** (sibling skill) to detect stack,
    framework, test runner, check command, and write tailored rules under `.claude/rules/`.
    `/examine` fills the Block 4 fields directly into `CLAUDE.md`.
-5. Continue with Block 1 (Identity) — kindle still needs the project name, one-liner, etc.
+5. Continue with Block 1 (Identity) — still needs the project name, one-liner, etc.
 
 #### Starter template subflow
 
@@ -244,7 +244,7 @@ If a remote was set up:
 
 ```bash
 git add -A
-git commit -m "Initial The Forge setup via /kindle
+git commit -m "Initial The Forge setup via /light-the-forge
 
 Co-Authored-By: Claude <noreply@anthropic.com>"
 git push -u origin main
@@ -267,17 +267,17 @@ script is idempotent — safe to re-run.
 
 ### 7.5. Clear in-progress marker
 
-If you wrote `.claude/.kindle-in-progress` during the existing-codebase or starter-template
+If you wrote `.claude/.ltf-in-progress` during the existing-codebase or starter-template
 clone (recommended: write it right before invoking `/examine` so a mid-flow Claude crash
 leaves a breadcrumb for the next `./light-the-forge.sh` run), delete it now:
 
 ```bash
-rm -f .claude/.kindle-in-progress
+rm -f .claude/.ltf-in-progress
 ```
 
 ### 8. Delete `light-the-forge.sh`
 
-Kindle is a one-shot. After success, ask once: "Remove `light-the-forge.sh` from the repo? (it's done its job)". Default yes. If yes, `rm light-the-forge.sh` and add it to the next commit:
+This is a one-shot skill. After success, ask once: "Remove `light-the-forge.sh` from the repo? (it's done its job)". Default yes. If yes, `rm light-the-forge.sh` and add it to the next commit:
 
 ```bash
 git rm light-the-forge.sh
@@ -292,7 +292,7 @@ If the user said "Skip GitHub", just `rm light-the-forge.sh` locally — no comm
 Print this exact summary (filling in real values):
 
 ```
-🔥 The Forge is lit.
+The Forge is lit.
 
 Project:        <name>
 Repo:           <url or "local only">
@@ -300,21 +300,21 @@ First phase:    <0a title>
 Next command:   /ponder
 
 Still TODO (one-time):
-  □ Set up your GitHub Projects (v2) board with columns:
+  [ ] Set up your GitHub Projects (v2) board with columns:
       Backlog, Ready, In Progress, In Review, Done
-  □ Run .claude/scripts/setup-kanban.sh to configure your GitHub Projects board
-  □ Once you have code in the repo, run /examine to auto-detect your stack
+  [ ] Run .claude/scripts/setup-kanban.sh to configure your GitHub Projects board
+  [ ] Once you have code in the repo, run /examine to auto-detect your stack
     and generate .claude/rules/ (tailored conventions for your project)
 
 When that's done, run /ponder and we'll plan the first slice.
 ```
 
 The `/examine` nudge only applies to **fresh projects** (Block 0 = "Fresh project"). For
-"Existing codebase" and "Starter template" flows, `/examine` already ran during kindle —
+"Existing codebase" and "Starter template" flows, `/examine` already ran during setup —
 omit that bullet.
 
 If Block 6 was "Skip GitHub", omit the Projects/labels bullets and instead say:
-"When you're ready to enable the full pipeline, create a GitHub repo, then re-run kindle or follow docs/dev/setup.md."
+"When you're ready to enable the full pipeline, create a GitHub repo, then re-run `/light-the-forge` or follow docs/dev/setup.md."
 
 ## Anti-patterns
 
@@ -333,5 +333,5 @@ If Block 6 was "Skip GitHub", omit the Projects/labels bullets and instead say:
   specific field — don't fall back to the full preset Q&A.
 - **Don't force a tech stack decision.** "Figure it out later" is a first-class option.
   Users may want to explore during `/ponder` before committing to a stack.
-- **Don't bundle `/examine` into kindle.** Treat it as a sibling skill — invoke it by name
+- **Don't bundle `/examine` into this skill.** Treat it as a sibling skill — invoke it by name
   (`/examine`) and let the harness load it. Never inline its detection logic here.

@@ -1,18 +1,18 @@
 ---
 name: examine
-description: Scan an existing codebase and tailor The Forge workflow to match it — fills CLAUDE.md placeholders from detected stack, framework, test runner, check command, and package manager, then writes path-scoped rules under `.claude/rules/` for the layout it finds. Auto-invoked by `/kindle` when an existing codebase or starter template is detected. Triggered by `/examine`, "examine this codebase", "tailor The Forge to this project", "re-detect the stack".
+description: Scan an existing codebase and tailor The Forge workflow to match it — fills CLAUDE.md placeholders from detected stack, framework, test runner, check command, and package manager, then writes path-scoped rules under `.claude/rules/` for the layout it finds. Auto-invoked by `/light-the-forge` when an existing codebase or starter template is detected. Triggered by `/examine`, "examine this codebase", "tailor The Forge to this project", "re-detect the stack".
 disable-model-invocation: true
 ---
 
 # Examine — tailor The Forge to an existing codebase
 
 `/examine` inspects the current working directory and configures The Forge for the project
-that's already there. Unlike `/kindle` (which asks the user via Q&A), examine **detects**
+that's already there. Unlike `/light-the-forge` (which asks the user via Q&A), examine **detects**
 from files on disk and reports what it found.
 
 Use it when:
 
-- A user copies The Forge into an existing repo and runs `/kindle` — kindle delegates the
+- A user copies The Forge into an existing repo and runs `/light-the-forge` — it delegates the
   stack-detection portion to examine instead of asking.
 - A project's stack evolves (added a framework, switched package managers, added a CI
   pipeline) and the user wants to re-tailor — `/examine` re-runs detection idempotently.
@@ -150,7 +150,7 @@ Open `CLAUDE.md` and replace placeholders. The placeholder syntax is `{{...}}`:
 
 | Placeholder | Filled from |
 | --- | --- |
-| `{{PROJECT_NAME}}` | leave alone — kindle handles this; if running standalone and the placeholder is still there, derive from the parent directory name and ask the user to confirm |
+| `{{PROJECT_NAME}}` | leave alone — `/light-the-forge` handles this; if running standalone and the placeholder is still there, derive from the parent directory name and ask the user to confirm |
 | `{{e.g. TypeScript / Node 20, Rust, Go 1.22}}` | Stack pass result |
 | `{{e.g. Next.js 14, Django, Rails 7, none}}` | Framework pass result |
 | `{{e.g. vitest, jest, pytest, cargo test}}` | Test runner pass result |
@@ -247,9 +247,9 @@ etc.).
 
 `--dry` is useful when re-running on an evolving project to preview changes.
 
-## Auto-invocation from /kindle
+## Auto-invocation from /light-the-forge
 
-When `/kindle` detects either:
+When `/light-the-forge` detects either:
 
 - The directory contains source files beyond The Forge boilerplate (any non-Forge file
   outside `.claude/`, `docs/`, `CLAUDE.md`, `MISSION-CONTROL.md`, `CONTEXT.md`,
@@ -260,9 +260,9 @@ When `/kindle` detects either:
 …it should ask the user:
 
 > "Looks like there's already code here. Want me to examine the existing setup and tailor
-> The Forge to it (Recommended), or run the full kindle Q&A from scratch?"
+> The Forge to it (Recommended), or run the full Q&A from scratch?"
 
-If the user picks examine, kindle hands off: it still does the identity Q&A (project
+If the user picks examine, `/light-the-forge` hands off: it still does the identity Q&A (project
 name, one-line description, GitHub repo creation) but skips the stack/framework/check
 command questions and lets `/examine` fill those.
 
@@ -283,7 +283,7 @@ Examine doesn't run async — it's a synchronous configuration step. No sentinel
 
 If detection fails catastrophically (no recognizable stack, no source files), report:
 
-> "I couldn't detect a stack here. Either this is a fresh directory (use `/kindle` to set
+> "I couldn't detect a stack here. Either this is a fresh directory (use `/light-the-forge` to set
 > up from scratch) or the project uses a stack I don't recognize (please fill in CLAUDE.md
 > manually)."
 
