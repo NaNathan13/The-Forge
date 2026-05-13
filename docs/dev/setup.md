@@ -1,6 +1,6 @@
 # Setting up The Forge in a project
 
-> **Easy path:** copy The Forge into your project, then run `./kindle.sh`. That covers steps 1-5 below interactively. The manual walkthrough is here for reference, edge cases, and re-runs.
+> **Easy path:** copy The Forge into your project, then run `./light-the-forge.sh`. That covers steps 1-5 below interactively. The manual walkthrough is here for reference, edge cases, and re-runs.
 
 Adopting The Forge takes ~10 minutes plus whatever time you spend personalizing `CONTEXT.md`. The pipeline is GitHub-native (issues + Projects + PRs), so you need a GitHub repo and `gh` CLI auth'd.
 
@@ -33,7 +33,7 @@ git subtree add --prefix=.the-forge https://github.com/NaNathan13/The-Forge.git 
 # then symlink or copy the bits you want from .the-forge/
 ```
 
-If you'd rather skip the manual walkthrough below and have Claude ask you ~10 questions instead, run `./kindle.sh` after step (a) -- it covers steps 2-5 interactively.
+If you'd rather skip the manual walkthrough below and have Claude ask you ~10 questions instead, run `./light-the-forge.sh` after step (a) -- it covers steps 2-5 interactively.
 
 What lands at your project root after a clone:
 
