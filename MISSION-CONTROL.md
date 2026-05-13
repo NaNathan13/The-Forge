@@ -5,14 +5,14 @@
 
 ## 🛰️ Telemetry — right now
 
-**Phase:** P0 Foundations ░ 0/1
-**In flight:** —
+**Phase:** P0 Foundations ░ 0/2
+**In flight:** 0z — Pipeline audit cleanup
 **Workflow:** Ponder → Forge → Temper pipeline. See [`docs/workflow/`](docs/workflow/) for details.
 
 **Recommended next prompt:**
 
 ```
-{{RECOMMENDED_NEXT_PROMPT}}
+/forge --phase 0z
 ```
 
 ## ☄️ In flight
@@ -33,11 +33,12 @@
     <!-- mc:done=N,N -->        all listed issues closed (shipped)
 -->
 
-### P0 Foundations ░ 0/1
+### P0 Foundations ░ 0/2
 
 | # | Sub-phase | Status | PRD | Issues |
 | --- | --- | --- | --- | --- |
 | 0a | {{FIRST_PHASE}} | ⏳ queued | — | <!-- mc:none --> |
+| 0z | Pipeline audit cleanup (2026-05-13) | 🚧 in-progress | docs/superpowers/specs/2026-05-13-forge-audit-findings.md | <!-- mc:open=66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88 --> |
 
 ## 🛸 Architectural items
 
