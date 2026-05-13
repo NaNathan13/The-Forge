@@ -70,7 +70,7 @@ For each approved slice, in order:
    })
    ```
 
-5. Max 2 concurrent temper workers. Wait for one to complete before dispatching a third.
+5. Dispatch one temper worker at a time. Each temper worker can spawn up to 2 support agents (researcher, reviewer, builder) from `.claude/agents/`, for a maximum of 3 concurrent subagents total (1 temper + 2 support).
 
 6. On temper completion, handle the sentinel (see below).
 
@@ -96,7 +96,7 @@ Forge is a **dispatcher**, not a worker. Every minute it spends doing actual wor
 
 What forge **does** do, and only this:
 1. Parse the pre-flight queue and get user approval.
-2. Dispatch temper workers (max 2 concurrent), respecting the dependency graph.
+2. Dispatch temper workers (one at a time, each with up to 2 support agents), respecting the dependency graph.
 3. Parse sentinel output from completed tempers.
 4. Update queue state and decide the next dispatch.
 5. Run the context checkpoint after every temper.
@@ -245,10 +245,11 @@ Rules for this file:
   Forge relays these milestones to the user.
 - **Lean context loading.** Temper workers read only the issue and auto-loaded rules.
   Everything else is reactive — read it when you need it, not at startup.
-- **Research via skills.** If a temper worker needs to look something up, use
-  `/playwright-research` or the context7 MCP — don't spawn additional sub-sub-agents
-  for research. The only allowed nested subagent is a Playwright-driven visual-review
-  worker (for UI/mixed slices).
+- **Research via support agents.** If a temper worker needs to look something up, dispatch
+  a researcher agent (`.claude/agents/researcher.md`) — it's read-only and reports back
+  a structured brief. For external docs, the researcher can use context7 MCP or WebSearch.
+  Temper can have up to 2 support agents running concurrently (researcher, reviewer,
+  builder, or visual-review worker — any combination, max 2 at once).
 
 ## Token Logging
 
@@ -305,7 +306,7 @@ The user can intervene at any point (Ctrl+C, send a message) but the default flo
 
 ## Rules
 - Forge is an autonomous loop — dispatch, handle, loop, ship. The pre-flight approval is the only required user touch-point.
-- Max 2 concurrent temper subagents.
+- One temper worker at a time, with up to 2 support agents (3 total concurrent subagents).
 - Always present build queue before dispatching — never skip user approval at pre-flight.
 - Respect the dependency graph; never dispatch a temper whose blockers haven't shipped.
 - Token logging is forge's responsibility, not temper's.
