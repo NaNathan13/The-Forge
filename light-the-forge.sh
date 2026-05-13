@@ -170,7 +170,7 @@ if [[ -d ".git" ]]; then
   if [[ "$remote_url" == *"NaNathan13/The-Forge"* ]]; then
     echo
     yellow "  ! This directory has The Forge's own git history (origin: $remote_url)."
-    yellow "    Kindle needs to create a fresh git repo for your project."
+    yellow "    /light-the-forge needs to create a fresh git repo for your project."
     read -r -p "    Remove .git/ and start fresh? [Y/n] " answer
     case "$answer" in
       n|N|no|No|NO)
@@ -179,13 +179,13 @@ if [[ -d ".git" ]]; then
         ;;
       *)
         rm -rf .git
-        green "  ✓ Removed The Forge's git history. Kindle will init a fresh repo."
+        green "  ✓ Removed The Forge's git history. /light-the-forge will init a fresh repo."
         ;;
     esac
   elif git rev-parse HEAD >/dev/null 2>&1; then
     echo
     yellow "  ! This directory is already a git repo with commits (not The Forge's)."
-    yellow "    Kindle will reuse the existing repo (existing-codebase / starter-template flow)."
+    yellow "    /light-the-forge will reuse the existing repo (existing-codebase / starter-template flow)."
     yellow "    /examine will detect the stack."
   fi
 fi
