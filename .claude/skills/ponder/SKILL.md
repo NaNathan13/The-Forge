@@ -10,7 +10,7 @@ The planning phase of the pipeline (Ponder → Forge → Temper). You leave Pond
 **The pipeline shape:**
 
 ```
-/ponder ──→ /forge ──→ /temper <N> (dispatched as subagents, max 2 concurrent)
+/ponder ──→ /forge ──→ /temper <N> (dispatched as subagent with up to 2 support agents)
 ```
 
 Each phase runs in its own Claude session and hands off via on-disk artifacts (issues, PRD, screenshots, PR body). No session-memory continuity between phases.

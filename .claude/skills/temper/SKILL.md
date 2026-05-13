@@ -165,7 +165,12 @@ summary above the JSON line is for humans only — Forge does not parse it. If y
 yourself reaching for a legacy sentinel string, emit `TEMPER:RESULT` instead.
 
 ## Rules
-- No subagents except the visual-review worker for UI/mixed slices.
+- **Support agents.** Temper (Worker A) can dispatch up to 2 support agents concurrently from the definitions in `.claude/agents/`:
+  - **Researcher** (`.claude/agents/researcher.md`) — read-only exploration; use when you need to understand unfamiliar code, find patterns, or gather external docs before implementing.
+  - **Reviewer** (`.claude/agents/reviewer.md`) — code review; use for a second opinion on code you've written, or to check a tricky change for bugs/security issues before PR.
+  - **Builder** (`.claude/agents/builder.md`) — parallel implementation; use when you have an independent sub-task (e.g. write tests while you finish the component) that won't conflict with your active edits.
+  To dispatch: read the agent definition file, include its content as system context in the `Agent` tool's `prompt`, and add your specific task question. Run support agents in the background (`run_in_background: true`) so you can continue building while they work.
+- The visual-review worker for UI/mixed slices counts toward the 2-agent limit. If you need visual review and another support agent, wait for one to finish.
 - Rely on auto-loaded design-system rule for UI/mixed; only read deeper design docs for detail.
 - Only read MISSION-CONTROL.md if you need to understand project context (rare).
 - Keep commits atomic and well-scoped.
