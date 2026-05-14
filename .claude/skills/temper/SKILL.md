@@ -47,7 +47,7 @@ stay lean, hand off to fresh sessions when context grows.
   - `mode=balanced` — current behavior. Check command must be green before opening the PR.
   - `mode=fast` — check result is advisory only. Open the PR even if the check command fails; note the failure in the PR body.
 - Commit all changes with `feat(scope): description (#<N>)`
-- Push the branch via `.claude/scripts/temper-push.sh <branch>` (direct `git push` is blocked by a hook — see `.claude/knowledge/push-hook.md`), then open the PR via `gh pr create`
+- Push the branch via `git push -u origin <branch>`, then open the PR via `gh pr create`
 - PR body includes `closes #<N>`, summary, and test plan
 - Move issue: `.claude/scripts/kanban-move.sh <N> in-review` (exit-78 = not configured → warn-and-continue, same as the in-progress move in step 1)
 - If UI/mixed: post PR comment with screenshot image refs
