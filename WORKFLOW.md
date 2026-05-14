@@ -1,7 +1,7 @@
 # Workflow Reference
 
 ## Pipeline
-`/ponder` (interactive) → `/forge` (autonomous dispatch loop) → `/temper <N>` (subagent per slice, max 2 concurrent) → `/seal` (batch close)
+`/ponder` (interactive) → `/forge` (autonomous dispatch loop) → `/temper <N>` (1 temper worker concurrent; each temper may run up to 2 support agents internally — 3 total subagents max) → `/seal` (batch close)
 
 ## Planning phase (interactive)
 `/ponder` → grill → `/inscribe` (PRD → issues → triage) → all slices labelled `ready-for-agent`
