@@ -1,6 +1,6 @@
 ---
 name: tinker
-description: Spin up a throwaway prototype branch for exploratory work — try a library, prototype an approach, prove an idea is feasible. Deliberately skips ponder/forge/temper/seal. Use when the user says "tinker with X", "let me try Y", "prototype Z", or wants to investigate something without committing to the full pipeline.
+description: Spin up a throwaway exploration branch — try a library, prove feasibility, experiment briefly and delete after. No issue filed, no pipeline. Use when the user says "tinker with X", "let me try Y throwaway", "experiment briefly with Z", "don't keep this", "delete after", or wants to investigate without committing to the full pipeline. For scoped work you want to keep and ship, use `/prototype` instead.
 disable-model-invocation: true
 ---
 
