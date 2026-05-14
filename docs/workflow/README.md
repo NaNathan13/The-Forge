@@ -53,3 +53,9 @@ The pipeline is designed to keep sessions lean. Bloated context = expensive + de
 | `slice:logic` | Code + tests only |
 | `slice:ui` | Code + visual review (Playwright, by default) |
 | `slice:mixed` | Both, logic first |
+
+## Operator guides
+
+| Doc | What it covers |
+|-----|----------------|
+| [`p2-resilience-operations.md`](./p2-resilience-operations.md) | P2 single-session resilience — install the `launchd` agents, read the logs, recover from a tripped circuit breaker. macOS-only crash layer. |
