@@ -12,7 +12,7 @@
 **Recommended next prompt:**
 
 ```
-_All features shipped or in motion. No recommendation._
+/ponder 1b — build P2 single-session resilience (design doc: docs/design/p2-single-session-resilience.md)
 ```
 
 ## ☄️ In flight
