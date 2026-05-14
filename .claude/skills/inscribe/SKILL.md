@@ -28,7 +28,7 @@ Inscribe receives resolved design decisions from one of:
 
 If called standalone:
 1. Ask **once** via AskUserQuestion: "Sub-phase or single-slice?"
-2. Ask **once**: "What's the sub-phase ID?" (e.g. `2a`). If standalone work unrelated to any sub-phase, the user can say "none" — titles omit the sub-phase prefix.
+2. **Only if Q1 was `sub-phase`** (or the user has explicitly nominated a sub-phase id), ask **once**: "What's the sub-phase ID?" (e.g. `2a`). Skip this question entirely when Q1 is `single-slice` — standalone single-slice work omits the sub-phase prefix in titles (see "Issue title format" below), so the id isn't needed.
 3. **Read the dev mode** from `CLAUDE.md` at entry:
 
    ```bash
