@@ -8,8 +8,8 @@ A markdown- and bash-driven pipeline for running Claude Code projects end-to-end
 
 - **Language / runtime:** Markdown + Bash (no application runtime)
 - **Framework:** Claude Code skills (`.claude/skills/`) + GitHub Actions
-- **Test runner:** none — exercised by dogfooding (real `/temper` runs through the pipeline)
-- **Check command:** `bash -n` on changed shell scripts; no project-wide check
+- **Test runner:** `test/run-tests.sh` — bash test harness for shell components (P2 onward); the pipeline itself is still exercised by dogfooding (real `/temper` runs). See `test/README.md`.
+- **Check command:** `bash -n` on changed shell scripts, then `test/run-tests.sh` for behavioural coverage of anything under `test/`
 - **Package manager:** none
 - **CI:** GitHub Actions on `ubuntu-latest` (see `.github/workflows/`)
 

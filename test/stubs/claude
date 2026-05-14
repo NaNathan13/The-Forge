@@ -1,0 +1,158 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# claude stub — mimics `claude -p --output-format json` for The Forge's test harness.
+#
+# P2's resilience machinery (the relaunch loop, the Stop / SessionStart hooks) is
+# deterministic shell that wraps a `claude -p --output-format json` call and reacts to
+# its `.result`, `.usage`, and exit code. This stub stands in for the real CLI so those
+# components can be exercised without a live Claude session — fully deterministic, zero
+# token cost, zero network.
+#
+# It emits a single JSON object on stdout shaped like the real headless CLI's output
+# (the `result` message: `type` / `subtype` / `is_error` / `result` / `session_id` /
+# `usage` / `total_cost_usd` / `num_turns` / `duration_ms`) and exits with a configurable
+# code. Only the three fields P2 actually consumes are configurable — `.result`,
+# `.usage`, and the exit code — everything else is filled with plausible static values.
+#
+# ── Configuring an invocation ────────────────────────────────────────────────
+# Three knobs, each settable via an env var. A fixture file may set them too: if
+# CLAUDE_STUB_FIXTURE points at a file, it is sourced first, then the env vars below
+# override anything it set (env wins, so a test can source a base fixture and tweak one
+# field).
+#
+#   CLAUDE_STUB_RESULT     The string placed in `.result`. Put sentinel strings here —
+#                          e.g. "...work done FORGE_COMPLETE" or "handoff FORGE_CONTINUE".
+#                          Default: "stub result".
+#
+#   CLAUDE_STUB_USAGE      A JSON object placed verbatim at `.usage`. Must be valid JSON.
+#                          Default: a zeroed usage block (all token counts 0).
+#                          Example: '{"input_tokens":120000,"output_tokens":4000,
+#                                     "cache_creation_input_tokens":0,
+#                                     "cache_read_input_tokens":0}'
+#
+#   CLAUDE_STUB_EXIT       The process exit code. 0 = clean, non-zero = crash/error.
+#                          Default: 0.
+#
+# Convenience knob for the common case of setting token counts without writing a whole
+# JSON object — if CLAUDE_STUB_USAGE is unset, these populate the default usage block:
+#
+#   CLAUDE_STUB_INPUT_TOKENS   → .usage.input_tokens   (default 0)
+#   CLAUDE_STUB_OUTPUT_TOKENS  → .usage.output_tokens  (default 0)
+#
+# Other optional knobs (rarely needed, sensible defaults):
+#   CLAUDE_STUB_SUBTYPE    `.subtype` (default "success"; set "error_max_turns" etc. to
+#                          exercise error-subtype handling).
+#   CLAUDE_STUB_IS_ERROR   `.is_error` true|false (default false).
+#   CLAUDE_STUB_SESSION_ID `.session_id` (default "stub-session-0000").
+#
+# A fixture file is just a shell snippet that sets these vars, e.g.:
+#   # test/fixtures/over-hard-limit.sh
+#   CLAUDE_STUB_RESULT="budget hit, handing off FORGE_CONTINUE"
+#   CLAUDE_STUB_USAGE='{"input_tokens":195000,"output_tokens":5000,"cache_creation_input_tokens":0,"cache_read_input_tokens":0}'
+#   CLAUDE_STUB_EXIT=0
+#
+# ── Usage in a test ──────────────────────────────────────────────────────────
+# Put this stub's directory first on PATH (or call it by path) so the code under test
+# resolves `claude` to the stub:
+#
+#   PATH="$REPO_ROOT/test/stubs:$PATH"
+#   CLAUDE_STUB_RESULT="...FORGE_COMPLETE" CLAUDE_STUB_EXIT=0 \
+#     bash relaunch-loop.sh        # the loop calls `claude -p --output-format json`
+#
+# The stub ignores the prompt and every CLI flag it is passed (-p, --output-format,
+# --resume, etc.) — it is output-driven, not input-driven. That is deliberate: tests
+# control behaviour through the env knobs, not through prompt text.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Capture which knobs the caller set in the environment *before* sourcing a fixture —
+# the fixture provides a base, the caller's env vars override it (env wins). The
+# `${VAR+x}` test distinguishes "set" (even to empty) from "unset", so a caller can
+# explicitly override a fixture value back to the empty string. Sourcing happens first,
+# then any caller-set values are restored on top.
+if [[ -n "${CLAUDE_STUB_RESULT+x}" ]];        then _env_result="$CLAUDE_STUB_RESULT"; _env_result_set=1; else _env_result_set=0; fi
+if [[ -n "${CLAUDE_STUB_USAGE+x}" ]];         then _env_usage="$CLAUDE_STUB_USAGE"; _env_usage_set=1; else _env_usage_set=0; fi
+if [[ -n "${CLAUDE_STUB_EXIT+x}" ]];          then _env_exit="$CLAUDE_STUB_EXIT"; _env_exit_set=1; else _env_exit_set=0; fi
+if [[ -n "${CLAUDE_STUB_SUBTYPE+x}" ]];       then _env_subtype="$CLAUDE_STUB_SUBTYPE"; _env_subtype_set=1; else _env_subtype_set=0; fi
+if [[ -n "${CLAUDE_STUB_IS_ERROR+x}" ]];      then _env_is_error="$CLAUDE_STUB_IS_ERROR"; _env_is_error_set=1; else _env_is_error_set=0; fi
+if [[ -n "${CLAUDE_STUB_SESSION_ID+x}" ]];    then _env_session_id="$CLAUDE_STUB_SESSION_ID"; _env_session_id_set=1; else _env_session_id_set=0; fi
+if [[ -n "${CLAUDE_STUB_INPUT_TOKENS+x}" ]];  then _env_input_tokens="$CLAUDE_STUB_INPUT_TOKENS"; _env_input_tokens_set=1; else _env_input_tokens_set=0; fi
+if [[ -n "${CLAUDE_STUB_OUTPUT_TOKENS+x}" ]]; then _env_output_tokens="$CLAUDE_STUB_OUTPUT_TOKENS"; _env_output_tokens_set=1; else _env_output_tokens_set=0; fi
+
+# Load a fixture file first if one is named; the caller's env vars then override it.
+if [[ -n "${CLAUDE_STUB_FIXTURE:-}" ]]; then
+  if [[ ! -f "$CLAUDE_STUB_FIXTURE" ]]; then
+    echo "claude-stub: CLAUDE_STUB_FIXTURE not found: $CLAUDE_STUB_FIXTURE" >&2
+    exit 64  # EX_USAGE
+  fi
+  # shellcheck disable=SC1090
+  source "$CLAUDE_STUB_FIXTURE"
+
+  # Restore caller-supplied env values over whatever the fixture set.
+  [[ "$_env_result_set" == 1 ]]        && CLAUDE_STUB_RESULT="$_env_result"
+  [[ "$_env_usage_set" == 1 ]]         && CLAUDE_STUB_USAGE="$_env_usage"
+  [[ "$_env_exit_set" == 1 ]]          && CLAUDE_STUB_EXIT="$_env_exit"
+  [[ "$_env_subtype_set" == 1 ]]       && CLAUDE_STUB_SUBTYPE="$_env_subtype"
+  [[ "$_env_is_error_set" == 1 ]]      && CLAUDE_STUB_IS_ERROR="$_env_is_error"
+  [[ "$_env_session_id_set" == 1 ]]    && CLAUDE_STUB_SESSION_ID="$_env_session_id"
+  [[ "$_env_input_tokens_set" == 1 ]]  && CLAUDE_STUB_INPUT_TOKENS="$_env_input_tokens"
+  [[ "$_env_output_tokens_set" == 1 ]] && CLAUDE_STUB_OUTPUT_TOKENS="$_env_output_tokens"
+fi
+
+# `${VAR-default}` (no colon) so a knob explicitly set to "" is honoured — e.g. a crash
+# fixture sets CLAUDE_STUB_RESULT="" because a crashed generation never reaches a
+# sentinel. `${VAR:-default}` would wrongly substitute the default for a set-empty value.
+result="${CLAUDE_STUB_RESULT-stub result}"
+exit_code="${CLAUDE_STUB_EXIT-0}"
+subtype="${CLAUDE_STUB_SUBTYPE-success}"
+is_error="${CLAUDE_STUB_IS_ERROR-false}"
+session_id="${CLAUDE_STUB_SESSION_ID-stub-session-0000}"
+
+# Resolve the usage block. An explicit CLAUDE_STUB_USAGE object wins; otherwise build a
+# default block from the per-field token knobs.
+if [[ -n "${CLAUDE_STUB_USAGE:-}" ]]; then
+  usage="$CLAUDE_STUB_USAGE"
+else
+  input_tokens="${CLAUDE_STUB_INPUT_TOKENS:-0}"
+  output_tokens="${CLAUDE_STUB_OUTPUT_TOKENS:-0}"
+  usage=$(printf '{"input_tokens":%s,"output_tokens":%s,"cache_creation_input_tokens":0,"cache_read_input_tokens":0}' \
+    "$input_tokens" "$output_tokens")
+fi
+
+# Validate the exit code is an integer so a malformed fixture fails loud, not weird.
+if ! [[ "$exit_code" =~ ^[0-9]+$ ]]; then
+  echo "claude-stub: CLAUDE_STUB_EXIT must be a non-negative integer, got: $exit_code" >&2
+  exit 64  # EX_USAGE
+fi
+
+# Emit the result JSON object. Shape mirrors the real headless CLI's terminal `result`
+# message. `jq` assembles it so `.result` and `.usage` are always valid JSON regardless
+# of what the test put in them — and a bad CLAUDE_STUB_USAGE fails here, loudly.
+if ! command -v jq >/dev/null 2>&1; then
+  echo "claude-stub: jq is required (the test harness depends on it)" >&2
+  exit 69  # EX_UNAVAILABLE
+fi
+
+if ! jq -cn \
+  --arg subtype "$subtype" \
+  --argjson is_error "$is_error" \
+  --arg result "$result" \
+  --arg session_id "$session_id" \
+  --argjson usage "$usage" \
+  '{
+    type: "result",
+    subtype: $subtype,
+    is_error: $is_error,
+    result: $result,
+    session_id: $session_id,
+    usage: $usage,
+    total_cost_usd: 0,
+    num_turns: 1,
+    duration_ms: 0,
+    duration_api_ms: 0
+  }'; then
+  echo "claude-stub: failed to assemble JSON — check CLAUDE_STUB_USAGE is valid JSON" >&2
+  exit 65  # EX_DATAERR
+fi
+
+exit "$exit_code"
