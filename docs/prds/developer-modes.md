@@ -31,7 +31,7 @@ Visual review (Playwright / iOS Simulator MCP) is unchanged across all three mod
 
 ## Naming
 
-Literal: `fast` / `balanced` / `tdd`. Matches The Forge's existing literal-naming style (`slice:logic`, `slice:ui`, `slice:skill`). No thematic translation layer between the name and the behavior.
+Literal: `fast` / `balanced` / `tdd`. Matches The Forge's existing literal-naming style (`slice:logic`, `slice:ui`, `slice:mixed`). No thematic translation layer between the name and the behavior.
 
 ## Where the mode lives
 
@@ -90,16 +90,16 @@ No direct behavior change. Forge dispatches temper workers; temper reads the mod
 
 Adding Block 0c is the third early branch in `/light-the-forge` (after starting-point and research/build-intent). The skill is approaching the point where the Q&A structure is hard to reason about from a linear read of `SKILL.md` alone.
 
-Spinning out a Mermaid `flowchart` doc at `docs/workflow/light-the-forge-q-tree.md` that maps every block + branch. Future LTF edits update the tree alongside the skill. This is filed as a sibling slice (`slice:docs`) under the same sub-phase so it ships with the Block 0c work.
+Spinning out a Mermaid `flowchart` doc at `docs/workflow/light-the-forge-q-tree.md` that maps every block + branch. Future LTF edits update the tree alongside the skill. This is filed as a sibling slice (`slice:logic`) under the same sub-phase so it ships with the Block 0c work.
 
 ## Slices
 
 | # | Slice | Type | Blocked by |
 | --- | --- | --- | --- |
-| 1 | light-the-forge — Block 0c question + `Dev mode:` line in CLAUDE.md | `slice:skill` | — |
-| 2 | temper — mode-conditional behavior (fast skip / TDD wiring / hard check gate / reviewer agent) | `slice:skill` | 1 (soft — can default to balanced if line absent) |
-| 3 | ponder + inscribe — require PRD when mode=tdd, even single-slice | `slice:skill` | 1 (soft) |
-| 4 | light-the-forge question tree (Mermaid flowchart) at `docs/workflow/light-the-forge-q-tree.md` | `slice:docs` | 1 |
+| 1 | light-the-forge — Block 0c question + `Dev mode:` line in CLAUDE.md | `slice:logic` | — |
+| 2 | temper — mode-conditional behavior (fast skip / TDD wiring / hard check gate / reviewer agent) | `slice:logic` | 1 (soft — can default to balanced if line absent) |
+| 3 | ponder + inscribe — require PRD when mode=tdd, even single-slice | `slice:logic` | 1 (soft) |
+| 4 | light-the-forge question tree (Mermaid flowchart) at `docs/workflow/light-the-forge-q-tree.md` | `slice:logic` | 1 |
 
 Build order: **1 → 2 ∥ 3 → 4**. Slices 2 and 3 can build in parallel once 1 lands; slice 4 should wait for 1 so the tree reflects the actual final shape.
 
