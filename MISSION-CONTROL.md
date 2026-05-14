@@ -5,17 +5,17 @@
 
 ## 🛰️ Telemetry — right now
 
-**Phase:** P2 — Pipeline Audit ░ 0/1
+**Phase:** P2 — Pipeline Audit ▓ 1/1
 **In flight:** —
 **Workflow:** Ponder → Forge → Temper pipeline. See [`docs/workflow/`](docs/workflow/) for details.
 
 **Recommended next prompt:**
 
 ```
-/forge --phase 2a
+/forge
 ```
 
-> Sub-phase 2a (Pipeline Audit) filed — 12 slices #154–#165: the onboarding explainer + 11 facet audit docs. Build all 2a slices.
+> Sub-phase 2a (Pipeline Audit) shipped — 12 slices #154–#165 merged. Issue #166 (2a final sweep) is `ready-for-agent` — let the orchestrator dispatch it.
 
 ## ☄️ In flight
 
@@ -54,13 +54,13 @@
 | 1a | Research + design (north-star, ADR, P2/P3 design docs) | ✅ shipped | [`docs/prds/autonomous-forge.md`](docs/prds/autonomous-forge.md) | #129, #130, #131 <!-- mc:done=129,130,131 --> |
 | 1b | P2 single-session resilience — build | ✅ shipped | [`docs/prds/p2-single-session-resilience-build.md`](docs/prds/p2-single-session-resilience-build.md) | #136, #137, #138, #139, #140, #141, #142, #143, #152 <!-- mc:done=136,137,138,139,140,141,142,143,152 --> |
 
-### P2 — Pipeline Audit ░ 0/1
+### P2 — Pipeline Audit ▓ 1/1
 
 > Documentation + validation initiative — no pipeline behavior changes. Produces one from-scratch onboarding doc plus a ten-facet audit that becomes the baseline for future re-audits.
 
 | # | Sub-phase | Status | PRD | Issues |
 | --- | --- | --- | --- | --- |
-| 2a | Workflow audit + onboarding doc | 📝 prd-ready | [`docs/prds/pipeline-audit.md`](docs/prds/pipeline-audit.md) | #154, #155, #156, #157, #158, #159, #160, #161, #162, #163, #164, #165 <!-- mc:open=154,155,156,157,158,159,160,161,162,163,164,165 --> |
+| 2a | Workflow audit + onboarding doc | ✅ shipped | [`docs/prds/pipeline-audit.md`](docs/prds/pipeline-audit.md) | #154, #155, #156, #157, #158, #159, #160, #161, #162, #163, #164, #165 <!-- mc:done=154,155,156,157,158,159,160,161,162,163,164,165 --> |
 
 ## 🛸 Architectural items
 
