@@ -18,11 +18,13 @@ Thumbs.db
 screenshots/
 /tmp/forge-*.sh
 
-# P2 single-session resilience — runtime dirs (gitignored).
+# P2 single-session resilience — runtime dirs + logs (gitignored).
 # .forge/resilience.config is committed config and is NOT ignored — only the
 # runtime state under .forge/ is.
 .forge/continuation/
 .forge/heartbeat/
+.forge/watchdog.log
+.forge/launchd-*.log
 
 # Tinker scratch dirs (throwaway exploratory work)
 .tinker/

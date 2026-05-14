@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  com.forge.<project>.watchdog.plist — P2 single-session resilience, the
+  liveness-watchdog agent (design doc §4b). This is a SEPARATE launchd agent
+  from com.forge.<project>.plist (which supervises the relaunch loop).
+
+  ── Why a second agent ───────────────────────────────────────────────────────
+  launchd knows whether the relaunch-loop PROCESS is alive. It does NOT know
+  whether the `claude` session inside it is making PROGRESS — a session can be
+  wedged (stalled permission prompt, hung tool call) while the process is
+  technically up. This agent runs scripts/liveness-watchdog.sh on a fixed
+  interval; the watchdog checks the heartbeat file's age and, if it is stale
+  past the configured threshold, captures diagnostics and kills the wedged
+  `claude` process. The non-clean exit then drops into the existing
+  crash-recovery path. The watchdog turns a SILENT HANG into a DETECTED CRASH.
+
+  ── macOS only ───────────────────────────────────────────────────────────────
+  launchd is macOS-only, and the watchdog script itself uses BSD `stat -f`.
+  Linux (systemd timer) and Windows are a noted future follow-up — out of scope
+  for sub-phase 1b.
+
+  ── Install ──────────────────────────────────────────────────────────────────
+  This is a TEMPLATE. Before installing, replace every __PLACEHOLDER__:
+
+    __PROJECT_SLUG__   the session slug (`scripts/continuation.sh slug` prints it).
+    __PROJECT_DIR__    absolute path to the project working directory.
+    __FORGE_REPO__     absolute path to the project repo root (where scripts/
+                     and .forge/ live — usually the same as __PROJECT_DIR__).
+
+  Then:
+    1. Save the filled-in file to
+       ~/Library/LaunchAgents/com.forge.__PROJECT_SLUG__.watchdog.plist
+    2. launchctl load ~/Library/LaunchAgents/com.forge.__PROJECT_SLUG__.watchdog.plist
+    3. The watchdog appends to __FORGE_REPO__/.forge/watchdog.log; this agent's
+       own stdio lands in .forge/launchd-watchdog.{out,err}.log
+
+  The watchdog reads its heartbeat-age threshold from
+  .forge/resilience.config (FORGE_HEARTBEAT_TIMEOUT_SECONDS, default 900s).
+  StartInterval below is how OFTEN the check runs — keep it well below the
+  timeout so a hang is caught promptly (60s check vs 900s timeout is sane).
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <!-- Unique label — the relaunch-loop agent is com.forge.<slug>; this is
+       com.forge.<slug>.watchdog. Two agents, two jobs (R3: "two supervisors"). -->
+  <key>Label</key>
+  <string>com.forge.__PROJECT_SLUG__.watchdog</string>
+
+  <!-- Run the watchdog once per interval. The watchdog does ONE check and
+       exits — it is not a daemon; launchd's StartInterval is the timer. -->
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>__FORGE_REPO__/scripts/liveness-watchdog.sh</string>
+    <string>--dir</string>
+    <string>__PROJECT_DIR__</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <string>__PROJECT_DIR__</string>
+
+  <!-- StartInterval: seconds between watchdog runs. This is the CHECK cadence,
+       not the hang threshold — the threshold is FORGE_HEARTBEAT_TIMEOUT_SECONDS
+       in .forge/resilience.config. Keep this well under the threshold (e.g.
+       60s check / 900s threshold) so a real hang is detected within ~1 check. -->
+  <key>StartInterval</key>
+  <integer>60</integer>
+
+  <!-- RunAtLoad: do one check immediately on load / login, don't wait a full
+       interval. -->
+  <key>RunAtLoad</key>
+  <true/>
+
+  <!-- NO KeepAlive: this is a periodic job, not a long-lived process. It is
+       SUPPOSED to exit after each check — launchd re-runs it on StartInterval.
+       KeepAlive here would fight the design. -->
+
+  <!-- This agent's own stdio. The watchdog's substantive output — stale-
+       heartbeat events, captured diagnostics — goes to .forge/watchdog.log
+       (the watchdog appends there directly). These two files catch anything
+       the watchdog prints to stdout/stderr (arg errors, platform-guard
+       failures). -->
+  <key>StandardOutPath</key>
+  <string>__FORGE_REPO__/.forge/launchd-watchdog.out.log</string>
+  <key>StandardErrorPath</key>
+  <string>__FORGE_REPO__/.forge/launchd-watchdog.err.log</string>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+  </dict>
+</dict>
+</plist>

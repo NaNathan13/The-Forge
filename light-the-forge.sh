@@ -127,6 +127,15 @@ if [[ "$ALREADY_CLONED" == "false" ]]; then
     cp "$SRC/templates/continuation-gen.md" "$TARGET/templates/continuation-gen.md"
   fi
 
+  # launchd plist templates — P2 macOS crash layer. The keep-alive agent (loop
+  # supervisor) + the liveness-watchdog agent. Templates with __PLACEHOLDER__
+  # markers the operator fills in before `launchctl load`; macOS-only, inert
+  # elsewhere. Refreshed on every run — they are templates, not user state.
+  if [[ -d "$SRC/templates/launchd" ]]; then
+    mkdir -p "$TARGET/templates/launchd"
+    cp -R "$SRC/templates/launchd/." "$TARGET/templates/launchd/"
+  fi
+
   # .forge/resilience.config — P2 tunables. Sourced from templates/ (placeholder
   # form). Committed config; the runtime dirs under .forge/ stay gitignored.
   # Don't clobber an existing config — a re-run must not reset a project's tuning.

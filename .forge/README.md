@@ -16,14 +16,16 @@ It holds one committed config file plus two gitignored runtime directories.
 │       ├── gen-001.md       # immutable, zero-padded, monotonic
 │       ├── gen-002.md
 │       └── latest           # symlink → newest gen-NNN.md
-└── heartbeat/               # gitignored runtime — liveness timestamps
-    └── <slug>               # touched by the Stop hook on every fire
+├── heartbeat/               # gitignored runtime — liveness timestamps
+│   └── <slug>               # touched by the Stop hook on every fire
+├── watchdog.log             # gitignored runtime — liveness-watchdog events
+└── launchd-*.log            # gitignored runtime — launchd agent stdout/stderr
 ```
 
-`continuation/` and `heartbeat/` are **gitignored** (`.gitignore`): they are
-per-machine runtime state. `resilience.config` is **committed**: it is project
-configuration, and a project tunes resilience by editing it rather than the
-scripts.
+`continuation/`, `heartbeat/`, and the `*.log` files are **gitignored**
+(`.gitignore`): they are per-machine runtime state. `resilience.config` is
+**committed**: it is project configuration, and a project tunes resilience by
+editing it rather than the scripts.
 
 ## `resilience.config`
 
@@ -89,3 +91,35 @@ dir). Retention-cap precedence: `--cap` flag → `FORGE_RETENTION_CAP` env →
 `resilience.config` → built-in default of 20.
 
 Tests: `test/continuation.test.sh` (run via `test/run-tests.sh`).
+
+## Crash layer — `launchd` + the liveness watchdog (macOS only)
+
+The continuation substrate above survives **clean** context-limit handoffs. The
+**crash layer** survives the rest — process death, reboots, silent hangs. It is
+**macOS-only** for sub-phase 1b; Linux (`systemd`) and Windows are a noted
+future follow-up.
+
+Two nested supervisors, each with one job (design doc §4a / §4b):
+
+- **`launchd` keep-alive agent** — `templates/launchd/com.forge.project.plist`.
+  Supervises `scripts/relaunch-loop.sh` (not `claude` directly): `KeepAlive`
+  with `SuccessfulExit=false` (a deliberate work-complete exit-0 is not
+  respun), `RunAtLoad` (survives reboot), a throttle interval (guards
+  process-crash thrash), and `StandardOutPath` / `StandardErrorPath` to
+  `.forge/launchd-loop.{out,err}.log`.
+- **Liveness watchdog** — `scripts/liveness-watchdog.sh`, driven on an interval
+  by its own agent `templates/launchd/com.forge.project.watchdog.plist` (a
+  `StartInterval` job). It reads `heartbeat/<slug>`, and when the heartbeat is
+  stale past `FORGE_HEARTBEAT_TIMEOUT_SECONDS` it captures diagnostics (last
+  transcript lines, tmux scrollback) to `.forge/watchdog.log`, then kills the
+  wedged `claude` process. The non-clean exit drops into the existing
+  crash-recovery path — a *silent hang* becomes a *detected crash*.
+
+The plist files are **templates**: replace the `__PROJECT_SLUG__` /
+`__PROJECT_DIR__` / `__FORGE_REPO__` markers, save to
+`~/Library/LaunchAgents/`, and `launchctl load`. Each file's comment header has
+the full install steps. The watchdog is skippable — a solo drop-in user who
+never installs the agents loses nothing (ADR optional-by-layers).
+
+Tests: `test/liveness-watchdog.test.sh` (run via `test/run-tests.sh`; the
+behavioural cases self-skip off macOS).
