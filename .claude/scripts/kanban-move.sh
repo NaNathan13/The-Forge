@@ -5,6 +5,15 @@ set -euo pipefail
 # Usage: kanban-move.sh <issue-number> <status>
 # Status: backlog | ready | in-progress | in-review | done
 #
+# Exit codes:
+#   0   — moved successfully
+#   1   — runtime failure (bad args, unknown status, issue not on board, API error)
+#  78   — not configured (REPLACE_ME placeholders present). EX_CONFIG per sysexits.h.
+#         Forge pipeline callers (temper, rollback, triage, inscribe) MUST detect
+#         this code and warn-and-continue rather than abort: kanban is an enrichment,
+#         not a hard requirement, and a fresh Forge clone won't have the IDs filled
+#         in until the user runs setup-kanban.sh.
+#
 # ──────────────────────────────────────────────────────────────────────
 # CUSTOMIZE THESE PER PROJECT (see docs/dev/setup.md for how to look them up):
 #
@@ -31,9 +40,14 @@ OPTION_ID_IN_PROGRESS="REPLACE_ME"
 OPTION_ID_IN_REVIEW="REPLACE_ME"
 OPTION_ID_DONE="REPLACE_ME"
 
+# If the project IDs haven't been filled in (fresh Forge clone, user hasn't run
+# setup-kanban.sh yet), exit with code 78 (EX_CONFIG, see sysexits.h). Callers
+# in the Forge pipeline — temper, rollback, triage, inscribe — detect this code
+# and warn-and-continue instead of aborting. Kanban is an enrichment, not a
+# hard requirement.
 if [[ "$OWNER" == "REPLACE_ME" ]]; then
-  echo "kanban-move.sh: project IDs not configured. See docs/dev/setup.md." >&2
-  exit 1
+  echo "kanban-move.sh: project IDs not configured — skipping kanban move. Run .claude/scripts/setup-kanban.sh or see docs/dev/setup.md." >&2
+  exit 78
 fi
 
 if [[ $# -ne 2 ]]; then

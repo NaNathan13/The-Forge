@@ -86,6 +86,8 @@ Move the kanban card back:
 .claude/scripts/kanban-move.sh <ISSUE> backlog
 ```
 
+If `kanban-move.sh` exits with code **78** ("project IDs not configured"), the user hasn't set up the Projects board yet. Log a one-line note and continue — kanban is an enrichment, not a blocker for the rollback. Any other non-zero exit is a real failure and should be surfaced.
+
 ### 6. File a follow-up "fix regression" issue
 
 ```bash
