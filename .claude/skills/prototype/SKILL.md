@@ -62,13 +62,16 @@ If nothing obvious fits, ask freeform.
 
 If the user wants more than 5, **redirect to `/ponder`** — that's beyond prototype scope.
 
-**Q3 — GitHub repo.** Two options:
-- Use the current repo (default if invoked inside one).
-- Create a new repo (ask for name + private/public).
-
-**Q4 — (optional) Anything else load-bearing?** Skip if everything is already clear.
+**Q3 — (optional) Anything else load-bearing?** Skip if everything is already clear.
 Useful for "deploy where?", "auth required?", or other one-shot constraints. If you
 can't think of one, don't ask one for ceremony's sake.
+
+**Repo:** `/prototype` always files issues in the **current repo**. There is no
+"create a new repo" option — the rest of the pipeline (`kanban-move.sh`,
+`MISSION-CONTROL.md`, slice/state labels, `/forge`'s queue) assumes issues live in
+this repo. If the user wants a fresh repo for the prototype, that's outside `/prototype`'s
+scope: graduate via `/tinker --graduate` after a `/tinker` spike, or set up the new
+repo manually before invoking `/prototype` inside it.
 
 ### 3. File the issues directly
 
@@ -87,17 +90,35 @@ belong to a sub-phase; that's `/ponder`'s vocabulary.
 Slice types: `slice:logic`, `slice:ui`, `slice:mixed`. Pick based on what the slice
 touches. Same conventions as `/inscribe`.
 
-Issue body template (kept lean):
+Issue body template — the body **is** the agent brief, so it mirrors the
+[AGENT-BRIEF.md](../triage/AGENT-BRIEF.md) contract that downstream `/temper` workers
+read. Keep each section short, but don't drop them:
 
 ```markdown
-## What to build
+## Agent Brief
 
-<one-paragraph description from the Q&A>
+**Category:** enhancement / bug
+**Summary:** one-line description from the Q&A
 
-## Acceptance criteria
+**Current behavior:**
+What exists now (or "Nothing — greenfield slice" for prototype slices that introduce
+something new).
 
-- [ ] Criterion 1
-- [ ] Criterion 2
+**Desired behavior:**
+What this slice should produce. Behavioral, not procedural — describe what the system
+should do, not which files to edit.
+
+**Key interfaces:**
+- Type / function / config shape the slice introduces or changes
+- Omit if the slice is purely additive and self-contained — but say so explicitly
+
+**Acceptance criteria:**
+- [ ] Testable criterion 1
+- [ ] Testable criterion 2
+
+**Out of scope:**
+- Adjacent things this slice should NOT touch
+- Use "None — see Blocked by for follow-on slices" if everything in scope is covered
 
 ## Blocked by
 
@@ -105,15 +126,22 @@ Issue body template (kept lean):
 ```
 
 If a slice depends on another, fill in `Blocked by` with the issue number — this is
-the only triage-style metadata `/prototype` produces, and `/forge` uses it to topo-sort
-the build queue.
+the only triage-state metadata `/prototype` produces, and `/forge` uses it to topo-sort
+the build queue. `Blocked by` lives **outside** the agent-brief block so `/forge` can
+parse it without touching the brief.
+
+The brief is deliberately lighter than what `/triage` writes — prototypes are scoped
+in 3-4 questions, so there's less material to dump. But the section headers match, so
+temper workers consuming a prototype-filed issue get the same shape they expect from
+ponder-filed work.
 
 **Skip:**
 - No PRD (`docs/prds/<feature>.md` is not written).
 - No `MISSION-CONTROL.md` update (no sub-phase to track).
 - No `/triage` invocation (issues are already correctly labeled).
 - No kanban move (issues land wherever the repo's default project lane is, if any).
-- No agent-brief comment (the issue body is the brief).
+- No separate agent-brief comment — the issue body itself **is** the brief, written
+  to the agent-brief contract.
 
 ### 4. Hand off to `/forge`
 
@@ -158,7 +186,7 @@ flagged as ponder-shaped.
 | PRD writing | Prototypes are throwaway-adjacent. No design doc needed. |
 | `MISSION-CONTROL.md` sub-phase | Prototypes don't belong to a phase. |
 | `/triage` state machine | Issues are filed already-triaged. |
-| Agent brief comment | Issue body is enough. |
+| Separate agent-brief comment | The issue body is written to the agent-brief contract, so a separate comment is redundant. |
 | Kanban moves | The Forge's kanban discipline is for tracked sub-phase work. |
 
 ## What `/prototype` keeps
