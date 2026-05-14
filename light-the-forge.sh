@@ -113,6 +113,34 @@ if [[ "$ALREADY_CLONED" == "false" ]]; then
     fi
   done
 
+  # Repo-root scripts/ — P2 resilience substrate (continuation.sh, relaunch
+  # loop, watchdog, …). Copied verbatim; these are generic, not templated.
+  if [[ -d "$SRC/scripts" ]]; then
+    mkdir -p "$TARGET/scripts"
+    cp -R "$SRC/scripts/." "$TARGET/scripts/"
+  fi
+
+  # Continuation-file template — scripts/continuation.sh renders gen-NNN.md
+  # files from templates/continuation-gen.md, so it must ship too.
+  if [[ -f "$SRC/templates/continuation-gen.md" ]]; then
+    mkdir -p "$TARGET/templates"
+    cp "$SRC/templates/continuation-gen.md" "$TARGET/templates/continuation-gen.md"
+  fi
+
+  # .forge/resilience.config — P2 tunables. Sourced from templates/ (placeholder
+  # form). Committed config; the runtime dirs under .forge/ stay gitignored.
+  # Don't clobber an existing config — a re-run must not reset a project's tuning.
+  if [[ -f "$SRC/templates/resilience.config" && ! -f "$TARGET/.forge/resilience.config" ]]; then
+    mkdir -p "$TARGET/.forge"
+    cp "$SRC/templates/resilience.config" "$TARGET/.forge/resilience.config"
+  fi
+  # .forge/README.md — explains the substrate (continuation files, config, slug
+  # derivation). Refreshed on every run; it is reference docs, not user state.
+  if [[ -f "$SRC/.forge/README.md" ]]; then
+    mkdir -p "$TARGET/.forge"
+    cp "$SRC/.forge/README.md" "$TARGET/.forge/README.md"
+  fi
+
   green "  ✓ Kit files copied"
 
   # Drop update helper

@@ -47,3 +47,4 @@ terms here so they're in every session:
 - [`docs/prds/`](./docs/prds/) — feature PRDs (created by `/inscribe`).
 - [`docs/workflow/`](./docs/workflow/) — pipeline reference docs.
 - [`WORKFLOW.md`](./WORKFLOW.md) — bot-facing workflow cheat-sheet (on-demand, not every turn).
+- [`.forge/README.md`](./.forge/README.md) — P2 single-session resilience substrate (continuation files, `resilience.config`, slug derivation). Read when touching `scripts/continuation.sh` or the `.forge/` runtime dirs.
