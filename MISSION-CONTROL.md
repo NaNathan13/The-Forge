@@ -5,19 +5,19 @@
 
 ## 🛰️ Telemetry — right now
 
-**Phase:** P0 Foundations ▓ 1/1 · 0z Audit cleanup 🚧 in-progress
-**In flight:** 0z audit cleanup batch (#66–#73, #77, #87) — temper workers running
+**Phase:** P0 Foundations ▓▓ 2/2
+**In flight:** —
 **Workflow:** Ponder → Forge → Temper pipeline. See [`docs/workflow/`](docs/workflow/) for details.
 
 **Recommended next prompt:**
 
 ```
-/forge --phase 0z
+/forge
 ```
 
 ## ☄️ In flight
 
-- 0z Audit cleanup — blocker slices in `feat/#66` … `feat/#73` worktrees, plus #87.
+(none)
 
 ## 🪐 Phase progress
 
@@ -33,12 +33,12 @@
     <!-- mc:done=N,N -->        all listed issues closed (shipped)
 -->
 
-### P0 Foundations ▓ 1/1
+### P0 Foundations ▓▓ 2/2
 
 | # | Sub-phase | Status | PRD | Issues |
 | --- | --- | --- | --- | --- |
 | 0a | Developer modes (fast/balanced/tdd) | ✅ shipped | [`docs/prds/developer-modes.md`](docs/prds/developer-modes.md) | #56, #57, #58, #59 <!-- mc:done=56,57,58,59 --> |
-| 0z | Pipeline audit cleanup (2026-05-13) | 🚧 in-progress | [`docs/superpowers/specs/2026-05-13-forge-audit-findings.md`](docs/superpowers/specs/2026-05-13-forge-audit-findings.md) | #66, #67, #68, #69, #70, #71, #72, #73, #77, #87 <!-- mc:open=66,67,68,69,70,71,72,73,77,87 --> |
+| 0z | Pipeline audit cleanup (2026-05-13) | ✅ shipped | [`docs/superpowers/specs/2026-05-13-forge-audit-findings.md`](docs/superpowers/specs/2026-05-13-forge-audit-findings.md) | #66, #67, #68, #69, #70, #71, #72, #73, #77, #87 <!-- mc:done=66,67,68,69,70,71,72,73,77,87 --> |
 
 ## 🛸 Architectural items
 
