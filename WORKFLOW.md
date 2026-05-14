@@ -30,7 +30,7 @@ Seal:
 
 **Session rate-limit (5-hour rolling account budget):**
 - Forge polls ccusage; 90% = warning (finish in-flight, don't dispatch new); 95% = hard-stop, ScheduleWakeup to resume in ~30 min
-- Temper at >90% finishes current step then emits `TEMPER:CONTINUE:<N>` so forge can pause the queue
+- Temper at >90% finishes current step then emits `TEMPER:RESULT` with `"status":"continue"` so forge can pause the queue
 
 ## Lessons + knowledge library
 - `.claude/lessons.md` — one-line index (cheap to load)
@@ -51,15 +51,38 @@ Seal:
 | `/temper <N>` opens PR | In Review | `.claude/scripts/kanban-move.sh <N> in-review` |
 | `/seal` merges the PR | Done | Auto (issue close on merge) |
 
-## Temper sentinels
-- `TEMPER:SUCCESS` — PR open, CI green, ready for `/seal` — forge logs tokens and moves to next
-- `TEMPER:CONTINUE:<N>` — context overflow, forge reads continuation file and spawns fresh session
-- `TEMPER:NEEDS_HUMAN:<reason>` — stuck, forge notifies and skips
-- `TEMPER:FAIL:<reason>` — forge retries once, then marks needs-human
+## Temper sentinel
+
+Temper emits exactly one `TEMPER:RESULT <json-object>` line at the end of every run.
+Forge parses the last such line and dispatches on `status`. Full schema and examples
+live in [`docs/shared/pipeline.md`](./docs/shared/pipeline.md#sentinel-protocol).
+
+Required fields on every emission: `status`, `issue`, `branch`, `pr`, `tokens`, `friction`.
+Status-specific extras: `continuation_file` (for `continue`), `reason` (for `needs_human`
+and `fail`).
+
+| `status` | Meaning | Forge action |
+|---|---|---|
+| `success` | PR open, CI green, ready for `/seal` | log tokens, advance the queue |
+| `continue` | context or rate-limit overflow, continuation file written | read `continuation_file`, dispatch a fresh session |
+| `needs_human` | stuck (e.g. `reason:"ci-stuck"`, `reason:"friction"`) | log reason, notify, skip |
+| `fail` | unrecoverable failure | retry once, then mark needs-human |
+
+Example:
+
+```
+TEMPER:RESULT {"status":"success","issue":21,"pr":58,"branch":"feat/#21-foo","tokens":null,"friction":null}
+```
+
+The legacy prose sentinels (`TEMPER:SUCCESS`, `TEMPER:CONTINUE:<N>`,
+`TEMPER:NEEDS_HUMAN:<reason>`, `TEMPER:FAIL:<reason>`) are no longer emitted; new
+tooling must parse `TEMPER:RESULT` JSON only.
 
 ## Friction protocol
-Hit friction → add `friction` label to PR → post comment with details → if unresolved: `TEMPER:NEEDS_HUMAN:friction`
-Forge reviews friction-labelled PRs at end of batch and updates lessons.md for recurring patterns.
+Hit friction → add `friction` label to PR → post comment with details. If unresolved,
+emit `TEMPER:RESULT` with `"status":"needs_human"`, `"reason":"friction"`, and the
+friction text in the `friction` field. Forge reviews friction-labelled PRs at end of
+batch and updates lessons.md for recurring patterns.
 
 ## Token tracking
 Forge logs per-temper correlation data to `.claude/token-usage.jsonl`. Analysis via ccusage.

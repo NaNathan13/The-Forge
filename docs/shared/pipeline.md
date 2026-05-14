@@ -90,8 +90,13 @@ TEMPER:RESULT {"status":"fail","issue":21,"pr":null,"branch":"feat/#21-temper-se
 |---|---|
 | `success` | PR open, CI green — log tokens, advance the queue. Seal merges later. |
 | `continue` | Read the file at `continuation_file`, dispatch a fresh temper to resume. |
-| `needs_human` | Log `reason` (and `friction` text if present), notify the user, skip to the next slice. |
-| `fail` | Retry once with a fresh session. On second `fail`, mark needs-human and skip. |
+| `needs_human` | Log `reason` (and `friction` text if present), notify the user, skip to the next slice. If `pr` is non-null, ensure the matching label is on the PR (`friction` reason → `friction` label; any other reason → `needs-human` label). Temper applies the label before emitting; Forge re-applies as belt-and-suspenders. |
+| `fail` | Retry once with a fresh session. On second `fail`, mark needs-human and skip. If the slice has an open PR, apply the `needs-human` label before skipping. |
+
+The label step is what keeps a `needs_human` PR from being auto-merged by `/seal --auto`:
+seal classifies merge-vs-skip purely by labels (see `.claude/skills/seal/SKILL.md` step 2).
+The sentinel is temper→forge; the label is temper/forge→seal. Both are required when a PR
+is open.
 
 If no `TEMPER:RESULT` line is present in temper's output, Forge treats the run as
 `status: "fail"` with reason `"no result sentinel"` and applies the fail branch.

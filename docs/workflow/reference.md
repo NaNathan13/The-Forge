@@ -20,7 +20,7 @@ Each `/temper <N>` handles a single issue from branch to **CI-green PR** (not me
 4. **Visual review** (UI/mixed only) — by default dispatch a Playwright-driven subagent (or use the Playwright MCP) to drive the running app and capture screenshots to `screenshots/issue-<N>/`. Verify whatever theme variants the project ships. Non-web projects swap Playwright for an equivalent harness and document that in `CLAUDE.md`.
 5. **Open PR** — commit, push, `gh pr create` with `closes #<N>`, move kanban to In Review
 6. **Wait for CI** — Monitor tool watches `gh pr checks <PR> --watch` (zero token cost), fix failures (max 2 cycles)
-7. **Stop at green CI** — emit `TEMPER:SUCCESS` and exit. The PR stays open for `/seal` to merge later, alongside the rest of the batch.
+7. **Stop at green CI** — emit `TEMPER:RESULT` with `"status":"success"` and exit. The PR stays open for `/seal` to merge later, alongside the rest of the batch.
 
 ### Context discipline
 
@@ -28,15 +28,25 @@ Temper subagents are the biggest token cost. Guard context aggressively:
 
 - **Start lean.** Load only the issue and auto-loaded path-scoped rules. Do NOT bulk-load lessons.md, MISSION-CONTROL.md, or WORKFLOW.md at startup. Consult them reactively when needed.
 - **40% context = warning.** Finish the current phase, then evaluate whether to continue or write a continuation file and hand off.
-- **50% context = hard stop.** Write `.claude/temper-continue-<N>.md` (issue number, branch, PR number, what's done, what's left) and emit `TEMPER:CONTINUE:<N>`. Forge reads the file and dispatches a fresh session.
+- **50% context = hard stop.** Write `.claude/temper-continue-<N>.md` (issue number, branch, PR number, what's done, what's left) and emit `TEMPER:RESULT` with `"status":"continue"` and `continuation_file` pointing at the file. Forge reads the file and dispatches a fresh session.
 - **CI failure fixes.** If CI fails after the PR is opened, forge dispatches a fresh subagent with just the branch name, PR number, and failure log — not the full build context.
 
-### Sentinels
+### Sentinel
 
-- `TEMPER:SUCCESS` — PR open, CI green, ready for `/seal` to merge
-- `TEMPER:CONTINUE:<N>` — context overflow, continuation file written
-- `TEMPER:NEEDS_HUMAN:<reason>` — stuck, needs user input
-- `TEMPER:FAIL:<reason>` — unrecoverable failure
+Temper emits exactly one structured sentinel at the end of every run:
+
+```
+TEMPER:RESULT <json-object>
+```
+
+The object's `status` field is one of `success`, `continue`, `needs_human`, or `fail`.
+Required fields: `status`, `issue`, `branch`, `pr`, `tokens`, `friction`. Status-specific
+extras: `continuation_file` (for `continue`), `reason` (for `needs_human` and `fail`).
+Full schema, dispatch table, and examples live in
+[`docs/shared/pipeline.md`](../shared/pipeline.md#sentinel-protocol).
+
+The legacy prose sentinels (`TEMPER:SUCCESS`, `TEMPER:CONTINUE:<N>`,
+`TEMPER:NEEDS_HUMAN:<reason>`, `TEMPER:FAIL:<reason>`) are no longer emitted.
 
 ## Forge dispatch loop
 
@@ -108,20 +118,20 @@ When temper hits unexpected friction:
 1. Add `friction` label to the PR
 2. Post PR comment with details (what happened, what was tried, outcome)
 3. If resolved, note how — feeds the self-healing loop
-4. If unresolved: `TEMPER:NEEDS_HUMAN:friction` sentinel
+4. If unresolved: emit `TEMPER:RESULT` with `"status":"needs_human"` and `"reason":"friction"` (friction text in the `friction` field)
 
 Forge reviews friction-labelled PRs at end of batch. Recurring patterns get added to `.claude/lessons.md`.
 
 ## Troubleshooting
 
-### Stuck slice (`TEMPER:NEEDS_HUMAN`)
+### Stuck slice (`TEMPER:RESULT` with `status:"needs_human"`)
 Forge logs the reason and skips to the next slice. Check the PR for the friction comment. Fix manually, then re-run `/temper <N>` standalone.
 
 ### CI failures
-Temper auto-fixes up to 2 cycles. If still failing, it emits `TEMPER:NEEDS_HUMAN:ci-stuck`. Read the CI logs, fix locally, push.
+Temper auto-fixes up to 2 cycles. If still failing, it emits `TEMPER:RESULT` with `"status":"needs_human"` and `"reason":"ci-stuck"`. Read the CI logs, fix locally, push.
 
-### Context overflow (`TEMPER:CONTINUE`)
-Temper writes `.claude/temper-continue-<N>.md` with state. Forge spawns a fresh session with continuation context. No manual intervention needed.
+### Context overflow (`TEMPER:RESULT` with `status:"continue"`)
+Temper writes `.claude/temper-continue-<N>.md` with state. Forge reads the `continuation_file` field and spawns a fresh session with continuation context. No manual intervention needed.
 
 ### Forge context overflow
 At 40% context usage, forge writes `.claude/forge-continue.md` and starts fresh. Resume with the same `/forge` invocation.

@@ -38,8 +38,8 @@ For each candidate PR, decide:
 |--------|--------|
 | CI green AND no `friction` / `needs-human` label AND not draft | **ship** — approve + merge |
 | CI red or pending | **skip** — note reason ("CI not green — wait for it to finish or re-run /temper <N>") |
-| Has `friction` label | **skip** — note reason ("flagged for human review") |
-| Has `needs-human` label | **skip** — note reason ("temper emitted NEEDS_HUMAN") |
+| Has `friction` label | **skip** — note reason ("flagged for human review"). Temper applies this label whenever it emits `TEMPER:RESULT` with `"status":"needs_human","reason":"friction"` and a PR is open. |
+| Has `needs-human` label | **skip** — note reason ("temper emitted `TEMPER:RESULT` with `status:\"needs_human\"`"). Temper applies this label whenever it emits `TEMPER:RESULT` with `"status":"needs_human"` for any non-friction reason (e.g. `"ci-stuck"`) and a PR is open; Forge re-applies it on the final `fail` retry. The label is the only signal seal reads — sentinels are temper→forge, labels are temper/forge→seal. |
 | Draft | **skip** — note reason ("PR is draft") |
 
 ### 3. Show the plan, get approval

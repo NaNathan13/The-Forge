@@ -126,8 +126,8 @@ defined in `docs/shared/pipeline.md`.
 |----------|---------------|
 | `success` | PR is open with CI green. Use `pr` and `branch` from the JSON. Log tokens, move to next slice (`/seal` will merge later). |
 | `continue` | Read the file at `continuation_file` (typically `.claude/temper-continue-<issue>.md`), dispatch fresh temper with continuation context. |
-| `needs_human` | Log `reason` (and `friction` text if present), notify user, skip to next slice. |
-| `fail` | Log `reason`. Retry once with fresh session. If second `fail`, mark needs-human, skip. |
+| `needs_human` | Log `reason` (and `friction` text if present), notify user, skip to next slice. **Belt-and-suspenders:** if `pr` is non-null, ensure the PR carries the matching label so `/seal` skips it — `friction` reason → `friction` label; any other reason → `needs-human` label. Temper is responsible for applying the label before emitting, but Forge re-applies (`gh pr edit <PR> --add-label <label>`) to defend against the case where temper crashed between label and emit. |
+| `fail` | Log `reason`. Retry once with fresh session. If second `fail`, mark needs-human, skip. On the final `fail` for a slice that has an open PR, apply the `needs-human` label to that PR (`gh pr edit <PR> --add-label needs-human`) for the same reason as the `needs_human` row. |
 
 The legacy prose sentinels (`TEMPER:SUCCESS`, `TEMPER:CONTINUE:<N>`,
 `TEMPER:NEEDS_HUMAN:<reason>`, `TEMPER:FAIL:<reason>`) are no longer emitted by temper.
@@ -211,7 +211,7 @@ Status values: `pending`, `in-flight`, `shipped`, `skipped:<reason>`, `failed:<r
 
 For each temper that was running when forge paused:
 
-- **Issue #<N>** — branch `feat/#<N>-…`, PR `#<PR>` (or "not yet opened"), last sentinel `<TEMPER:...>` at `<timestamp>`. Notes: <free text — e.g. "CI re-run pending", "continuation file at .claude/temper-continue-<N>.md">.
+- **Issue #<N>** — branch `feat/#<N>-…`, PR `#<PR>` (or "not yet opened"), last sentinel `TEMPER:RESULT {"status":"…",…}` at `<timestamp>`. Notes: <free text — e.g. "CI re-run pending", "continuation file at .claude/temper-continue-<N>.md">.
 
 ## Last-completed PRs (this batch)
 
