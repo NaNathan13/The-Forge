@@ -39,4 +39,5 @@ See [`CONTEXT.md`](./CONTEXT.md) for the full glossary. The load-bearing five:
 - [`docs/adr/`](./docs/adr/) — architectural decisions (create the dir on first ADR).
 - [`docs/prds/`](./docs/prds/) — feature PRDs (created by `/inscribe`).
 - [`docs/workflow/`](./docs/workflow/) — pipeline reference docs.
+- [`docs/workflow/p2-resilience-operations.md`](./docs/workflow/p2-resilience-operations.md) — P2 operator guide: install the `launchd` agents, read the logs, recover from a tripped circuit breaker (macOS-only crash layer).
 - [`WORKFLOW.md`](./WORKFLOW.md) — bot-facing workflow cheat-sheet (on-demand, not every turn).
