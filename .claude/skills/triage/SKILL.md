@@ -98,13 +98,13 @@ gh issue edit <N> --add-label slice:<logic|ui|mixed>
 
 ## Picking the phase label
 
-Issues use the title format `<sub-phase>/<slice-type>: <description>`. Whenever you move an issue to `ready-for-agent`, also apply a `phase:<sub-phase>` label derived from the title prefix. This lets `/forge --phase 2a` scope its run to the current sub-phase.
+Sub-phase issues use the title format `<sub-phase>/<slice-type>: <description>` (e.g. `2a/logic: derive-status function`). When the title carries that `<sub-phase>/` prefix and you move the issue to `ready-for-agent`, apply a `phase:<sub-phase>` label derived from the prefix. This lets `/forge --phase 2a` scope its run to the current sub-phase.
 
 ```
 gh issue edit <N> --add-label phase:<sub-phase>
 ```
 
-If the title doesn't follow the `<sub-phase>/...` format, skip the phase label.
+**Unprefixed titles mean "no phase."** Standalone single-slice issues (filed by `/inscribe` Path B when the user answers `none` to the sub-phase prompt, or by `/prototype` for ad-hoc work) intentionally omit the `<sub-phase>/` prefix — e.g. `logic: signed-URL helper`. **Skip the phase label entirely** in that case; do not invent a phase. Inscribe's handoff drops `--phase` when the sub-phase is `none` (emitting `/temper <N>` for a single issue or unscoped `/forge` for multiple), so the unlabeled issue still flows correctly downstream.
 
 ## Quick state override
 
@@ -144,6 +144,7 @@ When called by `/inscribe`, triage receives **all issues at once**. In batch mod
    - Apply category label (`enhancement` or `bug`)
    - Apply state label (`ready-for-agent`)
    - Apply slice label (`slice:logic` / `slice:ui` / `slice:mixed`)
+   - Apply phase label (`phase:<sub-phase>`) — derived from the title prefix per [Picking the phase label](#picking-the-phase-label). Skip when the title is unprefixed (sub-phase-id was `none`).
    - Post agent brief comment per [AGENT-BRIEF.md](AGENT-BRIEF.md)
    - Run `.claude/scripts/kanban-move.sh <issue-number> ready`
 

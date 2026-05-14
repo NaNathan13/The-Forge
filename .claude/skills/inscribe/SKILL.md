@@ -96,6 +96,7 @@ None - can start immediately
 Invoke the `/triage` skill on **every** issue — not just the first. For each issue:
 - Apply state label: `ready-for-agent`
 - Apply slice label: `slice:logic`, `slice:ui`, or `slice:mixed` — matching the type in the title.
+- Apply phase label: `phase:<sub-phase-id>` — derived from the title prefix (e.g. `2a/logic: ...` → `phase:2a`). Skip when the title is unprefixed (sub-phase-id resolved to `none`).
 - Post an agent brief comment.
 - Move kanban card to **Ready**: `.claude/scripts/kanban-move.sh <N> ready`.
 
@@ -132,17 +133,45 @@ When mode is `fast` or `balanced`, skip this step entirely and go straight to B1
 
 After all issues are triaged:
 
-1. **Update MISSION-CONTROL.md** — set the "Recommended next prompt" section to:
+1. **Update MISSION-CONTROL.md** — set the "Recommended next prompt" section based on the resolved sub-phase ID and slice count.
 
-```markdown
-**Recommended next prompt:**
+   **Case A — real sub-phase ID** (e.g. `2a`, `3b`): emit a phase-scoped forge handoff.
 
-\`\`\`
-/forge --phase <sub-phase-id>
-\`\`\`
+   ```markdown
+   **Recommended next prompt:**
 
-> Build all <sub-phase-id> slices
-```
+   \`\`\`
+   /forge --phase <sub-phase-id>
+   \`\`\`
+
+   > Build all <sub-phase-id> slices
+   ```
+
+   **Case B — sub-phase ID is `none`, single issue filed:** emit a direct temper handoff (no queue needed for one slice).
+
+   ```markdown
+   **Recommended next prompt:**
+
+   \`\`\`
+   /temper <N>
+   \`\`\`
+
+   > Build the standalone slice
+   ```
+
+   **Case C — sub-phase ID is `none`, multiple issues filed:** emit unscoped forge (forge picks up every `ready-for-agent` slice).
+
+   ```markdown
+   **Recommended next prompt:**
+
+   \`\`\`
+   /forge
+   \`\`\`
+
+   > Build all ready slices
+   ```
+
+   Never emit `/forge --phase none` — that's not a valid form. The `--phase` flag only appears when a real sub-phase ID was resolved.
 
 2. **Print the slice-list summary:**
 
