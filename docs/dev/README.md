@@ -100,7 +100,6 @@ The pipeline is designed to keep sessions lean. Bloated context = expensive + de
 | `slice:logic` | Code + tests only |
 | `slice:ui` | Code + visual review (Playwright, by default) |
 | `slice:mixed` | Both, logic first |
-| `slice:docs` | Documentation only |
 
 ## Sentinels
 

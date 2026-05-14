@@ -114,4 +114,3 @@ Each issue/task is tagged with a slice label that determines the build path:
 | `slice:logic` | Code + tests only. |
 | `slice:ui` | Code + visual review (Playwright by default). |
 | `slice:mixed` | Both — logic first, then visual review. |
-| `slice:docs` | Documentation only — no code, no tests. |
