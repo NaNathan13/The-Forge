@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  com.forge.<project>.plist — P2 single-session resilience, the launchd
+  keep-alive agent (design doc §4a). THE OUTER of P2's two nested supervision
+  layers: launchd recovers from crashes and reboots; the relaunch loop it
+  supervises recovers from context limits.
+
+  ── macOS only ───────────────────────────────────────────────────────────────
+  launchd is macOS-only. Linux (systemd unit) and Windows (Task Scheduler /
+  service) crash recovery are a noted future follow-up — out of scope for
+  sub-phase 1b. On a non-macOS host this file is inert; do not ship it there.
+
+  ── What this supervises ─────────────────────────────────────────────────────
+  This agent supervises the RELAUNCH-LOOP SCRIPT (scripts/relaunch-loop.sh) —
+  NOT the `claude` process directly. The loop owns context-limit handoffs; this
+  agent owns "the loop process itself died" (OOM, panic, kill, machine reboot).
+
+  ── Install ──────────────────────────────────────────────────────────────────
+  This is a TEMPLATE. Before installing, replace every __PLACEHOLDER__:
+
+    __PROJECT_SLUG__   the session slug (the project-dir basename, slugified —
+                     `scripts/continuation.sh slug` prints it). Used in the
+                     Label and the log file names.
+    __PROJECT_DIR__    absolute path to the project working directory.
+    __FORGE_REPO__     absolute path to the project repo root (where scripts/
+                     and .forge/ live — usually the same as __PROJECT_DIR__).
+
+  Then:
+    1. Save the filled-in file to
+       ~/Library/LaunchAgents/com.forge.__PROJECT_SLUG__.plist
+    2. launchctl load ~/Library/LaunchAgents/com.forge.__PROJECT_SLUG__.plist
+    3. Logs land in __FORGE_REPO__/.forge/launchd-loop.{out,err}.log
+
+  To stop:
+    launchctl unload ~/Library/LaunchAgents/com.forge.__PROJECT_SLUG__.plist
+
+  See docs (operator install guide, slice 8) for the full walkthrough,
+  including how to recover from a tripped circuit breaker.
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <!-- Unique label — one agent per Forge project, keyed by the session slug. -->
+  <key>Label</key>
+  <string>com.forge.__PROJECT_SLUG__</string>
+
+  <!-- Supervise the relaunch-loop SCRIPT, not `claude` directly. -->
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>__FORGE_REPO__/scripts/relaunch-loop.sh</string>
+  </array>
+
+  <!-- Run the loop from the project working directory so slug derivation,
+       .forge/ resolution, and git all see the right tree. -->
+  <key>WorkingDirectory</key>
+  <string>__PROJECT_DIR__</string>
+
+  <!-- KeepAlive with SuccessfulExit=false: respin the loop if it dies with a
+       NON-ZERO exit (crash, OOM, kill, tripped circuit breaker propagating up),
+       but DO NOT respin a deliberate exit-0. The relaunch loop exits 0 only
+       when there is genuinely no work left (FORGE_COMPLETE) — that is a
+       work-complete stop, not a failure, and must stay stopped. -->
+  <key>KeepAlive</key>
+  <dict>
+    <key>SuccessfulExit</key>
+    <false/>
+  </dict>
+
+  <!-- RunAtLoad: start the loop as soon as the agent is loaded, and — because
+       this is a LaunchAgent that loads at login — bring the loop back
+       automatically after a machine reboot. -->
+  <key>RunAtLoad</key>
+  <true/>
+
+  <!-- Throttle: minimum seconds between (re)launches of the loop process. This
+       is launchd's PROCESS-crash thrash guard — it pairs with the relaunch
+       loop's own circuit breaker, which guards HANDOFF thrash one layer down.
+       A hard-crashing loop will not respin in a tight cycle and bury the host.
+       launchd's own floor is 10s; this sets it explicitly. -->
+  <key>ThrottleInterval</key>
+  <integer>30</integer>
+
+  <!-- Per-project logs. A crashed session must not be a black hole — these are
+       the after-the-fact record (R3: "a dead session is silent — never trust
+       the self-report alone"). The liveness watchdog appends to its own
+       .forge/watchdog.log; these capture the loop + claude stdio. -->
+  <key>StandardOutPath</key>
+  <string>__FORGE_REPO__/.forge/launchd-loop.out.log</string>
+  <key>StandardErrorPath</key>
+  <string>__FORGE_REPO__/.forge/launchd-loop.err.log</string>
+
+  <!-- Inherit a sane PATH — `claude`, `git`, `jq` must be resolvable. Adjust if
+       your tools live elsewhere (e.g. add /usr/local/bin for Intel Homebrew). -->
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+  </dict>
+</dict>
+</plist>
