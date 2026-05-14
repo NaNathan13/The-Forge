@@ -26,10 +26,9 @@ See [`CONTEXT.md`](./CONTEXT.md) for the full glossary. The load-bearing five:
 ## Rules
 
 - Branch per issue: `feat/#<N>-short-description`. PR includes `closes #<N>`.
-- Never push directly to `main` — `main` is the **template branch** (placeholders intact). Real-state edits to `CLAUDE.md` / `MISSION-CONTROL.md` / `CONTEXT.md` belong only on working branches.
+- The repo-root `CLAUDE.md` / `CONTEXT.md` / `MISSION-CONTROL.md` are The Forge's **own real working docs** — that's what lets The Forge develop itself. `templates/` holds the **placeholder versions** that `light-the-forge.sh` ships to new projects (`templates/CLAUDE.md`, `templates/CONTEXT.md`, `templates/MISSION-CONTROL.md`, `templates/README.md`). When you change the *structure* of a root doc, mirror that change into its `templates/` counterpart.
 - No application tests — the pipeline is exercised by running it. Skill + script changes are validated by dogfooding (`/temper` on a real issue).
 - Screenshots for UI changes: `screenshots/issue-<N>/`. (Rarely applicable — this project has no UI surface of its own.)
-- Use `.claude/scripts/temper-push.sh <branch>` to push branches; direct `git push` is blocked by hook (see `.claude/knowledge/push-hook.md`).
 
 ## Docs
 
