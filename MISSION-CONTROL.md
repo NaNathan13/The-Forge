@@ -62,6 +62,8 @@
 
 <!-- Append links to `docs/adr/NNNN-*.md` as decisions are recorded. -->
 
+- [`0001-autonomous-forge-architecture.md`](docs/adr/0001-autonomous-forge-architecture.md) — 3-tier model + optional-by-layers principle + operator-setup requirement (P1 / sub-phase 1a)
+
 ## 🌑 Out of scope
 
 <!-- Append links to `.out-of-scope/<concept>.md` files as feature requests are rejected. -->
