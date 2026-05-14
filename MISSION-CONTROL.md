@@ -1,23 +1,23 @@
-# 🚀 {{PROJECT_NAME}} — Mission Control
+# 🚀 The Forge — Mission Control
 
 > Ground station for the project's trajectory — where it stands, and the next burn.
 > Auto-updated by pipeline skills (`/inscribe`, `/temper`, `/seal`). Each phase updates the "Recommended next prompt". Drift between this doc and GitHub issue state is surfaced as a SessionStart reminder.
 
 ## 🛰️ Telemetry — right now
 
-**Phase:** P0 Foundations ░ 0/1
-**In flight:** —
+**Phase:** P0 Foundations ▓ 1/1 · 0z Audit cleanup 🚧 in-progress
+**In flight:** 0z audit cleanup batch (#66–#73, #77, #87) — temper workers running
 **Workflow:** Ponder → Forge → Temper pipeline. See [`docs/workflow/`](docs/workflow/) for details.
 
 **Recommended next prompt:**
 
 ```
-{{RECOMMENDED_NEXT_PROMPT}}
+/forge --phase 0z
 ```
 
 ## ☄️ In flight
 
-(none)
+- 0z Audit cleanup — blocker slices in `feat/#66` … `feat/#73` worktrees, plus #87.
 
 ## 🪐 Phase progress
 
@@ -33,11 +33,12 @@
     <!-- mc:done=N,N -->        all listed issues closed (shipped)
 -->
 
-### P0 Foundations ░ 0/1
+### P0 Foundations ▓ 1/1
 
 | # | Sub-phase | Status | PRD | Issues |
 | --- | --- | --- | --- | --- |
-| 0a | {{FIRST_PHASE}} | ⏳ queued | — | <!-- mc:none --> |
+| 0a | Developer modes (fast/balanced/tdd) | ✅ shipped | [`docs/prds/developer-modes.md`](docs/prds/developer-modes.md) | #56, #57, #58, #59 <!-- mc:done=56,57,58,59 --> |
+| 0z | Pipeline audit cleanup (2026-05-13) | 🚧 in-progress | [`docs/superpowers/specs/2026-05-13-forge-audit-findings.md`](docs/superpowers/specs/2026-05-13-forge-audit-findings.md) | #66, #67, #68, #69, #70, #71, #72, #73, #77, #87 <!-- mc:open=66,67,68,69,70,71,72,73,77,87 --> |
 
 ## 🛸 Architectural items
 
