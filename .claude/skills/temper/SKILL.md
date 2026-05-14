@@ -55,7 +55,7 @@ stay lean, hand off to fresh sessions when context grows.
 ### 6. Wait for CI
 - Use Monitor tool to watch `gh pr checks <PR> --watch` — zero token cost while waiting
 - If CI fails: read only the failure log (not the full run), fix, push, re-monitor
-- Max 2 fix cycles. If still failing: emit `TEMPER:RESULT` with `"status":"needs_human","reason":"ci-stuck"`
+- Max 2 fix cycles. If still failing: apply the `needs-human` label to the PR (`gh pr edit <PR> --add-label needs-human`) **before** emitting the sentinel, then emit `TEMPER:RESULT` with `"status":"needs_human","reason":"ci-stuck"`. The label is what tells `/seal` to skip the PR — without it, a PR with green-but-stuck CI (or a flake that briefly goes green) can be auto-merged by `/seal --auto`.
 
 ### 7. Stop at green CI
 
@@ -227,6 +227,26 @@ The legacy prose sentinels (`TEMPER:SUCCESS`, `TEMPER:CONTINUE:<N>`,
 `TEMPER:NEEDS_HUMAN:<reason>`, `TEMPER:FAIL:<reason>`) are no longer emitted. The prose
 summary above the JSON line is for humans only — Forge does not parse it. If you find
 yourself reaching for a legacy sentinel string, emit `TEMPER:RESULT` instead.
+
+### Label-the-PR rule for `status:needs_human`
+
+Whenever temper emits `status:"needs_human"` **and a PR is open** (the `pr` field on
+`TEMPER:RESULT` is non-null), it MUST apply the corresponding label to the PR **before**
+emitting the sentinel:
+
+- `reason:"friction"` → apply the `friction` label (already covered by the friction-flagging
+  steps above).
+- Any other `reason` (e.g. `"ci-stuck"`) → apply the `needs-human` label:
+  `gh pr edit <PR> --add-label needs-human`.
+
+Why: `/seal` classifies merge-vs-skip purely by PR labels (see seal/SKILL.md step 2). A
+`needs_human` sentinel that leaves no label means a broken PR can be auto-merged by
+`/seal --auto` the moment CI happens to be green. The sentinel tells Forge to skip
+to the next slice in *this* batch; the label tells Seal to skip the PR at close-out.
+Both signals are required.
+
+If the PR was never opened (`pr` is `null`), no label step is needed — there's nothing for
+Seal to act on.
 
 ## Rules
 - **Support agents.** Temper (Worker A) can dispatch up to 2 support agents concurrently from the definitions in `.claude/agents/`:
