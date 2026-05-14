@@ -30,6 +30,6 @@ Two common patterns:
 
 The `triage` skill references slice-label path heuristics. If you want triage to be precise about which files count as `slice:logic` vs `slice:ui`, add a rule here describing your project's layout (e.g. "components live under `src/components/`, server code under `src/server/`") and reference it from `CLAUDE.md`.
 
-## Delete this README
+## This README is permanent
 
-Once you've populated this directory with real rule files, this README's job is done — feel free to delete it.
+This file is part of every Forge install. It documents the contract for the directory and stays in place even after real rules are added — do not delete it when populating the directory.
