@@ -81,11 +81,18 @@ The branches:
    running `light-the-forge.sh`. Confirm with: "I'll lay The Forge files on top of your existing
    project at `<path>`. Nothing of yours moves — I just add `CLAUDE.md`, `MISSION-CONTROL.md`,
    `.claude/`, etc. Continue?"
-4. Once the codebase is in place, **invoke `/examine`** (sibling skill) to detect stack,
-   framework, test runner, check command, and write tailored rules under `.claude/rules/`.
-   `/examine` fills the Block 4 fields directly into `CLAUDE.md`.
-5. Ask Block 0c (Developer mode) — see below.
-6. Continue with Block 1 (Identity) — still needs the project name, one-liner, etc.
+4. Once the codebase is in place, **write the in-progress marker** so a mid-flow crash
+   leaves a breadcrumb for the next `./light-the-forge.sh` run (see step 7.5 for cleanup):
+
+   ```bash
+   mkdir -p .claude && touch .claude/.ltf-in-progress
+   ```
+
+5. **Invoke `/examine`** (sibling skill) to detect stack, framework, test runner, check
+   command, and write tailored rules under `.claude/rules/`. `/examine` fills the Block 4
+   fields directly into `CLAUDE.md`.
+6. Ask Block 0c (Developer mode) — see below.
+7. Continue with Block 1 (Identity) — still needs the project name, one-liner, etc.
 
 #### Starter template subflow
 
@@ -100,9 +107,16 @@ The branches:
    "Let me paste my own URL" (freeform input).
 4. Once a URL is chosen, clone it into the current directory using the same logic as the
    "Existing codebase" git-URL path above.
-5. **Invoke `/examine`** to detect what was cloned and fill `CLAUDE.md` Block 4 fields.
-6. Ask Block 0c (Developer mode) — see below.
-7. Continue with Block 1 (Identity).
+5. **Write the in-progress marker** so a mid-flow crash leaves a breadcrumb for the next
+   `./light-the-forge.sh` run (see step 7.5 for cleanup):
+
+   ```bash
+   mkdir -p .claude && touch .claude/.ltf-in-progress
+   ```
+
+6. **Invoke `/examine`** to detect what was cloned and fill `CLAUDE.md` Block 4 fields.
+7. Ask Block 0c (Developer mode) — see below.
+8. Continue with Block 1 (Identity).
 
 #### Research vs. Build intent
 
@@ -321,12 +335,16 @@ script is idempotent — safe to re-run.
 ### 7.5. Clear in-progress marker
 
 If you wrote `.claude/.ltf-in-progress` during the existing-codebase or starter-template
-clone (recommended: write it right before invoking `/examine` so a mid-flow Claude crash
-leaves a breadcrumb for the next `./light-the-forge.sh` run), delete it now:
+subflow (per the explicit write-marker step before `/examine`), delete it now that setup
+has completed successfully:
 
 ```bash
 rm -f .claude/.ltf-in-progress
 ```
+
+The marker is consumed by `light-the-forge.sh` (mid-flow re-launch detection) — leaving
+it on disk after a clean finish would trip a false "previous run interrupted" warning on
+the next launch.
 
 ### 8. Delete `light-the-forge.sh`
 
