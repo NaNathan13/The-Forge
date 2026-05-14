@@ -317,15 +317,25 @@ rm -f .claude/.ltf-in-progress
 
 ### 8. Delete `light-the-forge.sh`
 
-This is a one-shot skill. After success, ask once: "Remove `light-the-forge.sh` from the repo? (it's done its job)". Default yes. If yes, `rm light-the-forge.sh` and add it to the next commit:
+This is a one-shot skill. **First check whether `light-the-forge.sh` is present in `$TARGET`**:
 
 ```bash
-git rm light-the-forge.sh
-git commit -m "chore: remove light-the-forge.sh after bootstrap"
-git push
+[[ -f light-the-forge.sh ]] || echo "light-the-forge.sh not present in this dir — skipping removal"
 ```
 
-If the user said "Skip GitHub", just `rm light-the-forge.sh` locally — no commit.
+In the curl-pipe-bash install path the script is never copied into `$TARGET` (it runs straight from stdin), so there's nothing to delete and this whole step is a no-op. Skip ahead to "Final handoff" in that case.
+
+If the file *is* present (the already-cloned install path), ask once: "Remove `light-the-forge.sh` from the repo? (it's done its job)". Default yes. If yes, `rm light-the-forge.sh` and add it to the next commit:
+
+```bash
+if [[ -f light-the-forge.sh ]]; then
+  git rm light-the-forge.sh
+  git commit -m "chore: remove light-the-forge.sh after bootstrap"
+  git push
+fi
+```
+
+If the user said "Skip GitHub", just `rm light-the-forge.sh` locally (still gated on `-f`) — no commit.
 
 ## Final handoff
 
