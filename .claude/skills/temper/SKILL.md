@@ -17,7 +17,7 @@ stay lean, hand off to fresh sessions when context grows.
 
 ### 1. Setup
 - Create branch: `feat/#<N>-short-description`
-- Move issue to In Progress: `.claude/scripts/kanban-move.sh <N> in-progress`
+- Move issue to In Progress: `.claude/scripts/kanban-move.sh <N> in-progress`. If the script exits with code **78** ("project IDs not configured"), the user hasn't run `setup-kanban.sh` yet — log a one-line note (`kanban: skipped (not configured)`) and continue. Do **not** abort or treat this as friction. Any other non-zero exit is a real failure.
 - **Read the dev mode line** from `CLAUDE.md` (see "Dev mode resolution" below). This decides whether to write tests, treat the check command as a hard gate, and whether to dispatch a reviewer agent pre-PR.
 - Do NOT bulk-load `.claude/lessons.md` or any `.claude/knowledge/*.md` file. Consult them reactively if you hit a wall — read the lessons.md index first, then load specific knowledge files only when an entry matches your error.
 
@@ -49,7 +49,7 @@ stay lean, hand off to fresh sessions when context grows.
 - Commit all changes with `feat(scope): description (#<N>)`
 - Push the branch via `.claude/scripts/temper-push.sh <branch>` (direct `git push` is blocked by a hook — see `.claude/knowledge/push-hook.md`), then open the PR via `gh pr create`
 - PR body includes `closes #<N>`, summary, and test plan
-- Move issue: `.claude/scripts/kanban-move.sh <N> in-review`
+- Move issue: `.claude/scripts/kanban-move.sh <N> in-review` (exit-78 = not configured → warn-and-continue, same as the in-progress move in step 1)
 - If UI/mixed: post PR comment with screenshot image refs
 
 ### 6. Wait for CI
