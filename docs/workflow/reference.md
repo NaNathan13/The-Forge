@@ -102,7 +102,7 @@ GitHub Projects board (one per repo — fill in the IDs in `.claude/scripts/kanb
 - Branch per issue: `feat/#<N>-short-description`
 - Commit messages: `feat(scope): description (#<N>)`
 - PR body includes `closes #<N>`
-- Never push directly to `main`
+- Push branches with plain `git push -u origin <branch>`
 
 ## Screenshots
 
