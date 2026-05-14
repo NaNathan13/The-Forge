@@ -83,10 +83,15 @@ if [[ "$ALREADY_CLONED" == "false" ]]; then
   SRC="$TMPDIR/repo"
 
   echo "→ copying kit files..."
-  # Core docs
-  for f in CLAUDE.md MISSION-CONTROL.md CONTEXT.md WORKFLOW.md; do
-    [[ -f "$SRC/$f" ]] && cp "$SRC/$f" "$TARGET/$f"
+  # Core docs — CLAUDE.md / MISSION-CONTROL.md / CONTEXT.md are sourced from
+  # templates/ (placeholder form). The Forge's own root copies are real project
+  # state, so we ship separate templates. WORKFLOW.md is generic — copied
+  # verbatim from the repo root. The templates/ directory itself is never
+  # copied into the target; a normal project is not a template source.
+  for f in CLAUDE.md MISSION-CONTROL.md CONTEXT.md; do
+    [[ -f "$SRC/templates/$f" ]] && cp "$SRC/templates/$f" "$TARGET/$f"
   done
+  [[ -f "$SRC/WORKFLOW.md" ]] && cp "$SRC/WORKFLOW.md" "$TARGET/WORKFLOW.md"
   # README template — copied from templates/ (The Forge's own README.md is about
   # The Forge itself, so we ship a separate template). Don't clobber an existing
   # README in the target — relevant for the existing-codebase bootstrap path.
