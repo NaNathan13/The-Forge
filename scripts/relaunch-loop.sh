@@ -69,7 +69,8 @@ set -uo pipefail
 #   FORGE_CONTEXT_WINDOW_TOKENS
 #   FORGE_THROTTLE_SECONDS
 #   FORGE_THRASH_MAX_GENERATIONS / FORGE_THRASH_WINDOW_SECONDS
-# The last pair is not in the shipped config yet — built-in defaults below cover it.
+# Every key above is on the shipped config surface; the built-in defaults below
+# are the fallback for when a key is absent or malformed.
 #
 # ── Exit codes ───────────────────────────────────────────────────────────────
 #   0    work complete (FORGE_COMPLETE) — clean stop
@@ -91,8 +92,9 @@ EXIT_THRASH=2
 EXIT_BUDGET_HARD=3
 EXIT_CONFIG=4
 
-# Built-in circuit-breaker defaults — used when resilience.config does not set
-# them (the shipped config does not carry the thrash pair yet).
+# Built-in circuit-breaker defaults — fallback for when resilience.config does
+# not set the thrash pair (or sets a malformed value). The shipped config
+# carries these same values as its documented surface.
 DEFAULT_THRASH_MAX_GENERATIONS=5
 DEFAULT_THRASH_WINDOW_SECONDS=300
 
