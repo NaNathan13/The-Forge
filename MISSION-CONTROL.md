@@ -5,13 +5,17 @@
 
 ## 🛰️ Telemetry — right now
 
-**Phase:** P0 Foundations ▓▓ 2/2
+**Phase:** P0 Foundations ▓▓░ 2/3
 **In flight:** —
 **Workflow:** Ponder → Forge → Temper pipeline. See [`docs/workflow/`](docs/workflow/) for details.
 
 **Recommended next prompt:**
 
-_All features shipped or in motion. No recommendation._
+```
+/forge --phase 0b
+```
+
+> Build all 0b slices
 
 ## ☄️ In flight
 
@@ -31,11 +35,12 @@ _All features shipped or in motion. No recommendation._
     <!-- mc:done=N,N -->        all listed issues closed (shipped)
 -->
 
-### P0 Foundations ▓▓ 2/2
+### P0 Foundations ▓▓░ 2/3
 
 | # | Sub-phase | Status | PRD | Issues |
 | --- | --- | --- | --- | --- |
 | 0a | Developer modes (fast/balanced/tdd) | ✅ shipped | [`docs/prds/developer-modes.md`](docs/prds/developer-modes.md) | #56, #57, #58, #59 <!-- mc:done=56,57,58,59 --> |
+| 0b | Template invariant + push-to-main freedom | 📝 prd-ready | [`docs/prds/template-invariant.md`](docs/prds/template-invariant.md) | #115, #116, #117, #118, #119, #120, #121 <!-- mc:open=115,116,117,118,119,120,121 --> |
 | 0z | Pipeline audit cleanup (2026-05-13) | ✅ shipped | — | #66, #67, #68, #69, #70, #71, #72, #73, #74, #75, #76, #77, #78, #79, #80, #81, #82, #83, #84, #85, #86, #87, #88 <!-- mc:done=66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88 --> |
 
 ## 🛸 Architectural items
