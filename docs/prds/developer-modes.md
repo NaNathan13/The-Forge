@@ -72,6 +72,8 @@ Reads the mode line during the size-check phase. When `tdd`:
 
 When `fast` or `balanced`, behavior is unchanged from today.
 
+If the mode line is missing or unrecognized, default to `balanced` and log a one-line note (same shape as temper) so the silent default surfaces. This matters most for projects bootstrapped before `/light-the-forge` started writing the line — without the note, those projects silently get `balanced` forever.
+
 ### `/forge`
 
 No direct behavior change. Forge dispatches temper workers; temper reads the mode line itself.

@@ -1,40 +1,35 @@
-# {{PROJECT_NAME}}
+# The Forge
 
-<!--
-  This is the starter CLAUDE.md template for The Forge pipeline.
-  Replace placeholders below with your project's specifics. Keep this file short —
-  it loads at session start, so cost-per-turn scales with its length.
+A markdown- and bash-driven pipeline for running Claude Code projects end-to-end: ponder → forge → temper → seal. Skills, scripts, and templates that other repos clone into themselves via `light-the-forge.sh`.
 
-  Anything not listed here goes in CONTEXT.md (ubiquitous language), MISSION-CONTROL.md
-  (current state), or per-area rules under `.claude/rules/`.
--->
-
-One-line description of what this project is.
+**Dev mode:** balanced
 
 ## Tech stack
 
-- **Language / runtime:** {{e.g. TypeScript / Node 20, Rust, Go 1.22}}
-- **Framework:** {{e.g. Next.js 14, Django, Rails 7, none}}
-- **Test runner:** {{e.g. vitest, jest, pytest, cargo test}}
-- **Check command:** `{{e.g. npm run check-all, pnpm test, cargo check && cargo test}}`
-- **Package manager:** {{npm | pnpm | yarn | uv | cargo}}
-- **CI:** GitHub Actions on {{runner — `ubuntu-latest`, self-hosted, etc.}}
+- **Language / runtime:** Markdown + Bash (no application runtime)
+- **Framework:** Claude Code skills (`.claude/skills/`) + GitHub Actions
+- **Test runner:** none — exercised by dogfooding (real `/temper` runs through the pipeline)
+- **Check command:** `bash -n` on changed shell scripts; no project-wide check
+- **Package manager:** none
+- **CI:** GitHub Actions on `ubuntu-latest` (see `.github/workflows/`)
 
 ## Key terms
 
-See [`CONTEXT.md`](./CONTEXT.md) for the ubiquitous-language glossary. List the 3-5 most
-load-bearing terms here so they're in every session:
+See [`CONTEXT.md`](./CONTEXT.md) for the full glossary. The load-bearing five:
 
-- **Term 1** — short definition
-- **Term 2** — short definition
+- **Ponder** — the planning phase: grill the idea, write the PRD, file + triage issues.
+- **Forge** — the orchestrator: dispatches temper workers, watches sentinels, advances the queue.
+- **Temper** — one worker that takes a triaged issue from branch → green-CI PR. Does not merge.
+- **Seal** — the closer: approves + squash-merges every shippable PR in the batch, then reconciles `MISSION-CONTROL.md`.
+- **Slice** — a single triaged issue. Slice labels (`slice:logic` / `slice:ui` / `slice:mixed`) drive how temper builds it.
 
 ## Rules
 
 - Branch per issue: `feat/#<N>-short-description`. PR includes `closes #<N>`.
-- Never push directly to `main` (or whichever default branch).
-- Tests: logic functions get unit tests, user-facing surfaces get one happy-path test. No strict TDD unless a skill says so.
-- Screenshots for UI changes: `screenshots/issue-<N>/` (light + dark, or whatever theme variants apply).
-- {{Any project-specific hard rules — paid services, code-style enforcement, etc.}}
+- Never push directly to `main` — `main` is the **template branch** (placeholders intact). Real-state edits to `CLAUDE.md` / `MISSION-CONTROL.md` / `CONTEXT.md` belong only on working branches.
+- No application tests — the pipeline is exercised by running it. Skill + script changes are validated by dogfooding (`/temper` on a real issue).
+- Screenshots for UI changes: `screenshots/issue-<N>/`. (Rarely applicable — this project has no UI surface of its own.)
+- Use `.claude/scripts/temper-push.sh <branch>` to push branches; direct `git push` is blocked by hook (see `.claude/knowledge/push-hook.md`).
 
 ## Docs
 

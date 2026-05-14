@@ -35,7 +35,17 @@ If called standalone:
    grep -E '^\*\*Dev mode:\*\*' CLAUDE.md
    ```
 
-   Parse the value after `**Dev mode:**` (trim whitespace, lowercase). Accept only `fast`, `balanced`, or `tdd`. **Default to `balanced`** if the line is missing, malformed, or the value is unrecognized — no warning, no prompt; just proceed.
+   Parse the value after `**Dev mode:**` (trim whitespace, lowercase). Accept only `fast`, `balanced`, or `tdd`. **Default to `balanced`** if the line is missing, malformed, or the value is unrecognized.
+
+   When defaulting, emit exactly **one** prose line to the transcript so the silent default surfaces:
+
+   ```
+   dev-mode: defaulted to balanced (<reason>) — run `/light-the-forge` or add the line manually
+   ```
+
+   Where `<reason>` is one of `missing line`, `malformed line`, or `unrecognized value: <raw>`. When the line resolves cleanly, no note is required; the mode is just used. (Same shape as temper's dev-mode resolution.)
+
+   If invoked from `/ponder`, ponder has already resolved the mode and emitted any default note; just use the value it passes in and skip this step.
 
    The mode controls one branch in Path B (single-slice): when mode=`tdd`, write a PRD before filing the issue. Sub-phase (Path A) writes a PRD regardless of mode.
 
