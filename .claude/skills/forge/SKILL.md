@@ -211,7 +211,7 @@ Status values: `pending`, `in-flight`, `shipped`, `skipped:<reason>`, `failed:<r
 
 For each temper that was running when forge paused:
 
-- **Issue #<N>** — branch `feat/#<N>-…`, PR `#<PR>` (or "not yet opened"), last sentinel `<TEMPER:...>` at `<timestamp>`. Notes: <free text — e.g. "CI re-run pending", "continuation file at .claude/temper-continue-<N>.md">.
+- **Issue #<N>** — branch `feat/#<N>-…`, PR `#<PR>` (or "not yet opened"), last sentinel `TEMPER:RESULT {"status":"…",…}` at `<timestamp>`. Notes: <free text — e.g. "CI re-run pending", "continuation file at .claude/temper-continue-<N>.md">.
 
 ## Last-completed PRs (this batch)
 

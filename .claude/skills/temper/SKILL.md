@@ -96,8 +96,8 @@ Required fields on every emission:
 Status-specific extra fields:
 - `status: "continue"` → add `continuation_file` with the path to the continuation file
   (e.g. `".claude/temper-continue-3.md"`)
-- `status: "needs_human"` → add `reason` (string, matches the legacy
-  `TEMPER:NEEDS_HUMAN:<reason>` reason — e.g. `"ci-stuck"`, `"friction"`)
+- `status: "needs_human"` → add `reason` (string, short reason code — e.g.
+  `"ci-stuck"`, `"friction"`)
 - `status: "fail"` → add `reason` (string, short failure description)
 
 Examples:
@@ -208,7 +208,7 @@ When temper hits friction (unexpected failure, confusing spec, missing dependenc
 1. Add the `friction` label to the PR
 2. Post a PR comment: `## Friction\n\n<what happened, what was tried, what worked or didn't>`
 3. If the friction was resolved, note how — this feeds the self-healing loop
-4. Unresolved friction → `TEMPER:NEEDS_HUMAN:friction` sentinel
+4. Unresolved friction → emit `TEMPER:RESULT` with `"status":"needs_human"`, `"reason":"friction"`, and the friction text in the `friction` field
 
 ## Sentinels
 

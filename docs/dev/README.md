@@ -83,7 +83,7 @@ Each `/temper <N>` handles a single issue from branch to **CI-green PR** (not me
 4. **Visual review** (UI/mixed only) -- by default dispatch a Playwright-driven subagent (or use the Playwright MCP) to drive the running app and capture screenshots to `screenshots/issue-<N>/`. Verify whatever theme variants the project ships. Non-web projects swap Playwright for an equivalent harness and document that in `CLAUDE.md`.
 5. **Open PR** -- commit, push, `gh pr create` with `closes #<N>`, move kanban to In Review
 6. **Wait for CI** -- Monitor tool watches `gh pr checks <PR> --watch` (zero token cost), fix failures (max 2 cycles)
-7. **Stop at green CI** -- emit `TEMPER:SUCCESS` and exit. The PR stays open for `/seal` to merge later.
+7. **Stop at green CI** -- emit `TEMPER:RESULT` with `"status":"success"` and exit. The PR stays open for `/seal` to merge later.
 
 ## Context discipline
 
@@ -102,12 +102,22 @@ The pipeline is designed to keep sessions lean. Bloated context = expensive + de
 | `slice:mixed` | Both, logic first |
 | `slice:docs` | Documentation only |
 
-## Sentinels
+## Sentinel
 
-- `TEMPER:SUCCESS` -- PR open, CI green, ready for `/seal` to merge
-- `TEMPER:CONTINUE:<N>` -- context overflow, continuation file written
-- `TEMPER:NEEDS_HUMAN:<reason>` -- stuck, needs user input
-- `TEMPER:FAIL:<reason>` -- unrecoverable failure
+Temper emits one structured sentinel at the end of every run:
+
+```
+TEMPER:RESULT <json-object>
+```
+
+The object's `status` field is one of `success`, `continue`, `needs_human`, or `fail`.
+Required fields on every emission: `status`, `issue`, `branch`, `pr`, `tokens`,
+`friction`. Status-specific extras: `continuation_file` (for `continue`), `reason`
+(for `needs_human` and `fail`). Full schema, dispatch table, and examples live in
+[`docs/shared/pipeline.md`](../shared/pipeline.md#sentinel-protocol).
+
+The legacy prose sentinels (`TEMPER:SUCCESS`, `TEMPER:CONTINUE:<N>`,
+`TEMPER:NEEDS_HUMAN:<reason>`, `TEMPER:FAIL:<reason>`) are no longer emitted.
 
 ## Kanban mapping
 
@@ -142,7 +152,7 @@ When temper hits unexpected friction:
 1. Add `friction` label to the PR
 2. Post PR comment with details (what happened, what was tried, outcome)
 3. If resolved, note how -- feeds the self-healing loop
-4. If unresolved: `TEMPER:NEEDS_HUMAN:friction` sentinel
+4. If unresolved: emit `TEMPER:RESULT` with `"status":"needs_human"` and `"reason":"friction"` (friction text in the `friction` field)
 
 Forge reviews friction-labelled PRs at end of batch. Recurring patterns get added to `.claude/lessons.md`.
 
@@ -162,10 +172,10 @@ GitHub Actions on whichever runner you configure (`ubuntu-latest`, self-hosted, 
 
 ## Troubleshooting
 
-**Stuck slice (`TEMPER:NEEDS_HUMAN`)** -- Forge logs the reason and skips to the next slice. Check the PR for the friction comment. Fix manually, then re-run `/temper <N>` standalone.
+**Stuck slice (`TEMPER:RESULT` with `status:"needs_human"`)** -- Forge logs the reason and skips to the next slice. Check the PR for the friction comment. Fix manually, then re-run `/temper <N>` standalone.
 
-**CI failures** -- Temper auto-fixes up to 2 cycles. If still failing, it emits `TEMPER:NEEDS_HUMAN:ci-stuck`. Read the CI logs, fix locally, push.
+**CI failures** -- Temper auto-fixes up to 2 cycles. If still failing, it emits `TEMPER:RESULT` with `"status":"needs_human"` and `"reason":"ci-stuck"`. Read the CI logs, fix locally, push.
 
-**Context overflow (`TEMPER:CONTINUE`)** -- Temper writes `.claude/temper-continue-<N>.md` with state. Forge spawns a fresh session with continuation context. No manual intervention needed.
+**Context overflow (`TEMPER:RESULT` with `status:"continue"`)** -- Temper writes `.claude/temper-continue-<N>.md` with state. Forge reads the `continuation_file` field and spawns a fresh session with continuation context. No manual intervention needed.
 
 **Forge context overflow** -- At 40% context usage, forge writes `.claude/forge-continue.md` and starts fresh. Resume with the same `/forge` invocation.

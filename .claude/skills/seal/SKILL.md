@@ -39,7 +39,7 @@ For each candidate PR, decide:
 | CI green AND no `friction` / `needs-human` label AND not draft | **ship** — approve + merge |
 | CI red or pending | **skip** — note reason ("CI not green — wait for it to finish or re-run /temper <N>") |
 | Has `friction` label | **skip** — note reason ("flagged for human review") |
-| Has `needs-human` label | **skip** — note reason ("temper emitted NEEDS_HUMAN") |
+| Has `needs-human` label | **skip** — note reason ("temper emitted `TEMPER:RESULT` with `status:\"needs_human\"`") |
 | Draft | **skip** — note reason ("PR is draft") |
 
 ### 3. Show the plan, get approval
