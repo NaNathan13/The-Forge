@@ -84,47 +84,80 @@ trigger. **The thresholds are config, not code constants** — a single `resilie
 (or equivalent) declares them so a project can tune without editing scripts, but the
 shipped defaults are the table above.
 
-The thresholds are consumed by the budget-check hook (Q2), never by the model reasoning
-in-context.
+The thresholds are consumed by the **relaunch loop** (Q2, §1), never by the model
+reasoning in-context. The loop reads real token counts from each generation's
+`claude -p --output-format json` `.usage` block and compares them against the role's
+`warn` / `hard` lines.
 
 ### Q2 — Where the budget check lives
 
-**Decision: a deterministic Stop hook reading the transcript JSONL, with the statusline
-script as a passive mirror. Not a wrapper-script gate.**
+**Decision: the relaunch loop owns the budget gate, reading real token counts from
+`claude -p --output-format json` `.usage`. The Stop hook enforces that a continuation
+file was written before the session is allowed to exit; the statusline script is a
+passive interactive-only mirror. Not an in-context check, and not a Stop-hook gate.**
 
-**Rationale.** The north-star doc is explicit: *"in-context 'am I under budget?' reasoning
-is the waste"* — the check must be deterministic and out of the model's context. Three
-candidates were on the table:
+**Rationale.** The north-star doc is explicit: *"in-context 'am I under budget?'
+reasoning is the waste"* — the check must be deterministic and out of the model's
+context. The original design routed that check through a Stop hook that read a
+`context_window.used_percentage` field off the transcript JSONL and injected a
+"write your continuation and exit" instruction. **Verified against the current Claude
+Code CLI, that mechanism is not buildable:**
 
-- **Statusline script** — runs on every render, has `context_window.used_percentage`
-  handed to it directly. But the statusline is *display only*; it cannot make the session
-  exit. Good as a **mirror** (operator-visible budget gauge), not as the gate.
-- **Wrapper-script gate** — the relaunch loop checks budget *between* iterations. Too
-  coarse: the loop only regains control after the session already exited, so it cannot
-  *trigger* a clean handoff mid-session — it can only react to one. It is the right place
-  to *act on* a handoff (§2), not to *detect* the threshold.
-- **Stop hook** — fires deterministically every time the session yields. It can read the
-  **transcript JSONL** (R1: the real signal alongside the statusline JSON), compute used
-  percentage against the Q1 threshold for the session's role, and — when over the warn line
-  — inject the "write your continuation and exit" instruction; when over the hard line,
-  block continuation outright. This is the only candidate that both **detects** and can
-  **force the handoff**, with zero model tokens spent on the check.
+- **The transcript JSONL carries no context-window percentage.** There is no
+  `context_window.used_percentage` field to parse — the signal the original §Q2 hook
+  depended on does not exist in the transcript shape.
+- **A Stop hook cannot inject a message.** A `Stop` hook can `block` the stop (with a
+  reason string surfaced to the model) or allow it — it cannot push a free-form system
+  message into the session mid-run. So "inject *finish the current phase*" is not a
+  capability the hook has.
 
-So: **the Stop hook is the gate.** It owns the decision. The statusline script reads the
-same percentage and renders it for the operator — a passive mirror, no control flow. The
-relaunch loop (Q-adjacent, §2) acts *after* the clean exit; it is not the detector.
+The CLI *does* expose the real signal in a buildable place: every headless invocation
+ends by emitting a JSON object whose `.usage` block carries real token counts, and
+headless (`claude -p`) generations are bounded — so the loop, which already wraps each
+generation, can read `.usage` the moment a generation exits and compare it to the Q1
+thresholds. That makes the **relaunch loop the budget gate**:
 
-Mechanics: the hook is a small script (bash/Python, no Claude Code runtime) registered on
-the `Stop` event. It resolves the session role (orchestrator vs worker) from the session's
-config or working directory, picks the Q1 threshold pair, parses the latest
-`context_window.used_percentage` from the transcript JSONL (falling back to a token count
-over the transcript if the field is absent), and emits a hook decision:
+- **Relaunch loop — the gate.** After each generation exits, the loop parses `.usage`
+  from that generation's JSON output, resolves the role's `warn` / `hard` pair from
+  `resilience.config`, and decides whether the *next* generation should be told to hand
+  off. The check is deterministic, costs zero model tokens, and uses a real number. The
+  loop is the only component that both sees real usage and controls whether another
+  generation starts — so it is the natural owner. (It detects *between* generations
+  rather than mid-session; §1 covers how the handoff signal is then carried into the
+  next generation.)
+- **Stop hook — the handoff enforcer, not the detector.** The hook's job is the
+  capability it *does* have: on the `Stop` event it checks whether this generation
+  wrote its continuation file, and if not, it `block`s the stop with a reason telling
+  the session to write the continuation file before exiting. This guarantees a handoff
+  is never silently skipped. The same hook **touches the heartbeat file** on every fire,
+  feeding the §4b liveness watchdog. The hook never reads a budget number and never
+  injects a message — it only enforces *continuation-written* and *heartbeat-fresh*.
+- **Statusline script — display-only mirror.** A statusline script renders a context
+  gauge for an operator watching an interactive session. It is **interactive-mode only**
+  and **never influences control flow** — purely a human-readable mirror, not a gate.
 
-- **below warn** → allow, no-op.
-- **warn ≤ used < hard** → allow, but inject a system message: *"Context at N% — finish the
-  current phase, then write your continuation file and exit."*
-- **used ≥ hard** → block further turns with a message instructing an immediate
-  continuation-file write + exit. (Hard stop, mirroring temper's 50% rule.)
+So: **the relaunch loop is the gate; the Stop hook enforces that the handoff happened;
+the statusline is a display mirror.** Each component does the one job the CLI actually
+lets it do.
+
+Mechanics of the loop's gate: after a generation exits, the loop reads the JSON object
+from that generation's `--output-format json` output, extracts the `.usage` token
+counts, resolves the session role (orchestrator vs worker → Q1 threshold pair) from
+`resilience.config`, and:
+
+- **below warn** → relaunch the next generation normally.
+- **warn ≤ used < hard** → relaunch, but signal the next generation (via the continuation
+  file / `SessionStart` injection) that it should finish its current phase and hand off
+  promptly.
+- **used ≥ hard** → the session must hand off this generation; the loop does not start a
+  generation that would run past the hard line without a handoff. (Hard stop, mirroring
+  temper's 50% rule.)
+
+Mechanics of the Stop hook: a small bash script (no Claude Code runtime) registered on
+the `Stop` event. On each fire it (1) checks for this generation's continuation file and
+`block`s the stop with an instructive reason if it is missing, and (2) touches
+`.forge/heartbeat/<slug>`. No token counting, no message injection, no file reads beyond
+the continuation-file existence check.
 
 ### Q3 — Continuation files: append-only single file vs. chained/versioned
 
@@ -185,47 +218,70 @@ junior partner here.)
 
 A small shell script — **not** the `ralph-loop` plugin — that owns the session lifecycle.
 Huntley's original Ralph pattern: relaunch `claude` fresh after every clean exit so each
-generation starts with an empty context window.
+generation starts with an empty context window. Plain `claude -p --output-format json`
+**already** starts each invocation with a fresh context window — no resume/session flags
+are needed (and none exist; see Q2). The loop just relaunches that plain command.
 
 ```
 # relaunch-loop.sh  (pseudocode — P2 build implements this)
 while true:
-    claude -p --output-format json \
-        --resume-or-start \
-        --session-config <project>          # exits cleanly when the Stop hook forces a handoff
-    exit_code = $?
+    json_output=$( claude -p --output-format json )   # fresh context window every call;
+    exit_code=$?                                      # SessionStart hook injects `latest`
 
-    if exit_code == CLEAN_HANDOFF:           # session wrote a continuation, exited 0
+    if exit_code != 0:                       # non-zero = crash/error → let launchd handle it
+        exit exit_code                       # propagate; do NOT silently respin
+
+    # exit 0 — inspect the JSON to tell clean-handoff from work-complete
+    result=$( jq -r '.result' <<<"$json_output" )
+    usage=$(  jq -c '.usage'  <<<"$json_output" )
+
+    if result contains FORGE_COMPLETE:       # work-complete sentinel → nothing left to do
+        break                                # loop exits 0; launchd's SuccessfulExit=false
+                                             #   keeps this from being respun
+
+    if result contains FORGE_CONTINUE:       # clean-handoff sentinel → session wrote a gen file
         record_generation()
         if thrash_detected():                # N generations in < M minutes
             trip_circuit_breaker(); break    # launchd will not relaunch a tripped loop
+        budget_gate( usage )                 # Q2: parse .usage, compare to role thresholds,
+                                             #   set the next gen's "hand off promptly" signal
         continue                             # relaunch fresh — SessionStart injects continuation
 
-    if exit_code == 0 (work complete):       # nothing left to do
-        break
-
-    else:                                    # non-clean exit = crash → let launchd handle it
-        exit exit_code                        # propagate; do NOT silently respin
+    # exit 0 but no recognised sentinel — treat as a crash, do not spin
+    exit 1
 ```
 
 Key properties:
 
 - **Fresh context every generation.** The whole point — each `claude` invocation is a new
-  process with an empty window. The continuation file is the only thing carried across.
-- **Clean exit vs crash are distinguished by exit code.** A clean handoff (Stop hook forced
-  it, continuation written, exit 0 with a sentinel) → the loop relaunches. A crash (non-zero,
-  no continuation, or a signal) → the loop **propagates the failure upward** to `launchd`
-  rather than masking it. This is the boundary between the two supervision layers.
+  process with an empty window. Plain `claude -p --output-format json` already gives this;
+  the continuation file is the only thing carried across, re-injected by the `SessionStart`
+  hook (§4c).
+- **Clean handoff vs work-complete are distinguished by a sentinel string in `.result`.**
+  `claude` has no custom exit codes — it exits `0` on success and non-zero on error/crash.
+  So on an exit-0 the loop parses the JSON `.result` field: a `FORGE_CONTINUE` sentinel
+  means the session handed off cleanly (continuation written) → relaunch; a `FORGE_COMPLETE`
+  sentinel means the work is done → the loop exits 0. An exit-0 with no recognised sentinel
+  is treated as a fault, not a handoff.
+- **A non-zero exit is a crash and propagates upward.** Any non-zero `claude` exit (OOM,
+  panic, signal, internal error) → the loop **propagates the failure to `launchd`** rather
+  than masking it. This is the boundary between the two supervision layers.
+- **The loop owns the budget gate.** After a clean handoff it parses `.usage` from the
+  generation's JSON output and compares the token counts to the role's Q1 thresholds (Q2),
+  signalling the next generation to hand off promptly when over the warn line. The check is
+  deterministic and costs zero model tokens.
 - **Circuit breaker on thrash.** If the loop sees too many handoff generations in too short
   a window (Q3's monotonic counter makes this trivial), it stops and exits non-zero so a
   human is alerted — an infinite hand-off loop (R1/R2 anti-pattern) is a bug, not a state to
   spin in forever.
-- **It is a script, not a Claude session.** Zero token cost. It only reads exit codes and
-  the generation counter.
+- **It is a script, not a Claude session.** Zero token cost. It only reads exit codes, the
+  JSON `.result` / `.usage` fields, and the generation counter.
 
-The in-session half: when the Stop hook (Q2) forces a hard stop, the session writes its
-continuation file (§3) and exits with the clean-handoff code. The session never tries to
-continue past the hard threshold — that is the loop's cue.
+The in-session half: when a generation is over budget (the loop told it to hand off) or
+otherwise reaches a natural handoff point, the session writes its continuation file (§3)
+and exits with a `FORGE_CONTINUE` sentinel in `.result`. The Stop hook (§3) `block`s the
+exit if the continuation file was *not* written — so a handoff can never be silently
+skipped. When the work is genuinely done, the session emits `FORGE_COMPLETE` instead.
 
 ## 2. The hardened continuation handoff — file format
 
@@ -279,41 +335,63 @@ Hardening rules:
 The continuation file is a **plain markdown file with no Forge-runtime dependency** — which
 is what keeps it Tier-0-compatible and readable by a future Discord layer or a human.
 
-## 3. The budget-check hook
+## 3. The hooks — handoff enforcement, heartbeat, and re-injection
 
-Per Q2, this is a **Stop hook** — a deterministic script, no Claude runtime, registered on
-the `Stop` event. Specified here concretely enough to build:
+Per Q2, the budget gate is **not** a hook — it lives in the relaunch loop (§1). The hooks
+do the two jobs the Claude Code CLI actually exposes: the **Stop hook** enforces that a
+handoff happened and keeps the heartbeat fresh, and the **SessionStart hook** re-injects
+the continuation (specified in full in §4c). Both are deterministic bash scripts with no
+Claude Code runtime. Specified here concretely enough to build.
+
+### 3a. Stop hook — handoff enforcer + heartbeat
+
+Registered on the `Stop` event. It does **not** read a budget number, and it does **not**
+inject a message — neither is a capability the CLI gives a `Stop` hook (the transcript
+JSONL carries no context-window percentage, and a `Stop` hook can only `block`/allow, not
+push a system message). Its two jobs:
 
 **Inputs**
-- The transcript JSONL path (provided to the hook by Claude Code on the `Stop` event).
-- The session's role + config (orchestrator vs worker → Q1 threshold pair). Resolved from
-  `resilience.config` keyed by session slug / working directory.
+- The session slug (resolved from `resilience.config` keyed by working directory) — used
+  to locate this session's continuation directory and heartbeat file.
+- The current generation number (from the monotonic counter, §2 / Q3).
 
 **Logic**
-1. Parse the latest `context_window.used_percentage` from the transcript JSONL. If absent
-   (older transcript shape), fall back to a token count over the transcript using the free
-   token-counting API (R1: counting is free).
-2. Look up `warn` / `hard` for the role.
-3. Decide:
-   - `used < warn` → **allow**, no output.
-   - `warn ≤ used < hard` → **allow** + inject: *"Context at N%. Finish the current phase,
-     then write your continuation file (`.forge/continuation/<slug>/gen-<next>.md`) and
-     exit cleanly."*
-   - `used ≥ hard` → **block** + inject: *"Context at N% — hard stop. Write your
-     continuation file now and exit. Do no further work."*
+1. **Touch the heartbeat.** Write the current timestamp to `.forge/heartbeat/<slug>` so the
+   §4b liveness watchdog can tell a live session from a hung one. This happens on every
+   fire, unconditionally.
+2. **Enforce the handoff.** Check whether this generation's continuation file
+   (`.forge/continuation/<slug>/gen-<NNN>.md`) exists:
+   - **continuation file present** → **allow** the stop. The session handed off (or is
+     exiting work-complete); nothing to enforce.
+   - **continuation file absent** → **block** the stop, with a reason string instructing
+     the session to write its continuation file before exiting: *"No continuation file for
+     this generation — write `.forge/continuation/<slug>/gen-<NNN>.md` before exiting."*
+     This guarantees a handoff is never silently skipped.
 
-**Outputs** — a standard Claude Code hook decision (`allow` / `block` + an injected
-message). Nothing else; the hook does not write files or call APIs beyond token counting.
+**Outputs** — a standard Claude Code `Stop`-hook decision (`block` with a reason, or allow).
+Nothing else; the hook does not count tokens, read the transcript, or call any API.
 
-**Statusline mirror** — a separate statusline script reads the same
-`context_window.used_percentage` and renders e.g. `ctx 42% ▸ warn 40 / hard 50` so the
-operator sees the budget without the hook being the only signal. It is **display-only** —
-it never influences control flow. (R3's two-channels-of-observability principle, in
-miniature: the hook is the mechanical truth, the statusline is the human-readable mirror.)
+### 3b. SessionStart hook — continuation re-injection
 
-**Why a hook and not in-context reasoning:** zero model tokens are spent deciding "am I
-under budget" — the north-star doc's named waste is eliminated. The model only ever *reacts*
-to an injected instruction; it never *computes* the budget.
+Registered on the `SessionStart` event; injects the `latest` continuation generation into
+the fresh session via `additionalContext` in the hook's `hookSpecificOutput`. This
+capability is confirmed real against the current CLI. Full mechanics — slug resolution,
+`latest` symlink read, first-launch charter fallback — are specified in §4c.
+
+### 3c. Statusline mirror
+
+A separate statusline script renders a context gauge — e.g. `ctx 42% ▸ warn 40 / hard 50`
+— so an operator watching an **interactive** session sees the budget at a glance. It is
+**interactive-mode display only** and **never influences control flow**: it is a
+human-readable mirror, not a gate. (R3's two-channels-of-observability principle, in
+miniature: the relaunch loop's `.usage` read is the mechanical truth, the statusline is
+the human-readable mirror.)
+
+**Why the loop gates and not in-context reasoning:** zero model tokens are spent deciding
+"am I under budget" — the north-star doc's named waste is eliminated. The loop computes the
+budget from real `.usage` token counts between generations; the model only ever *reacts* to
+a handoff signal carried in via the continuation file. It never *computes* the budget
+itself.
 
 ## 4. Crash recovery — `launchd` above the loop + liveness watchdog
 
@@ -349,8 +427,8 @@ the "observability black hole."
 So P2 ships a **liveness watchdog** — a small periodic script (its own minimal `launchd`
 agent, or a `launchd` `StartInterval` job) that checks a **heartbeat**:
 
-- The session (via a lightweight hook on `SubagentStop` / `Stop`, or a periodic write)
-  touches a `.forge/heartbeat/<slug>` file with a timestamp on each turn / dispatch.
+- The session touches a `.forge/heartbeat/<slug>` file with a timestamp on each `Stop`
+  event — the Stop hook (§3a) already does this on every fire.
 - The watchdog checks heartbeat age. If it exceeds a threshold (e.g. no progress for
   *T* minutes), the session is **hung, not working**:
   1. Capture diagnostics (last transcript lines, the tmux scrollback) to the project log.
@@ -384,10 +462,15 @@ continuation file — one logical session survives across unlimited physical ses
 ## End-to-end: how the layers compose
 
 **Clean context-limit handoff (the common case):**
-1. Session runs; the Stop hook samples budget each turn.
-2. Budget crosses `warn` → hook injects "finish + hand off"; session finishes its phase.
-3. Budget crosses `hard` → hook blocks; session writes `gen-<N+1>.md`, exits clean.
-4. The relaunch loop sees the clean exit, records the generation, relaunches `claude`.
+1. A generation runs, then exits and emits its `--output-format json` object.
+2. The relaunch loop parses `.usage`; the token counts are over `warn` → the loop records
+   that the next generation should hand off promptly (carried in via the continuation
+   file / `SessionStart` injection).
+3. That generation reaches its handoff point, writes `gen-<N+1>.md`, and exits with a
+   `FORGE_CONTINUE` sentinel in `.result`. The Stop hook sees the continuation file is
+   present → allows the exit (and touches the heartbeat).
+4. The relaunch loop sees the `FORGE_CONTINUE` sentinel, records the generation, relaunches
+   plain `claude -p --output-format json`.
 5. The `SessionStart` hook injects `gen-<N+1>.md`. The fresh session resumes at "next
    concrete action." No human touched anything.
 
@@ -413,13 +496,14 @@ Three failure modes, one recovery spine: **continuation file (memory) + relaunch
 This design doc ships **no code**. When P2 is `/ponder`-ed into a build sub-phase, the
 slices it implies are roughly:
 
-- `relaunch-loop.sh` + exit-code contract (§1).
-- The `Stop` budget-check hook + `resilience.config` schema with the Q1 defaults (§3).
+- `relaunch-loop.sh` + the `.result` sentinel contract and `.usage` budget gate (§1, Q2).
+- The `Stop` handoff-enforcer + heartbeat hook, and the `resilience.config` schema with the
+  Q1 defaults (§3, §4b).
 - The continuation-file format as a written template + the `gen-NNN` / `latest` chaining
   convention (§2, Q3).
-- The `SessionStart` continuation-injection hook (§4c).
-- The `launchd` plist template + the liveness watchdog + heartbeat hook (§4a, §4b).
-- The statusline budget mirror (§3).
+- The `SessionStart` continuation-injection hook (§3b, §4c).
+- The `launchd` plist template + the liveness watchdog (§4a, §4b).
+- The statusline budget mirror (§3c).
 - Operator docs: how to install the `launchd` agent for a project, how to read the logs,
   how to recover from a tripped circuit breaker.
 
