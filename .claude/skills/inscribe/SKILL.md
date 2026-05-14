@@ -143,7 +143,17 @@ When mode is `fast` or `balanced`, skip this step entirely and go straight to B1
 
 After all issues are triaged:
 
-1. **Update MISSION-CONTROL.md** — set the "Recommended next prompt" section based on the resolved sub-phase ID and slice count.
+1. **Update the sub-phase row in MISSION-CONTROL.md.** Find the row whose first column matches the sub-phase ID (Path A) or — for a standalone Path B slice tied to a sub-phase — the row carrying that sub-phase. Edit two cells:
+
+   a. **Row marker (Issues column).** Replace `<!-- mc:none -->` with `<!-- mc:open=N,N,... -->` where the comma-joined integer list is the issue numbers filed in step A2 (Path A) or B1 (Path B). If the row already carries an `mc:open=` marker (e.g. a re-entry or additional slice filing for the same sub-phase), merge the new issue numbers in — keep them sorted ascending, no duplicates, comma-separated, no spaces. Marker format is exactly `<!-- mc:open=N,N -->` (single space inside the comment, no trailing comma).
+
+   b. **Status emoji (Status column).** Flip the emoji to match the new state:
+      - **Path A (sub-phase):** `⏳ queued` → `📝 prd-ready` (PRD is written, issues filed and triaged, but no slice is in-flight yet — `/forge` will dispatch the first `/temper` and that's what flips it to `🚧 in-progress`).
+      - **Path B (single-slice):** `⏳ queued` → `🚧 in-progress` (one slice is immediately actionable — there is no "PRD-ready, awaiting build" middle state for single-slice work in `fast`/`balanced` modes, and even in `tdd` mode the slice is ready to build the moment inscribe hands off). If the row had a non-queued emoji (e.g. already `🚧 in-progress` from a prior partial run), leave it alone.
+
+   If no matching sub-phase row exists for a standalone Path B slice (the user answered "none" to the sub-phase prompt in §Inputs), skip this step — there is no MC row to update.
+
+2. **Update the "Recommended next prompt" section** in MISSION-CONTROL.md based on the resolved sub-phase ID and slice count:
 
    **Case A — real sub-phase ID** (e.g. `2a`, `3b`): emit a phase-scoped forge handoff.
 
@@ -183,7 +193,7 @@ After all issues are triaged:
 
    Never emit `/forge --phase none` — that's not a valid form. The `--phase` flag only appears when a real sub-phase ID was resolved.
 
-2. **Print the slice-list summary:**
+3. **Print the slice-list summary:**
 
 ```
 Filed N issues for sub-phase <sub-phase-id>:
