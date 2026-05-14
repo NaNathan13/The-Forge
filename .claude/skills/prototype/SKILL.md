@@ -1,6 +1,6 @@
 ---
 name: prototype
-description: Fast-mode entry point that skips the full ponder/grill/inscribe/triage ceremony. Use when the user wants to spike, smoke-test, or build something they can already scope in two minutes. Triggered by /prototype, "prototype X", "spike Y", "let's just build a quick Z", "skip the ceremony — file the issues".
+description: Fast-mode entry point — spike but keep, smoke-test something you intend to ship, file the issues directly. Skips ponder/grill/inscribe/triage ceremony for work the user can already scope in two minutes. Triggered by /prototype, "spike but keep", "smoke-test X", "scope in two minutes", "file the issues directly", "skip the ceremony — file the issues". For throwaway exploration you plan to discard, use `/tinker` instead.
 ---
 
 # Prototype — fast-mode entry point
