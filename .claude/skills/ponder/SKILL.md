@@ -63,7 +63,15 @@ Also identify the **sub-phase ID** from `MISSION-CONTROL.md` (e.g. `2a`, `3b`). 
 grep -E '^\*\*Dev mode:\*\*' CLAUDE.md
 ```
 
-Parse the value after `**Dev mode:**` (trim whitespace, lowercase). Accept only `fast`, `balanced`, or `tdd`. **Default to `balanced`** if the line is missing, malformed, or the value is unrecognized — no warning, no prompt; just proceed.
+Parse the value after `**Dev mode:**` (trim whitespace, lowercase). Accept only `fast`, `balanced`, or `tdd`. **Default to `balanced`** if the line is missing, malformed, or the value is unrecognized.
+
+When defaulting, emit exactly **one** prose line to the transcript so the silent default surfaces:
+
+```
+dev-mode: defaulted to balanced (<reason>) — run `/light-the-forge` or add the line manually
+```
+
+Where `<reason>` is one of `missing line`, `malformed line`, or `unrecognized value: <raw>`. When the line resolves cleanly, no note is required; the mode is just used. (Same shape as temper's dev-mode resolution.)
 
 Pass the resolved mode to `/inscribe` alongside the size decision. When mode=`tdd` and size=`single-slice`, inscribe will write a PRD before filing the issue (the tdd discipline tier requires a written spec even for one-issue work). When mode=`fast` or `balanced`, single-slice behavior is unchanged from today.
 
