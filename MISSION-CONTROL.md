@@ -12,10 +12,10 @@
 **Recommended next prompt:**
 
 ```
-/forge
+_All features shipped or in motion. No recommendation._
 ```
 
-> Sub-phase 2a (Pipeline Audit) shipped — 12 slices #154–#165 merged. Issue #166 (2a final sweep) is `ready-for-agent` — let the orchestrator dispatch it.
+> Sub-phase 2a (Pipeline Audit) fully shipped — 12 slices #154–#165 plus the #166 final reconciliation sweep all merged. No `ready-for-agent` queue and no queued sub-phases remain.
 
 ## ☄️ In flight
 
@@ -60,7 +60,7 @@
 
 | # | Sub-phase | Status | PRD | Issues |
 | --- | --- | --- | --- | --- |
-| 2a | Workflow audit + onboarding doc | ✅ shipped | [`docs/prds/pipeline-audit.md`](docs/prds/pipeline-audit.md) | #154, #155, #156, #157, #158, #159, #160, #161, #162, #163, #164, #165 <!-- mc:done=154,155,156,157,158,159,160,161,162,163,164,165 --> |
+| 2a | Workflow audit + onboarding doc | ✅ shipped | [`docs/prds/pipeline-audit.md`](docs/prds/pipeline-audit.md) | #154, #155, #156, #157, #158, #159, #160, #161, #162, #163, #164, #165, #166 <!-- mc:done=154,155,156,157,158,159,160,161,162,163,164,165,166 --> |
 
 ## 🛸 Architectural items
 
