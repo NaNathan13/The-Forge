@@ -5,19 +5,21 @@
 
 ## 🛰️ Telemetry — right now
 
-**Phase:** P0 Foundations ▓▓▓ 3/3
-**In flight:** —
+**Phase:** P1 — Autonomous Forge ░ 0/1
+**In flight:** 1a — research + design (📝 prd-ready, 3 slices)
 **Workflow:** Ponder → Forge → Temper pipeline. See [`docs/workflow/`](docs/workflow/) for details.
 
 **Recommended next prompt:**
 
 ```
-_All features shipped or in motion. No recommendation._
+/forge --phase 1a
 ```
+
+> Build all 1a slices
 
 ## ☄️ In flight
 
-(none)
+**1a — Autonomous Forge: research + design** — 📝 prd-ready. 3 doc slices filed (#129 ADR, #130 P2 design doc, #131 P3 design doc). Run `/forge --phase 1a`.
 
 ## 🪐 Phase progress
 
@@ -40,6 +42,14 @@ _All features shipped or in motion. No recommendation._
 | 0a | Developer modes (fast/balanced/tdd) | ✅ shipped | [`docs/prds/developer-modes.md`](docs/prds/developer-modes.md) | #56, #57, #58, #59 <!-- mc:done=56,57,58,59 --> |
 | 0b | Template invariant + push-to-main freedom | ✅ shipped | [`docs/prds/template-invariant.md`](docs/prds/template-invariant.md) | #115, #116, #117, #118, #119, #120, #121 <!-- mc:done=115,116,117,118,119,120,121 --> |
 | 0z | Pipeline audit cleanup (2026-05-13) | ✅ shipped | — | #66, #67, #68, #69, #70, #71, #72, #73, #74, #75, #76, #77, #78, #79, #80, #81, #82, #83, #84, #85, #86, #87, #88 <!-- mc:done=66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88 --> |
+
+### P1 — Autonomous Forge ░ 0/1
+
+> Initiative north star: [`docs/vision/autonomous-forge.md`](docs/vision/autonomous-forge.md). Built in optional layers — the base pipeline stays a drop-in; fleet / Discord / Tier-0 are opt-in. Sub-phases 1b… are `/ponder`-ed just-in-time as each roadmap phase comes up.
+
+| # | Sub-phase | Status | PRD | Issues |
+| --- | --- | --- | --- | --- |
+| 1a | Research + design (north-star, ADR, P2/P3 design docs) | 📝 prd-ready | [`docs/prds/autonomous-forge.md`](docs/prds/autonomous-forge.md) | #129, #130, #131 <!-- mc:open=129,130,131 --> |
 
 ## 🛸 Architectural items
 
