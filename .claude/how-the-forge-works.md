@@ -10,6 +10,9 @@
 > [`WORKFLOW.md`](../WORKFLOW.md), or [`docs/shared/pipeline.md`](../docs/shared/pipeline.md).
 > Those are correct and scoped to their jobs; this is the "here is the whole
 > machine, part by part" narrative that none of them is.
+>
+> This walkthrough has been reconciled against all eleven `docs/audit/` facet
+> docs — every part description below reflects what the audits documented.
 
 ---
 
