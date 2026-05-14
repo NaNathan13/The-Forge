@@ -181,7 +181,7 @@ stack question has context. Claude can make an informed suggestion based on Bloc
 any field as `unknown`, mention that here and ask the user to fill just those fields
 manually — don't re-run the full Block 4 Q&A.
 
-5. **Stack preset** (AskUserQuestion, 4 options)
+5. **Stack preset** (AskUserQuestion; option count depends on dedupe — see below)
    - Based on the project description (Block 1) and first phase (Block 3), suggest a
      stack that fits. Frame as: "Based on what you've described, I'd recommend X — but
      you can pick something else or skip this entirely and decide later."
@@ -189,11 +189,15 @@ manually — don't re-run the full Block 4 Q&A.
      - The recommended stack (derived from context) — (Recommended)
      - TypeScript / Node
      - Python
+     - Rust
      - Other / multiple — freeform follow-up
      - **Research first — decide stack later** — leave tech stack as TBD; fill it when code exists
        (via `/examine` or manually). CLAUDE.md placeholders stay as `{{TBD}}`.
-   - If the recommended stack matches one of the named options, merge them (don't show
-     the same stack twice). Always include "Research first — decide stack later" as the last option.
+   - If the recommended stack matches one of the named presets (TS/Node, Python, Rust),
+     merge them (don't show the same stack twice) — so the final list typically has 5
+     options after dedupe (or 6 if the recommendation is something exotic that doesn't
+     match any named preset). Always include "Research first — decide stack later" as
+     the last option.
 
 6. **Framework** (skip if user chose "Research first — decide stack later")
    - (AskUserQuestion, options derived from Q5 preset)
