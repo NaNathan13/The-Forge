@@ -5,23 +5,23 @@
 
 ## 🛰️ Telemetry — right now
 
-**Phase:** P1 — Autonomous Forge ▓░ 1/2
-**In flight:** 1 (sub-phase 1b — #143)
+**Phase:** P1 — Autonomous Forge ▓▓ 2/2
+**In flight:** —
 **Workflow:** Ponder → Forge → Temper pipeline. See [`docs/workflow/`](docs/workflow/) for details.
 
 **Recommended next prompt:**
 
 ```
-/seal
+/ponder <next-sub-phase>
 ```
 
-> #151 (issue #143) remains open — friction was a merge-ordering constraint, now resolvable since #136–#142 landed on main
+> Sub-phase 1b (P2 single-session resilience — build) shipped — all 8 slices #136–#143 plus the #152 follow-up are on `main`. P1 complete; no queued sub-phases remain.
 
 ## ☄️ In flight
 
 | Sub-phase | Slice | Status |
 | --- | --- | --- |
-| 1b | #143 — P2 operator docs (PR #151) | 🚧 in-progress — `friction` label, awaiting re-seal |
+| — | — | — |
 
 ## 🪐 Phase progress
 
@@ -45,14 +45,14 @@
 | 0b | Template invariant + push-to-main freedom | ✅ shipped | [`docs/prds/template-invariant.md`](docs/prds/template-invariant.md) | #115, #116, #117, #118, #119, #120, #121 <!-- mc:done=115,116,117,118,119,120,121 --> |
 | 0z | Pipeline audit cleanup (2026-05-13) | ✅ shipped | — | #66, #67, #68, #69, #70, #71, #72, #73, #74, #75, #76, #77, #78, #79, #80, #81, #82, #83, #84, #85, #86, #87, #88 <!-- mc:done=66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88 --> |
 
-### P1 — Autonomous Forge ▓░ 1/2
+### P1 — Autonomous Forge ▓▓ 2/2
 
 > Initiative north star: [`docs/vision/autonomous-forge.md`](docs/vision/autonomous-forge.md). Built in optional layers — the base pipeline stays a drop-in; fleet / Discord / Tier-0 are opt-in. Sub-phases 1b… are `/ponder`-ed just-in-time as each roadmap phase comes up.
 
 | # | Sub-phase | Status | PRD | Issues |
 | --- | --- | --- | --- | --- |
 | 1a | Research + design (north-star, ADR, P2/P3 design docs) | ✅ shipped | [`docs/prds/autonomous-forge.md`](docs/prds/autonomous-forge.md) | #129, #130, #131 <!-- mc:done=129,130,131 --> |
-| 1b | P2 single-session resilience — build | 🚧 in-progress | [`docs/prds/p2-single-session-resilience-build.md`](docs/prds/p2-single-session-resilience-build.md) | ~~#136, #137, #138, #139, #140, #141, #142~~, #143 <!-- mc:open=143 --> |
+| 1b | P2 single-session resilience — build | ✅ shipped | [`docs/prds/p2-single-session-resilience-build.md`](docs/prds/p2-single-session-resilience-build.md) | #136, #137, #138, #139, #140, #141, #142, #143, #152 <!-- mc:done=136,137,138,139,140,141,142,143,152 --> |
 
 ## 🛸 Architectural items
 
