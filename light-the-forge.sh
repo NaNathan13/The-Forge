@@ -98,9 +98,9 @@ if [[ "$ALREADY_CLONED" == "false" ]]; then
   if [[ -f "$SRC/templates/README.md" && ! -f "$TARGET/README.md" ]]; then
     cp "$SRC/templates/README.md" "$TARGET/README.md"
   fi
-  # .claude directory (skills, agents, scripts, hooks, settings)
+  # .claude directory (skills, agents, scripts, hooks, statusline, settings)
   mkdir -p "$TARGET/.claude"
-  for d in skills agents scripts hooks knowledge rules; do
+  for d in skills agents scripts hooks statusline knowledge rules; do
     if [[ -d "$SRC/.claude/$d" ]]; then
       mkdir -p "$TARGET/.claude/$d"
       cp -R "$SRC/.claude/$d/." "$TARGET/.claude/$d/"
