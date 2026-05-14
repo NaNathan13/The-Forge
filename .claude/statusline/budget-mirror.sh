@@ -8,9 +8,11 @@ set -uo pipefail
 # renders that percentage against the warn / hard thresholds from
 # .forge/resilience.config — e.g.  `ctx 42% ▸ warn 40 / hard 50`.
 #
-# It is the human-readable mirror of the loop's mechanical budget gate (the Stop hook
-# owns the gate; see design doc §3 / §Q2). It NEVER influences control flow: it writes
-# no files, sets no exit-status meaning, blocks nothing. It only prints one line.
+# It is the human-readable mirror of the loop's mechanical budget gate (the relaunch
+# loop owns the gate, reading real `.usage` token counts between generations; the Stop
+# hook only enforces that a continuation file was written — see design doc §3 / §Q2).
+# It NEVER influences control flow: it writes no files, sets no exit-status meaning,
+# blocks nothing. It only prints one line.
 #
 # ── Input ────────────────────────────────────────────────────────────────────
 # Claude Code's statusline JSON on stdin. The field consumed is:
