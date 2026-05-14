@@ -254,6 +254,7 @@ Seal to act on.
   - **Reviewer** (`.claude/agents/reviewer.md`) — code review; use for a second opinion on code you've written, or to check a tricky change for bugs/security issues before PR.
   - **Builder** (`.claude/agents/builder.md`) — parallel implementation; use when you have an independent sub-task (e.g. write tests while you finish the component) that won't conflict with your active edits.
   To dispatch: read the agent definition file, include its content as system context in the `Agent` tool's `prompt`, and add your specific task question. Run support agents in the background (`run_in_background: true`) so you can continue building while they work.
+- **Slot release.** Release the support-agent slot when the agent exits (background or foreground), regardless of which agent it was. The 2-agent cap is concurrent — once a researcher/reviewer/builder/visual-review subagent has returned its result (or crashed), that slot is free for the next dispatch.
 - The visual-review worker for UI/mixed slices counts toward the 2-agent limit. If you need visual review and another support agent, wait for one to finish.
 - Rely on auto-loaded design-system rule for UI/mixed; only read deeper design docs for detail.
 - Only read MISSION-CONTROL.md if you need to understand project context (rare).
