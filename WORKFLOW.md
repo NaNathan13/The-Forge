@@ -43,6 +43,9 @@ Seal:
 - `slice:mixed` — both, logic first
 
 ## Kanban
+
+First-time setup: run `.claude/scripts/setup-kanban.sh` once after `/light-the-forge` finishes to populate the `REPLACE_ME` project IDs. Until that runs, `kanban-move.sh` no-ops.
+
 | Step | Column | Trigger |
 |------|--------|---------|
 | `/inscribe` files issues | Backlog | Auto |
