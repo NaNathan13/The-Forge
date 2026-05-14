@@ -87,6 +87,12 @@ if [[ "$ALREADY_CLONED" == "false" ]]; then
   for f in CLAUDE.md MISSION-CONTROL.md CONTEXT.md WORKFLOW.md; do
     [[ -f "$SRC/$f" ]] && cp "$SRC/$f" "$TARGET/$f"
   done
+  # README template — copied from templates/ (The Forge's own README.md is about
+  # The Forge itself, so we ship a separate template). Don't clobber an existing
+  # README in the target — relevant for the existing-codebase bootstrap path.
+  if [[ -f "$SRC/templates/README.md" && ! -f "$TARGET/README.md" ]]; then
+    cp "$SRC/templates/README.md" "$TARGET/README.md"
+  fi
   # .claude directory (skills, agents, scripts, hooks, settings)
   mkdir -p "$TARGET/.claude"
   for d in skills agents scripts hooks knowledge rules; do

@@ -263,6 +263,19 @@ untouched (project name, key terms, CI runner if not detected).
 
 - If user said "skip", leave the file as-is (empty template).
 
+### 3.5. Fill `README.md`
+
+The bootstrap copy step (`light-the-forge.sh`) drops a template `README.md` at the project
+root, sourced from The Forge's `templates/README.md`. Fill its placeholders:
+
+- `{{PROJECT_NAME}}` → project name (Block 1)
+- "One-line description of what this project is." → the Block 1 one-line description
+  (replace the literal line, not a `{{…}}` token)
+
+Use `Edit` per replacement so the diff is reviewable. If `README.md` is already present and
+has its placeholders filled (re-run case, or the existing-codebase flow brought a README from
+the user's repo), don't overwrite — leave it alone.
+
 ### 4. Visual review note
 
 If Block 2 picked "Other" or "None", append a one-paragraph note to `CLAUDE.md` under "Rules"
