@@ -4,7 +4,15 @@
     "SessionStart": [
       {
         "hooks": [
-          { "type": "command", "command": ".claude/hooks/mission-control-drift.sh" }
+          { "type": "command", "command": ".claude/hooks/mission-control-drift.sh" },
+          { "type": "command", "command": ".claude/hooks/forge-session-start.sh" }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          { "type": "command", "command": ".claude/hooks/forge-stop-handoff.sh" }
         ]
       }
     ]
