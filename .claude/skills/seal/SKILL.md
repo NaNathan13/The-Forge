@@ -153,9 +153,11 @@ g. **Show the MC diff.** Run `git diff MISSION-CONTROL.md`. If empty, note "MISS
 
 Remove runtime artifacts that only mattered while the batch was in flight:
 
+Construct the merged-issue list by collecting the issue numbers parsed from the `closes #N` references in the body of each PR that seal merged in step 4. (For each shipped PR, run `gh pr view <PR> --json body -q .body` and extract every `#<N>` immediately following a `closes`, `close`, `closed`, `fixes`, `fix`, `fixed`, `resolves`, `resolve`, or `resolved` keyword — GitHub's standard closing-keyword set.) Substitute that list of integers for `<merged-issues>` below.
+
 ```bash
 # Per-PR continuation and summary files for slices that just shipped:
-for issue in <list-of-merged-issues>; do
+for issue in <merged-issues>; do
   rm -f ".claude/temper-continue-${issue}.md"
   rm -f ".claude/temper-summary-${issue}.md"
 done
