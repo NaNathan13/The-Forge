@@ -30,6 +30,16 @@ See [`CONTEXT.md`](./CONTEXT.md) for the full glossary. The load-bearing five:
 - No application tests — the pipeline is exercised by running it. Skill + script changes are validated by dogfooding (`/temper` on a real issue).
 - Screenshots for UI changes: `screenshots/issue-<N>/`. (Rarely applicable — this project has no UI surface of its own.)
 
+## When to write an ADR
+
+Write an ADR (under `docs/adr/`) only when **all three** of the following hold for a resolved decision:
+
+1. **Hard to reverse** — undoing it later costs real work or breaks downstream callers.
+2. **Surprising without context** — a future maintainer reading just the code would either re-derive the rationale from scratch or worse, undo the decision assuming it was incidental.
+3. **The result of a real trade-off** — at least one rejected alternative existed and was weighed, not just "first thing that worked".
+
+If any of the three fails, do not write an ADR. ADRs document trades; they do not document choices.
+
 ## Docs
 
 - [`CONTEXT.md`](./CONTEXT.md) — ubiquitous language and domain glossary. Read reactively when disambiguating terms.
