@@ -12,10 +12,10 @@
 **Recommended next prompt:**
 
 ```
-/ponder 3d
+/forge --phase 3d
 ```
 
-> Grill + PRD + triage sub-phase 3d (Crash-layer correctness + measurement).
+> Build all 3d slices (#224 PID file → #225 crash breaker → #226 temper context-discipline).
 
 ## ☄️ In flight
 
@@ -75,7 +75,7 @@
 | 3a | Validation contracts (`validate-*.sh` family + sentinel `"v":1` + write-time integrity checks) | ✅ shipped | [`docs/prds/improvements-3a-validation.md`](docs/prds/improvements-3a-validation.md) | #192, #193, #194, #195, #196, #197, #198 <!-- mc:done=192,193,194,195,196,197,198 --> |
 | 3b | Documented contracts + bootstrap stamp | ✅ shipped | [`docs/prds/improvements-3b-contracts.md`](docs/prds/improvements-3b-contracts.md) | #208, #209, #210, #211 <!-- mc:done=208,209,210,211 --> |
 | 3c | Close knowledge-loop write side | ✅ shipped | [`docs/prds/improvements-3c-knowledge-loop.md`](docs/prds/improvements-3c-knowledge-loop.md) | #216, #217, #218, #219 <!-- mc:done=216,217,218,219 --> |
-| 3d | Crash-layer correctness + measurement | ⏳ queued | [`docs/prds/improvements-3d-crash-correctness.md`](docs/prds/improvements-3d-crash-correctness.md) (stub) | <!-- mc:none --> |
+| 3d | Crash-layer correctness + measurement | 📝 prd-ready | [`docs/prds/improvements-3d-crash-correctness.md`](docs/prds/improvements-3d-crash-correctness.md) | #224, #225, #226 <!-- mc:open=224,225,226 --> |
 | 3e | Live grill artifacts + ADRs | ⏳ queued | [`docs/prds/improvements-3e-live-grill.md`](docs/prds/improvements-3e-live-grill.md) (stub) | <!-- mc:none --> |
 | 3f | MC deepening + reconciliation | ⏳ queued | [`docs/prds/improvements-3f-mc-deepening.md`](docs/prds/improvements-3f-mc-deepening.md) (stub) | <!-- mc:none --> |
 
