@@ -1,0 +1,35 @@
+name: validate-mc
+
+# Runs test/validate-mc.sh on every PR and every push to main. Failure = red
+# check. This makes silent drift in MISSION-CONTROL.md row markers a build
+# failure rather than a SessionStart-hook notification.
+#
+# Security note: this workflow does not consume any untrusted event payloads
+# (no issue/PR titles/bodies in run: commands). The only secret read is
+# GITHUB_TOKEN, surfaced to `gh` via env, never interpolated into shell.
+#
+# Source: docs/prds/improvements-3a-validation.md slice #4 (issue #195).
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  issues: read
+
+jobs:
+  validate-mc:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate MISSION-CONTROL.md
+        env:
+          # `gh` reads this for auth — GITHUB_TOKEN is provided by the runner.
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          bash test/validate-mc.sh
