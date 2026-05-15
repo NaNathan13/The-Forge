@@ -55,6 +55,14 @@ Default to **single-slice** if ambiguous. Single-slice is cheaper to be wrong ab
 
 Only run the size check **once** per session. Do not re-litigate.
 
+Immediately after the size decision lands (same turn — do not ask a second time later), capture a **one-sentence rationale** for the call. Phrase it back to the user as a confirmation, not a fresh question:
+
+> "Size: **<sub-phase | single-slice>** — because <one-sentence rationale synthesised from the grill>. Sound right?"
+
+The rationale is the *why* of the size call — the same shape as the `**Why this size?**` line that inscribe will render into the PRD frontmatter (see `docs/prds/improvements-3b-contracts.md` §Slice 4 for the contract, and this PRD's own header for an example). One sentence. Keep it specific to the work, not generic.
+
+If the user pushes back on the rationale, edit it inline; do not re-open the size decision. Store the resolved sentence as `size_reason` and pass it to inscribe alongside `size_decision`.
+
 Also identify the **sub-phase ID** from `MISSION-CONTROL.md` (e.g. `2a`, `3b`). If the work doesn't belong to an existing sub-phase, note that for inscribe.
 
 **Also read the dev-mode line** from `CLAUDE.md` during the size check. Grep for the line:
@@ -89,6 +97,7 @@ Invoke the `/inscribe` sub-skill, passing:
 - **Size decision:** `sub-phase` or `single-slice`
 - **Sub-phase ID:** e.g. `2a` (or "none" for standalone work)
 - **Dev mode:** `fast`, `balanced`, or `tdd` (resolved in step 2)
+- **Size reason:** the one-sentence rationale captured during the size check (step 2). Inscribe renders this into the PRD frontmatter `>` block as `**Why this size?** <rationale>`.
 
 Inscribe handles everything from here: PRD writing (sub-phase always; single-slice only when mode=`tdd`), issue filing, triaging all slices, updating MISSION-CONTROL.md, and printing the handoff.
 

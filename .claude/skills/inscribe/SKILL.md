@@ -19,6 +19,7 @@ Or auto-invoked by `/ponder` after the grill, which passes:
 - **Size decision:** `sub-phase` or `single-slice`
 - **Sub-phase ID:** e.g. `2a`, `3b` (from MISSION-CONTROL.md)
 - **Dev mode:** `fast`, `balanced`, or `tdd` (resolved during ponder's size check)
+- **Size reason:** a one-sentence rationale for the size call, captured during ponder's size check. Inscribe renders this verbatim into PRD frontmatter as `**Why this size?** <rationale>` (see A1 / B0).
 
 ## Inputs
 
@@ -48,6 +49,16 @@ If called standalone:
    If invoked from `/ponder`, ponder has already resolved the mode and emitted any default note; just use the value it passes in and skip this step.
 
    The mode controls one branch in Path B (single-slice): when mode=`tdd`, write a PRD before filing the issue. Sub-phase (Path A) writes a PRD regardless of mode.
+
+4. **Resolve the size reason** (the one-sentence rationale rendered as `**Why this size?**` in PRD frontmatter):
+
+   - If invoked from `/ponder`, ponder has already captured `size_reason` during its size check — use it verbatim and skip this step.
+   - If invoked standalone **and** a PRD will be written (Path A always, Path B0 when `mode=tdd`), ask **once** via AskUserQuestion:
+
+     > "One sentence — why this size? (sub-phase or single-slice — *why* that call?) Rendered into the PRD's `**Why this size?**` frontmatter line."
+
+   - No TODO placeholders. If the user gives an empty answer, re-ask once; on a second empty answer, accept it and emit one prose line `size-reason: empty (user declined)` — the `**Why this size?**` line is then omitted from the PRD frontmatter for that run. Do not fabricate.
+   - When no PRD will be written (Path B with `mode=fast` or `balanced` — single-slice, no PRD), skip this step entirely. The reason is only consumed by PRD scaffolding.
 
 ## Issue title format
 
@@ -81,6 +92,23 @@ Used when scope spans multiple shippable slices, introduces new vocabulary, or m
 #### A1. Write PRD
 
 Synthesise the conversation into `docs/prds/<feature>.md`.
+
+**Frontmatter `>` block — mechanical rendering of `**Why this size?**`:**
+
+The top of every PRD opens with a blockquote (`>`) frontmatter block carrying the sub-phase, status, and filed-date line. Render the captured `size_reason` (from Inputs §4, or ponder) as the next line inside that same block, exactly:
+
+```markdown
+> Sub-phase **<sub-phase-id>** (Phase **P<n> — <phase-name>**) · Status: 📝 prd-ready · Filed <YYYY-MM-DD>
+>
+> **Why this size?** <size_reason verbatim>
+```
+
+Rules:
+- The line is mechanical — emit it whenever `size_reason` is non-empty. No phrasing variations, no rewording, no TODO placeholders.
+- If `size_reason` is empty (user declined on the second ask in Inputs §4), omit the `**Why this size?**` line entirely — do not emit a stub.
+- Place the line immediately after the status/filed-date line, separated by the standard `>` empty line. Any further frontmatter (umbrella context, source recs, etc.) follows below it.
+
+See `docs/prds/improvements-3b-contracts.md` for the canonical example.
 
 #### A2. File issues
 
@@ -135,7 +163,7 @@ Determine the **recommended build order**: logic slices first, then mixed, then 
 
 When the resolved dev mode is `tdd`, write a PRD even for single-slice work — the tdd discipline tier requires a written spec regardless of size.
 
-Synthesise the conversation into `docs/prds/<feature>.md` using the same shape as Path A's A1. Keep it scoped to the one slice — no need to enumerate sibling slices that don't exist. The issue body filed in B1 should reference the PRD (e.g. `See \`docs/prds/<feature>.md\` for the full PRD.`).
+Synthesise the conversation into `docs/prds/<feature>.md` using the same shape as Path A's A1, **including the `**Why this size?**` frontmatter line** (same mechanical render rule — see A1). The captured `size_reason` answers *why single-slice and not sub-phase* for this work; render it verbatim into the `>` block. Keep the PRD scoped to the one slice — no need to enumerate sibling slices that don't exist. The issue body filed in B1 should reference the PRD (e.g. `See \`docs/prds/<feature>.md\` for the full PRD.`).
 
 When mode is `fast` or `balanced`, skip this step entirely and go straight to B1 — single-slice behavior is unchanged from today.
 
@@ -213,3 +241,4 @@ All slices triaged. Run `/forge` to begin building.
 - **Don't leave issues untriaged.** Every issue gets a `slice:*` label. No lazy backfill.
 - **Don't run `/temper` from inside inscribe.** Phases are session-scoped. End the session, hand off.
 - **Don't guess the sub-phase ID.** Read it from MISSION-CONTROL.md, or ask the user once.
+- **Don't fabricate `size_reason` or leave a TODO placeholder.** If ponder didn't pass it and the user declines twice on the standalone ask, omit the `**Why this size?**` line entirely. A TODO defeats the rec's purpose (future re-readers *see* the reasoning, or see nothing).
