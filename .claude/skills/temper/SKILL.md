@@ -16,6 +16,7 @@ stay lean, hand off to fresh sessions when context grows.
 ## Workflow
 
 ### 1. Setup
+- **If resuming from a continuation file** (forge dispatched you with a `continuation_file` path, or `.claude/temper-continue-<N>.md` exists for this issue): read it first. It is the hardened five-section format (see "Continuation file format" below) — start from its **Next concrete action**, honour its verbatim **Hard constraints**, and reuse its **Branch**/**Open PR** rather than creating new ones. Skip the branch/kanban steps that the continuation file shows are already done.
 - Create branch: `feat/#<N>-short-description`
 - Move issue to In Progress: `.claude/scripts/kanban-move.sh <N> in-progress`. If the script exits with code **78** ("project IDs not configured"), the user hasn't run `setup-kanban.sh` yet — log a one-line note (`kanban: skipped (not configured)`) and continue. Do **not** abort or treat this as friction. Any other non-zero exit is a real failure.
 - **Read the dev mode line** from `CLAUDE.md` (see "Dev mode resolution" below). This decides whether to write tests, treat the check command as a hard gate, and whether to dispatch a reviewer agent pre-PR.
@@ -197,11 +198,64 @@ Temper subagents are the biggest token cost in the pipeline.
 
 If your session-usage observation (via ccusage or equivalent) reads >90%, finish the current step you're on (build, test, PR, or CI poll) and then emit `TEMPER:RESULT` with `"status":"continue"` and a continuation file. Forge will pause the queue and resume when the rate-limit window rotates. Don't push through past 95% — work past that point will fail outright.
 
-### Continuation file format
-Write `.claude/temper-continue-<N>.md` with:
-- Issue number, branch name, PR number (if opened)
-- What's done, what's left
-- Any state needed to resume (e.g. "blocked on rate limit at 96% — retry CI poll on resume")
+### Continuation file format (`.claude/temper-continue-<N>.md`)
+
+When temper hands off (context hard-stop or rate-limit), it writes
+`.claude/temper-continue-<N>.md` — one file per issue, owned by temper, deleted by
+`/seal` once the slice is merged. This is **not** the `.forge/continuation/<slug>/`
+chain: that chain belongs to loop-managed sessions (forge), keyed by session slug.
+Temper is a subagent — it has no session slug, writes no `gen-NNN.md`, and does not
+call `scripts/continuation.sh`. What temper *does* share with `gen-NNN.md` is the
+**format**: the same hardened five-section structure (the P2 §2 schema —
+`templates/continuation-gen.md`), so a resuming temper inherits a known shape.
+
+Write the file with these five sections, in this order, all mandatory:
+
+```markdown
+# Temper continuation — issue #<N> — handoff <N-th>
+<!-- written: <ISO timestamp> · role: worker · issue: #<N> -->
+
+## Hard constraints (RESTATED VERBATIM — do not summarize)
+
+<!-- The non-negotiable rules this temper runs under, copied verbatim every
+     handoff — never summarized. Restated so a constraint cannot be lost down a
+     handoff chain. Carries: the issue's acceptance criteria, the resolved dev
+     mode, the slice label, the branch-naming + `closes #<N>` PR rule, and "do
+     not merge — stop at green CI". If a constraint changed, mark it CHANGED. -->
+
+## Execution frontier
+
+- **Branch:** <branch name, or n/a if not yet created>
+- **Open PR:** <number + state, or n/a>
+- **Last sentinel:** <the most recent TEMPER:RESULT observed, verbatim, or n/a>
+- **Build state:** <what is implemented, what is left — by file/criterion ref>
+- **Mid-flight state:** <anything started-but-not-finished: a half-written file,
+  a check-command run pending, a CI poll awaiting result>
+
+## Conversation summary
+
+<!-- Durable context the fresh temper inherits: the issue spec as understood,
+     decisions made mid-build, anything learned from the knowledge library.
+     Updated — never blind-replaced — each handoff. -->
+
+## Next concrete action
+
+<!-- ONE unambiguous next step — not a plan. The fresh temper starts here.
+     E.g. "run the check command, then commit and push" or "re-poll CI on PR
+     #<N> — paused at 96% session usage, re-check usage first". -->
+
+## Notes / scratch
+
+<!-- Lossy-safe. Friction observations, scratch reasoning, anything else. The
+     only section safe to lose. -->
+```
+
+The five sections are the hardened §2 schema (hard constraints restated verbatim,
+structured execution frontier, carried-forward conversation summary, exactly one
+next concrete action, lossy-safe notes) — identical in shape to what forge writes
+into `gen-NNN.md`, with temper's content. This is a format alignment only: temper's
+continuation *behavior* (when to hand off, the `status:"continue"` sentinel, the
+`continuation_file` field) is unchanged.
 
 ## Friction flagging
 When temper hits friction (unexpected failure, confusing spec, missing dependency, flaky test):
