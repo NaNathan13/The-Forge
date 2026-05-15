@@ -69,9 +69,39 @@ for a context-% estimate, that is a bug — the exit trigger is structural.
 The relaunch loop runs `claude -p` with **no prompt arguments** — there is no CLI path
 for `--phase`. A phase-scoped run reaches generation 1 through the **charter file**:
 `.forge/continuation/<slug>/charter.md` (the SessionStart hook injects it on a genuine
-first launch, when no continuation generation exists yet). Generation 1 reads the
-charter, runs pre-flight scoped to that phase, and writes the phase scope into
-`gen-001.md`'s hard-constraints section so it carries forward across every generation.
+first launch, when no continuation generation exists yet — see
+`.claude/hooks/forge-session-start.sh`). Generation 1 reads the charter, runs pre-flight
+scoped to that phase, and writes the phase scope into `gen-001.md`'s hard-constraints
+section so it carries forward across every generation.
+
+**The charter is operator-hand-written, not setup-generated.** `light-the-forge.sh`
+ships the *substrate* — `continuation.sh`, the SessionStart hook, the `gen-NNN.md`
+template — but it does **not** generate a charter. The charter is per-run intent: the
+operator writes it once, immediately before starting `relaunch-loop.sh`, to scope that
+run. It lives under `.forge/continuation/<slug>/`, which is **gitignored runtime state**
+(see `.forge/README.md`) — so it is correctly *not* a committed, setup-generated file.
+A run with no charter is the unscoped default: generation 1 runs pre-flight across the
+whole `ready-for-agent` queue.
+
+**Charter format.** A short free-form Markdown file. The one load-bearing line forge
+parses is a `phase:` scope directive — generation 1 scans the injected charter for a
+line matching `phase: <id>` (case-insensitive, leading whitespace allowed) and treats
+`<id>` as the `--phase` scope. Everything else in the charter is prose context for
+generation 1. Minimal example:
+
+```markdown
+# Forge charter — phase 2a
+
+phase: 2a
+
+Run forge scoped to sub-phase 2a. Approve the queue, then go autonomous.
+```
+
+If no `phase:` line is present, the run is unscoped — same as no charter at all. Once
+`gen-001.md` is written the charter is never read again: the resolved `phase-scope`
+lives in the continuation chain's hard-constraints section from that point on, and
+`forge-session-start.sh`'s charter-fallback path is unreachable (a `gen-NNN.md` always
+wins over the charter).
 
 Human-typed `/forge --resume` is a **documented manual escape hatch**: it reads the
 latest continuation generation directly and resumes from it. Under the loop you never
@@ -88,7 +118,12 @@ Before dispatching any workers:
    ```bash
    gh issue list --label ready-for-agent --state open --json number,title,labels,body
    ```
-2. If a `--phase <id>` scope is set (from the charter), filter to issues with the `phase:<id>` label.
+2. **Resolve the phase scope from the charter.** If the SessionStart hook injected a
+   charter (genuine first launch, no `gen-NNN.md` yet), scan it for a `phase: <id>` line
+   (case-insensitive, leading whitespace allowed). If one is present, the run is scoped:
+   filter the issue list to issues carrying the `phase:<id>` label. If no charter was
+   injected, or it has no `phase:` line, the run is unscoped — keep the whole
+   `ready-for-agent` queue.
 
 3. **Parse the dependency graph.** For each issue, scan the body for a `## Blocked by` section. Possible values:
    - `None - can start immediately` → no dependencies
@@ -113,10 +148,12 @@ Before dispatching any workers:
    `scripts/continuation.sh write` to create the first continuation generation and fill
    its five sections (see "Continuation generations" below). The approved queue table
    goes in the Execution-frontier **Dispatch queue** field; `approved-queue: true` goes
-   in the verbatim **hard-constraints** section. Writing `gen-001.md` *before* the first
-   temper means a crash between approval and the first dispatch cannot re-prompt the
-   human — the SessionStart hook will find `gen-001.md` and resume from it instead of
-   falling back to the charter.
+   in the verbatim **hard-constraints** section. **If the charter set a phase scope, also
+   write `phase-scope: <id>` into that verbatim hard-constraints section** — it must be
+   restated verbatim every generation so the run stays scoped to the same phase for its
+   whole life. Writing `gen-001.md` *before* the first temper means a crash between
+   approval and the first dispatch cannot re-prompt the human — the SessionStart hook
+   will find `gen-001.md` and resume from it instead of falling back to the charter.
 
 9. Begin the autonomous dispatch loop.
 
