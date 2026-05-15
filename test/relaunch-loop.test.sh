@@ -226,6 +226,45 @@ test_loop_exports_marker_on_every_generation() {
     "the loop must export the marker into every generation, not just the first"
 }
 
+# ── PID file (slice 1 of sub-phase 3d, rec #22) ──────────────────────────────
+# The loop must write its `claude` child PID to
+# $FORGE_DIR/continuation/<slug>/claude.pid before waiting on it. The watchdog
+# reads that file to target the exact wedged process on multi-project hosts.
+
+test_loop_writes_pid_file() {
+  # After one generation the loop must have written its claude child PID to
+  # $FORGE_DIR/continuation/<slug>/claude.pid. The value must be numeric.
+  FORGE_MAX_GENERATIONS=1 \
+    run_loop "$FIXTURES/clean-handoff-under-budget.sh" --slug demo
+  assert_exit_code 0 "$RUN_RC"
+  local pid_file="$FORGE_DIR/continuation/demo/claude.pid"
+  assert_file_exists "$pid_file" "loop must write its claude child PID to claude.pid"
+  local recorded
+  recorded="$(cat "$pid_file")"
+  assert_ne "" "$recorded" "the PID file must not be empty"
+  if ! [[ "$recorded" =~ ^[0-9]+$ ]]; then
+    fail "PID file contents must be numeric, got: $recorded"
+  fi
+}
+
+test_loop_clears_stale_pid_file_at_startup() {
+  # Pre-seed a bogus PID file. The loop must clear it before the first claude
+  # generation runs — partial cleanup of a prior loop's state must not be
+  # interpreted by the watchdog as a live target.
+  mkdir -p "$FORGE_DIR/continuation/demo"
+  printf '%s\n' "99999999" > "$FORGE_DIR/continuation/demo/claude.pid"
+
+  FORGE_MAX_GENERATIONS=1 \
+    run_loop "$FIXTURES/clean-handoff-under-budget.sh" --slug demo
+  assert_exit_code 0 "$RUN_RC"
+  # Either the file was overwritten with the real child PID, or it was empty
+  # briefly mid-run. Either way it must NOT still hold the stale bogus value.
+  local content
+  content="$(cat "$FORGE_DIR/continuation/demo/claude.pid" 2>/dev/null || echo '')"
+  assert_ne "99999999" "$content" \
+    "loop must not leave a stale pre-existing PID value in claude.pid"
+}
+
 # ── Argument handling ────────────────────────────────────────────────────────
 
 test_rejects_unknown_role() {
