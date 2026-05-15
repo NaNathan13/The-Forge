@@ -5,23 +5,26 @@
 
 ## 🛰️ Telemetry — right now
 
-**Phase:** P3 — Improvements ▓▓▓▓░░ 4/6
+**Phase:** P3 — Improvements ▓▓▓░░░ 3/6
 **In flight:** —
 **Workflow:** Ponder → Forge → Temper pipeline. See [`docs/workflow/`](docs/workflow/) for details.
 
 **Recommended next prompt:**
 
 ```
-/ponder 3e — Live grill artifacts + ADRs
+/forge --phase 3d
 ```
+
+> Build all 3d slices (#224 PID file → #225 crash breaker → #226 temper context-discipline).
 
 ## ☄️ In flight
 
 | Sub-phase | Slice | Status |
 | --- | --- | --- |
-| 3d | #224 PID-file kill target for liveness watchdog | ✅ shipped |
-| 3d | #225 crash-respin circuit breaker + stay-down sentinel | ✅ shipped |
-| 3d | #226 temper statusline-read context discipline + near-done override | ✅ shipped |
+| 3c | #216 lessons.md curation-fallback subsection | ✅ shipped |
+| 3c | #217 temper Lesson write-back section | ✅ shipped |
+| 3c | #218 diagnose Phase 6 knowledge write-back bullet | ✅ shipped |
+| 3c | #219 forge Friction Review cross-PR-only prune | ✅ shipped |
 
 ## 🪐 Phase progress
 
@@ -63,7 +66,7 @@
 | --- | --- | --- | --- | --- |
 | 2a | Workflow audit + onboarding doc | ✅ shipped | [`docs/prds/pipeline-audit.md`](docs/prds/pipeline-audit.md) | #154, #155, #156, #157, #158, #159, #160, #161, #162, #163, #164, #165, #166 <!-- mc:done=154,155,156,157,158,159,160,161,162,163,164,165,166 --> |
 
-### P3 — Improvements ▓▓▓▓░░ 4/6
+### P3 — Improvements ▓▓▓░░░ 3/6
 
 > Finite, scoped refinement pass on The Forge — fix what's empirically broken, polish proven surfaces, get Discord-ready *as a constraint* (no Discord build). Driven by the 2a audit findings, triaged 2026-05-15 via `/grill`. Phase overview + nine locked grill decisions: [`docs/design/improvements-overview.md`](docs/design/improvements-overview.md). When this phase ships green, The Forge is at the launch-pad for the first real product project.
 
@@ -72,7 +75,7 @@
 | 3a | Validation contracts (`validate-*.sh` family + sentinel `"v":1` + write-time integrity checks) | ✅ shipped | [`docs/prds/improvements-3a-validation.md`](docs/prds/improvements-3a-validation.md) | #192, #193, #194, #195, #196, #197, #198 <!-- mc:done=192,193,194,195,196,197,198 --> |
 | 3b | Documented contracts + bootstrap stamp | ✅ shipped | [`docs/prds/improvements-3b-contracts.md`](docs/prds/improvements-3b-contracts.md) | #208, #209, #210, #211 <!-- mc:done=208,209,210,211 --> |
 | 3c | Close knowledge-loop write side | ✅ shipped | [`docs/prds/improvements-3c-knowledge-loop.md`](docs/prds/improvements-3c-knowledge-loop.md) | #216, #217, #218, #219 <!-- mc:done=216,217,218,219 --> |
-| 3d | Crash-layer correctness + measurement | ✅ shipped | [`docs/prds/improvements-3d-crash-correctness.md`](docs/prds/improvements-3d-crash-correctness.md) | #224, #225, #226 <!-- mc:done=224,225,226 --> |
+| 3d | Crash-layer correctness + measurement | 📝 prd-ready | [`docs/prds/improvements-3d-crash-correctness.md`](docs/prds/improvements-3d-crash-correctness.md) | #224, #225, #226 <!-- mc:open=224,225,226 --> |
 | 3e | Live grill artifacts + ADRs | ⏳ queued | [`docs/prds/improvements-3e-live-grill.md`](docs/prds/improvements-3e-live-grill.md) (stub) | <!-- mc:none --> |
 | 3f | MC deepening + reconciliation | ⏳ queued | [`docs/prds/improvements-3f-mc-deepening.md`](docs/prds/improvements-3f-mc-deepening.md) (stub) | <!-- mc:none --> |
 
