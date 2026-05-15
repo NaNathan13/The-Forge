@@ -25,6 +25,7 @@ screenshots/
 .forge/heartbeat/
 .forge/watchdog.log
 .forge/launchd-*.log
+.forge/install-manifest.json
 
 # Tinker scratch dirs (throwaway exploratory work)
 .tinker/
