@@ -267,6 +267,54 @@ When temper hits friction (unexpected failure, confusing spec, missing dependenc
 3. If the friction was resolved, note how — this feeds the self-healing loop
 4. Unresolved friction → emit `TEMPER:RESULT` with `"status":"needs_human"`, `"reason":"friction"`, and the friction text in the `friction` field
 
+## Lesson write-back
+
+End-of-run step. Runs after Friction flagging, before sentinel emission. Gated
+on outcome (see status table below). Best-effort: a failed write logs a note on
+the PR but does **not** block the success sentinel. This is distinct from
+`## Friction flagging` because an unindexed wall does not necessarily produce a
+`friction` label — any wall overcome is in scope.
+
+### When this runs
+
+- `status:"success"` → run the write checklist.
+- `status:"needs_human"`, `reason:"friction"` **and** the friction was *partially*
+  resolved → run the write checklist (partial knowledge still beats no knowledge).
+- `status:"fail"` / unresolved-friction `needs_human` / `status:"continue"` → skip.
+  The wall wasn't overcome (fail / unresolved friction) or the next temper in the
+  chain will fire its own write-back (continue).
+
+### Write checklist
+
+1. **Indexed bump (mechanical).** Did you read any `.claude/knowledge/<slug>.md`
+   file this run? For each one: edit the matching line in `.claude/lessons.md`
+   — bump `Last seen` to today's date, and append the current PR number to the
+   `across PRs #...` list (sorted ascending, no duplicates). No judgment call:
+   if you read a knowledge file and got past the wall, you bump the line.
+
+2. **Unindexed write (two-yes-no test).** Answer both, in order:
+   - Did you hit an error/blocker that took **more than one tool-call** to
+     resolve? (filters out typos and one-off mistakes)
+   - Could a future temper hitting the same error signature have avoided the
+     loop by reading a `knowledge/<slug>.md`? (filters out context-specific
+     bugs with no generalisable shape)
+
+   Both YES → write a new `.claude/knowledge/<slug>.md` (≤80 lines; if the
+   natural write is longer, truncate at a sensible section boundary and append
+   `<!-- truncated; expand by hand if needed -->`) **and** append a one-line
+   index entry to `.claude/lessons.md` matching the existing format.
+
+3. **On failure.** If the write step errors (filesystem error, malformed
+   markdown, etc.): post a one-line note on the PR — `## Notes\n\nknowledge
+   write-back failed: <reason>` — and continue to sentinel emission. Do NOT
+   block the sentinel. Sentinel correctness > write completeness; the human
+   curation fallback in `.claude/lessons.md` is the recovery path.
+
+See `.claude/lessons.md` for the index line format and the human curation
+fallback. See `.claude/knowledge/worktree-absolute-path-pinning.md` for the
+canonical detail-file shape (title, `Indexed from:`, `##` sections for Error
+signature / Why this happens / The fix / Rule).
+
 ## Sentinels
 
 The single canonical sentinel is `TEMPER:RESULT {...}` (see "Emit the result sentinel"
