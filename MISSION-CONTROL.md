@@ -6,22 +6,22 @@
 ## 🛰️ Telemetry — right now
 
 **Phase:** P3 — Improvements ░░░░░░ 0/6
-**In flight:** 3a — Validation contracts (PRD ready, awaiting `/inscribe`)
+**In flight:** 3a — Validation contracts (7 slices filed + triaged; ready for forge)
 **Workflow:** Ponder → Forge → Temper pipeline. See [`docs/workflow/`](docs/workflow/) for details.
 
 **Recommended next prompt:**
 
 ```
-/inscribe docs/prds/improvements-3a-validation.md
+/forge --phase 3a
 ```
 
-> P3 — Improvements opened 2026-05-15 after a `/grill`-driven triage of P2's audit findings. 3a's full PRD is ready; 3b–3f are stub PRDs that get filled in just-in-time at each sub-phase's `/ponder`. Phase overview: [`docs/design/improvements-overview.md`](docs/design/improvements-overview.md).
+> Build all 3a slices. P3 — Improvements opened 2026-05-15 after a `/grill`-driven triage of P2's audit findings. 3a's full PRD is filed; 3b–3f are stub PRDs that get filled in just-in-time at each sub-phase's `/ponder`. Phase overview: [`docs/design/improvements-overview.md`](docs/design/improvements-overview.md).
 
 ## ☄️ In flight
 
 | Sub-phase | Slice | Status |
 | --- | --- | --- |
-| 3a | — (issues not yet filed) | 📝 prd-ready |
+| 3a | #192–#198 (7 slices) | 📝 prd-ready |
 
 ## 🪐 Phase progress
 
@@ -69,7 +69,7 @@
 
 | # | Sub-phase | Status | PRD | Issues |
 | --- | --- | --- | --- | --- |
-| 3a | Validation contracts (`validate-*.sh` family + sentinel `"v":1` + write-time integrity checks) | 📝 prd-ready | [`docs/prds/improvements-3a-validation.md`](docs/prds/improvements-3a-validation.md) | <!-- mc:none --> |
+| 3a | Validation contracts (`validate-*.sh` family + sentinel `"v":1` + write-time integrity checks) | 📝 prd-ready | [`docs/prds/improvements-3a-validation.md`](docs/prds/improvements-3a-validation.md) | #192, #193, #194, #195, #196, #197, #198 <!-- mc:open=192,193,194,195,196,197,198 --> |
 | 3b | Documented contracts + bootstrap stamp | ⏳ queued | [`docs/prds/improvements-3b-contracts.md`](docs/prds/improvements-3b-contracts.md) (stub) | <!-- mc:none --> |
 | 3c | Close knowledge-loop write side | ⏳ queued | [`docs/prds/improvements-3c-knowledge-loop.md`](docs/prds/improvements-3c-knowledge-loop.md) (stub) | <!-- mc:none --> |
 | 3d | Crash-layer correctness + measurement | ⏳ queued | [`docs/prds/improvements-3d-crash-correctness.md`](docs/prds/improvements-3d-crash-correctness.md) (stub) | <!-- mc:none --> |
