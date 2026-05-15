@@ -162,6 +162,105 @@ test_stale_heartbeat_with_no_process_logs_recovery_note() {
     "watchdog must log that the non-clean exit drops into crash recovery"
 }
 
+# ── PID-file precedence (slice 1 of sub-phase 3d, rec #22) ───────────────────
+# The relaunch loop writes its claude child PID to
+# $FORGE_DIR/continuation/<slug>/claude.pid. find_claude_pid must read that
+# file first and validate with `kill -0` before falling back to the existing
+# pgrep heuristic.
+
+test_pid_file_is_preferred_when_valid() {
+  _skip_if_not_darwin && return 0
+  local now=2000000000
+  _set_heartbeat_mtime "$((now - 1000))"
+
+  # Spawn a long-lived sleep directly in the test shell (NOT in a command
+  # substitution — that would orphan the child when the inner subshell exits
+  # and `kill -0` would then return "no such process"). Capture its PID and
+  # write to claude.pid; this is the "claude child" stand-in.
+  sleep 60 &
+  local pid=$!
+  local pid_dir="$FORGE_DIR/continuation/$SLUG"
+  mkdir -p "$pid_dir"
+  printf '%s\n' "$pid" > "$pid_dir/claude.pid"
+
+  local rc=0
+  FORGE_WATCHDOG_NOW="$now" \
+    bash "$WATCHDOG" --slug "$SLUG" --timeout 900 >/dev/null 2>&1 || rc=$?
+  assert_exit_code 0 "$rc" "stale heartbeat handled → exit 0"
+
+  # The fake-kill stub should have recorded exactly the PID-file value, not
+  # a pgrep hit. (FORGE_WATCHDOG_KILL_CMD is set in setup() to a recorder.)
+  assert_file_exists "$KILL_RECORD" "kill stub must have been invoked"
+  assert_eq "$pid" "$(head -n1 "$KILL_RECORD")" \
+    "the PID file value must be what the watchdog targets"
+
+  kill "$pid" 2>/dev/null || true
+  wait "$pid" 2>/dev/null || true
+}
+
+test_pid_file_malformed_falls_back() {
+  _skip_if_not_darwin && return 0
+  local now=2000000000
+  _set_heartbeat_mtime "$((now - 1000))"
+
+  # Malformed PID file — not a number.
+  local pid_dir="$FORGE_DIR/continuation/$SLUG"
+  mkdir -p "$pid_dir"
+  printf '%s\n' "not-a-pid" > "$pid_dir/claude.pid"
+
+  local rc=0
+  FORGE_WATCHDOG_NOW="$now" \
+    bash "$WATCHDOG" --slug "$SLUG" --timeout 900 >/dev/null 2>&1 || rc=$?
+  assert_exit_code 0 "$rc" "malformed PID file → fall back, still exit 0"
+  # Watchdog must not have crashed; either a pgrep hit was recorded or the log
+  # carries the no-process-found note. Both are valid fallback behavior.
+  if [[ ! -f "$KILL_RECORD" ]]; then
+    assert_contains "$(cat "$FORGE_WATCHDOG_LOG")" "no live claude process found" \
+      "malformed PID + no pgrep hit → log the recovery note"
+  fi
+}
+
+test_pid_file_dead_process_falls_back() {
+  _skip_if_not_darwin && return 0
+  local now=2000000000
+  _set_heartbeat_mtime "$((now - 1000))"
+
+  # Spawn and immediately reap a sleep so the PID names a dead one.
+  sleep 30 &
+  local pid=$!
+  kill "$pid" 2>/dev/null || true
+  wait "$pid" 2>/dev/null || true
+
+  local pid_dir="$FORGE_DIR/continuation/$SLUG"
+  mkdir -p "$pid_dir"
+  printf '%s\n' "$pid" > "$pid_dir/claude.pid"
+
+  local rc=0
+  FORGE_WATCHDOG_NOW="$now" \
+    bash "$WATCHDOG" --slug "$SLUG" --timeout 900 >/dev/null 2>&1 || rc=$?
+  assert_exit_code 0 "$rc" "dead PID → fall back, still exit 0"
+  # Confirm fall-through: if the kill stub ran, it must NOT carry the dead PID.
+  if [[ -f "$KILL_RECORD" ]]; then
+    assert_ne "$pid" "$(head -n1 "$KILL_RECORD")" \
+      "dead PID from file must not be passed to kill"
+  fi
+}
+
+test_pid_file_absent_falls_back_to_pgrep() {
+  _skip_if_not_darwin && return 0
+  local now=2000000000
+  _set_heartbeat_mtime "$((now - 1000))"
+
+  # No PID file at all — explicitly the partial-upgrade case.
+  local pid_dir="$FORGE_DIR/continuation/$SLUG"
+  [[ -d "$pid_dir" ]] && rm -f "$pid_dir/claude.pid"
+
+  local rc=0
+  FORGE_WATCHDOG_NOW="$now" \
+    bash "$WATCHDOG" --slug "$SLUG" --timeout 900 >/dev/null 2>&1 || rc=$?
+  assert_exit_code 0 "$rc" "no PID file → fall back, still exit 0"
+}
+
 # ── Timeout resolution / precedence ──────────────────────────────────────────
 test_timeout_flag_overrides_everything() {
   _skip_if_not_darwin && return 0

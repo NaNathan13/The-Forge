@@ -19,4 +19,5 @@ When temper catches a recurring error and overcomes it, append a new entry. Dedu
 
 <!-- entries below -->
 
-- worktree-absolute-path-pinning: edits via project-root absolute paths land in the main worktree, not the agent's; address files via `.claude/worktrees/<id>/...` — see knowledge/worktree-absolute-path-pinning.md (last seen 2026-05-12 across PRs #28, #30)
+- worktree-absolute-path-pinning: edits via project-root absolute paths land in the main worktree, not the agent's; address files via `.claude/worktrees/<id>/...` — see knowledge/worktree-absolute-path-pinning.md (last seen 2026-05-15 across PRs #28, #30, #227)
+- subshell-orphaned-background-pid: `pid="$( ... & )"`-style spawns inside command substitution orphan the child when the inner subshell exits, so `kill -0 PID` from the parent fails immediately; spawn the background process directly in the caller shell — see knowledge/subshell-orphaned-background-pid.md (last seen 2026-05-15 across PRs #227)

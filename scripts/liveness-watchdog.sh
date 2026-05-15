@@ -246,10 +246,25 @@ kill_process() {
 # treat the hang as already resolved (the process died on its own).
 find_claude_pid() {
   local project_dir="$1"
+  # Prefer the slug-namespaced PID file the relaunch loop writes — exact
+  # target, no ambiguity on multi-project hosts. Validate with `kill -0`
+  # before trusting it; fall through to the heuristic if absent, unreadable,
+  # malformed, or names a dead process (so partial upgrades / orphaned files
+  # don't regress current behavior).
+  local pid_file="$forge_dir/continuation/$slug/claude.pid"
+  local candidate=""
+  if [[ -f "$pid_file" ]]; then
+    candidate="$(cat "$pid_file" 2>/dev/null)"
+    if [[ "$candidate" =~ ^[0-9]+$ ]] && kill -0 "$candidate" 2>/dev/null; then
+      printf '%s\n' "$candidate"
+      return 0
+    fi
+  fi
+  # Fallback heuristic — preserves current behavior during partial upgrades.
   # `pgrep -f` matches against the full command line. `claude -p` is the
-  # headless invocation the relaunch loop runs. This is a heuristic — a host
-  # running multiple Forge projects should give each its own watchdog agent
-  # scoped by --dir, and operators can override via FORGE_WATCHDOG_KILL_CMD.
+  # headless invocation the relaunch loop runs. A host running multiple Forge
+  # projects should give each its own watchdog agent scoped by --dir, and
+  # operators can override via FORGE_WATCHDOG_KILL_CMD.
   pgrep -f 'claude' 2>/dev/null | head -n 1
 }
 

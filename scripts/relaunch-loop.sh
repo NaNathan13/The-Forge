@@ -98,6 +98,12 @@ EXIT_CONFIG=4
 DEFAULT_THRASH_MAX_GENERATIONS=5
 DEFAULT_THRASH_WINDOW_SECONDS=300
 
+# PID file — slug-namespaced path to which the loop writes its `claude` child
+# PID before `wait`-ing on it. The liveness watchdog reads this to kill the
+# exact wedged process instead of guessing via `pgrep -f 'claude'`. Resolved
+# at startup (after slug derivation) and cleared at loop start.
+PID_FILE=""
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONTINUATION_SH="$SCRIPT_DIR/continuation.sh"
 
@@ -248,6 +254,19 @@ thrash_init() {
   : > "$THRASH_FILE"
 }
 
+# ── PID file init ────────────────────────────────────────────────────────────
+# Resolve the slug-namespaced PID file path and clear any stale value from a
+# prior loop process. The watchdog (liveness-watchdog.sh::find_claude_pid)
+# reads this path; both sides agree on the layout
+# ($forge_dir/continuation/$slug/claude.pid).
+pid_init() {
+  local forge_dir="$1" slug="$2"
+  local dir="$forge_dir/continuation/$slug"
+  mkdir -p "$dir" 2>/dev/null || true
+  PID_FILE="$dir/claude.pid"
+  rm -f "$PID_FILE" 2>/dev/null || true
+}
+
 # Record this handoff and test the window. Returns EXIT_THRASH if tripped, 0 otherwise.
 thrash_check() {
   local max="$1" window_secs="$2"
@@ -322,6 +341,7 @@ main() {
   [[ "$max_generations" =~ ^[0-9]+$ ]] || max_generations=0
 
   thrash_init "$forge_dir" "$SLUG"
+  pid_init "$forge_dir" "$SLUG"
 
   log "starting — role=${ROLE} slug=${SLUG} claude=${claude_bin}"
 
@@ -336,8 +356,20 @@ main() {
     # when it is set, the Stop hook enforces the handoff only when it is set.
     # Interactive `claude` sessions a developer opens by hand never carry it, so
     # they are never stamped and never blocked — see design doc §4.C / issue #181.
-    json_output="$(FORGE_LOOP_MANAGED=1 "$claude_bin" -p --output-format json 2>/dev/null)"
+    # Background-with-wait so we can capture the child PID via $! and write it
+    # to PID_FILE before waiting. The watchdog (liveness-watchdog.sh) reads
+    # this file to target the exact wedged process. stdout flows through a
+    # temp file so existing JSON parsing (.result / .usage) is unchanged.
+    local tmp_out claude_pid
+    tmp_out="$(mktemp -t forge-claude-out.XXXXXX)" || die "could not create temp file"
+    FORGE_LOOP_MANAGED=1 "$claude_bin" -p --output-format json \
+        >"$tmp_out" 2>/dev/null &
+    claude_pid=$!
+    printf '%s\n' "$claude_pid" > "$PID_FILE"
+    wait "$claude_pid"
     exit_code=$?
+    json_output="$(cat "$tmp_out")"
+    rm -f "$tmp_out"
 
     # ── Crash path ───────────────────────────────────────────────────────────
     # Any non-zero `claude` exit is a crash (OOM, panic, signal, internal error).
