@@ -191,8 +191,9 @@ Two distinct concerns. Guard both.
 
 Temper subagents are the biggest token cost in the pipeline.
 
-- **40% context usage — warning.** Finish your current phase (build/verify/PR), then evaluate whether to continue or hand off. Prefer handing off.
-- **50% context usage — hard stop.** Write a continuation file and emit `TEMPER:RESULT` with `"status":"continue"` immediately. Do not attempt further work.
+- **Read your context usage from the statusline** — the `ctx N%` figure rendered by `.claude/statusline/budget-mirror.sh`. Do not estimate; the statusline is the source of truth.
+- **At warn (`ctx N% ^`, default 40%) — finish the current phase** (build/verify/PR), then hand off. **Near-done override:** if the slice is within one concrete action of done, finish it — a 95%-complete slice that hands off mid-flight is worse than a slightly-over-warn slice that ships.
+- **At hard (`ctx N% !`, default 50%) — hard stop, no exceptions.** Write a continuation file and emit `TEMPER:RESULT` with `"status":"continue"` immediately. The override does NOT apply here.
 - **Don't load heavy docs proactively.** No MISSION-CONTROL.md, WORKFLOW.md, or knowledge files at startup.
 - **Use the knowledge library only when stuck.** Read `.claude/lessons.md` (the cheap index). If an entry's error signature matches what you're seeing, load `.claude/knowledge/<slug>.md` for the fix. Don't load knowledge files speculatively.
 - **CI failure fix sessions.** If CI fails after PR is opened, forge dispatches a fresh subagent with just the branch name, PR number, and failure log — minimal context for a targeted fix.
