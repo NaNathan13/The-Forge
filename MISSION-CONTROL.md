@@ -5,23 +5,23 @@
 
 ## 🛰️ Telemetry — right now
 
-**Phase:** P1 — Autonomous Forge ▓▓▓ 3/3
-**In flight:** —
+**Phase:** P3 — Improvements ░░░░░░ 0/6
+**In flight:** 3a — Validation contracts (PRD ready, awaiting `/inscribe`)
 **Workflow:** Ponder → Forge → Temper pipeline. See [`docs/workflow/`](docs/workflow/) for details.
 
 **Recommended next prompt:**
 
 ```
-_All features shipped or in motion. No recommendation._
+/inscribe docs/prds/improvements-3a-validation.md
 ```
 
-> Sub-phase 1c shipped — forge is wired into the P2 relaunch loop (5/5 slices #181–#185). P1 — Autonomous Forge is complete. Next initiative to be `/ponder`-ed when scoped.
+> P3 — Improvements opened 2026-05-15 after a `/grill`-driven triage of P2's audit findings. 3a's full PRD is ready; 3b–3f are stub PRDs that get filled in just-in-time at each sub-phase's `/ponder`. Phase overview: [`docs/design/improvements-overview.md`](docs/design/improvements-overview.md).
 
 ## ☄️ In flight
 
 | Sub-phase | Slice | Status |
 | --- | --- | --- |
-| — | — | — |
+| 3a | — (issues not yet filed) | 📝 prd-ready |
 
 ## 🪐 Phase progress
 
@@ -47,7 +47,7 @@ _All features shipped or in motion. No recommendation._
 
 ### P1 — Autonomous Forge ▓▓▓ 3/3
 
-> Initiative north star: [`docs/vision/autonomous-forge.md`](docs/vision/autonomous-forge.md). Built in optional layers — the base pipeline stays a drop-in; fleet / Discord / Tier-0 are opt-in. Sub-phases 1b… are `/ponder`-ed just-in-time as each roadmap phase comes up.
+> Original initiative north star: [`docs/vision/autonomous-forge.md`](docs/vision/autonomous-forge.md). **Superseded as roadmap** — sub-phases beyond 1c (fleet substrate, Discord control plane, Tier-0 sudo orchestrator) do not ship as P-stack phases; they re-enter the roadmap after P4 (WHJ), if at all. Retained as historical record + future-vision input. The Discord-specific design context (including the 2026-05-15 Agent View finding) lives in [`.claude/discord-integration-notes.md`](.claude/discord-integration-notes.md) and [`docs/research/2026-05-15-cc-session-managers.md`](docs/research/2026-05-15-cc-session-managers.md).
 
 | # | Sub-phase | Status | PRD | Issues |
 | --- | --- | --- | --- | --- |
@@ -57,11 +57,32 @@ _All features shipped or in motion. No recommendation._
 
 ### P2 — Pipeline Audit ▓ 1/1
 
-> Documentation + validation initiative — no pipeline behavior changes. Produces one from-scratch onboarding doc plus a ten-facet audit that becomes the baseline for future re-audits.
+> Documentation + validation initiative — no pipeline behavior changes. Produced one onboarding doc + eleven facet audits + the `AUDIT-SUMMARY.md` rollup. **Outputs feed P3 — Improvements.**
 
 | # | Sub-phase | Status | PRD | Issues |
 | --- | --- | --- | --- | --- |
 | 2a | Workflow audit + onboarding doc | ✅ shipped | [`docs/prds/pipeline-audit.md`](docs/prds/pipeline-audit.md) | #154, #155, #156, #157, #158, #159, #160, #161, #162, #163, #164, #165, #166 <!-- mc:done=154,155,156,157,158,159,160,161,162,163,164,165,166 --> |
+
+### P3 — Improvements ░░░░░░ 0/6
+
+> Finite, scoped refinement pass on The Forge — fix what's empirically broken, polish proven surfaces, get Discord-ready *as a constraint* (no Discord build). Driven by the 2a audit findings, triaged 2026-05-15 via `/grill`. Phase overview + nine locked grill decisions: [`docs/design/improvements-overview.md`](docs/design/improvements-overview.md). When this phase ships green, The Forge is at the launch-pad for the first real product project.
+
+| # | Sub-phase | Status | PRD | Issues |
+| --- | --- | --- | --- | --- |
+| 3a | Validation contracts (`validate-*.sh` family + sentinel `"v":1` + write-time integrity checks) | 📝 prd-ready | [`docs/prds/improvements-3a-validation.md`](docs/prds/improvements-3a-validation.md) | <!-- mc:none --> |
+| 3b | Documented contracts + bootstrap stamp | ⏳ queued | [`docs/prds/improvements-3b-contracts.md`](docs/prds/improvements-3b-contracts.md) (stub) | <!-- mc:none --> |
+| 3c | Close knowledge-loop write side | ⏳ queued | [`docs/prds/improvements-3c-knowledge-loop.md`](docs/prds/improvements-3c-knowledge-loop.md) (stub) | <!-- mc:none --> |
+| 3d | Crash-layer correctness + measurement | ⏳ queued | [`docs/prds/improvements-3d-crash-correctness.md`](docs/prds/improvements-3d-crash-correctness.md) (stub) | <!-- mc:none --> |
+| 3e | Live grill artifacts + ADRs | ⏳ queued | [`docs/prds/improvements-3e-live-grill.md`](docs/prds/improvements-3e-live-grill.md) (stub) | <!-- mc:none --> |
+| 3f | MC deepening + reconciliation | ⏳ queued | [`docs/prds/improvements-3f-mc-deepening.md`](docs/prds/improvements-3f-mc-deepening.md) (stub) | <!-- mc:none --> |
+
+### P4 — Weenie Hut Junior ░ 0/?
+
+> Non-technical user mode for The Forge. **Phase exists; scope deliberately deferred** per Improvements grill lock #6 — the WHJ `/ponder` runs after P3 ships, informed by what the first product project teaches us about real demand. Design notes: [`docs/design/whj-overview.md`](docs/design/whj-overview.md). Source material: [`.forge-dev/future/weenie-hut-junior.md`](.forge-dev/future/weenie-hut-junior.md).
+
+| # | Sub-phase | Status | PRD | Issues |
+| --- | --- | --- | --- | --- |
+| 4a | Scope (TBD post-P3) | ⏳ scope-TBD | [`docs/design/whj-overview.md`](docs/design/whj-overview.md) (stub) | <!-- mc:none --> |
 
 ## 🛸 Architectural items
 
@@ -74,7 +95,7 @@ _All features shipped or in motion. No recommendation._
 
 <!-- Append links to `docs/adr/NNNN-*.md` as decisions are recorded. -->
 
-- [`0001-autonomous-forge-architecture.md`](docs/adr/0001-autonomous-forge-architecture.md) — 3-tier model + optional-by-layers principle + operator-setup requirement (P1 / sub-phase 1a)
+- [`0001-autonomous-forge-architecture.md`](docs/adr/0001-autonomous-forge-architecture.md) — 3-tier model + optional-by-layers principle + operator-setup requirement (P1 / sub-phase 1a). **Now historical** — the 3-tier model survives as future vision but its P2–P6 phasing has been superseded by P3 (Improvements) + P4 (WHJ). See `docs/design/improvements-overview.md` for the new direction.
 
 ## 🌑 Out of scope
 
@@ -82,13 +103,13 @@ _All features shipped or in motion. No recommendation._
 
 ## Legend
 
-**Statuses:** ⏳ queued · 🔥 grilling · 📝 prd-ready · 🚧 in-progress · ✅ shipped · ⏸ deferred
+**Statuses:** ⏳ queued · 🔥 grilling · 📝 prd-ready · 🚧 in-progress · ✅ shipped · ⏸ deferred · ⏳ scope-TBD (stub phase)
 
 **Row markers** (HTML comments embedded at the end of the Issues column — invisible when rendered, grep-able from the source. Used by `/seal` and the drift hook):
 - `<!-- mc:none -->` — no issues filed yet
 - `<!-- mc:open=N,N -->` — issue numbers tracked as open
 - `<!-- mc:done=N,N -->` — all listed issues closed (shipped)
 
-**Phase progress bars:** `▓` = shipped sub-phase, `░` = not yet shipped. Format: `▓▓░░░ 2/5`.
+**Phase progress bars:** `▓` = shipped sub-phase, `░` = not yet shipped. Format: `▓▓░░░ 2/5`. (Future: `scripts/derive-progress.sh`, sub-phase 3f, will compute these from the rows below.)
 
 **Updated by:** `/inscribe` (PRD + issues + triage), `/temper` (in-progress status), `/seal` (post-merge reconciliation). Each phase also updates the "Recommended next prompt".
