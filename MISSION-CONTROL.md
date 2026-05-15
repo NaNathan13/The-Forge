@@ -100,6 +100,7 @@
 
 - [`0001-autonomous-forge-architecture.md`](docs/adr/0001-autonomous-forge-architecture.md) — 3-tier model + optional-by-layers principle + operator-setup requirement (P1 / sub-phase 1a). **Now historical** — the 3-tier model survives as future vision but its P2–P6 phasing has been superseded by P3 (Improvements) + P4 (WHJ). See `docs/design/improvements-overview.md` for the new direction.
 - [`0002-phase-isolation.md`](docs/adr/0002-phase-isolation.md) — Phases communicate only via on-disk artifacts; session memory between phases is forbidden (P3 / sub-phase 3b).
+- [`0003-concurrency-cap.md`](docs/adr/0003-concurrency-cap.md) — Single-worker concurrency cap as a deliberate trade: forge dispatches exactly one temper per generation, with a recorded revisit precondition (P3 / sub-phase 3b).
 
 ## 🌑 Out of scope
 

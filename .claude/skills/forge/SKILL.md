@@ -216,7 +216,7 @@ build-queue approval is a generation-1-only event; it is never re-prompted.
 
 A loop-managed generation dispatches **exactly one temper**, then hands off. The "loop"
 here is the relaunch loop across generations — not an in-session `for` loop over the
-whole queue.
+whole queue. This cap is a deliberate trade — see [ADR-0003](../../../docs/adr/0003-concurrency-cap.md) for the rationale and revisit precondition.
 
 Per generation:
 
