@@ -6,22 +6,25 @@
 ## 🛰️ Telemetry — right now
 
 **Phase:** P3 — Improvements ▓░░░░░ 1/6
-**In flight:** —
+**In flight:** 3b — Documented contracts + bootstrap stamp (PRD-ready, 4 slices queued)
 **Workflow:** Ponder → Forge → Temper pipeline. See [`docs/workflow/`](docs/workflow/) for details.
 
 **Recommended next prompt:**
 
 ```
-/ponder 3b — Documented contracts + bootstrap stamp
+/forge --phase 3b
 ```
 
-> 3a shipped 2026-05-15 (all seven validation slices: #192–#198). Next: grill out sub-phase 3b — documented contracts + bootstrap stamp.
+> Build all 3b slices (#208 ADR-0002 phase isolation · #209 ADR-0003 concurrency cap · #210 install-manifest stamp · #211 "Why this size?" template wiring). All slice:logic, no dependency edges; serial dispatch per ADR-0003.
 
 ## ☄️ In flight
 
 | Sub-phase | Slice | Status |
 | --- | --- | --- |
-| _None in flight._ | | |
+| 3b | #208 ADR-0002 phase isolation | ready-for-agent |
+| 3b | #209 ADR-0003 concurrency cap | ready-for-agent |
+| 3b | #210 install-manifest stamp | ready-for-agent |
+| 3b | #211 "Why this size?" template wiring | ready-for-agent |
 
 ## 🪐 Phase progress
 
@@ -70,7 +73,7 @@
 | # | Sub-phase | Status | PRD | Issues |
 | --- | --- | --- | --- | --- |
 | 3a | Validation contracts (`validate-*.sh` family + sentinel `"v":1` + write-time integrity checks) | ✅ shipped | [`docs/prds/improvements-3a-validation.md`](docs/prds/improvements-3a-validation.md) | #192, #193, #194, #195, #196, #197, #198 <!-- mc:done=192,193,194,195,196,197,198 --> |
-| 3b | Documented contracts + bootstrap stamp | ⏳ queued | [`docs/prds/improvements-3b-contracts.md`](docs/prds/improvements-3b-contracts.md) (stub) | <!-- mc:none --> |
+| 3b | Documented contracts + bootstrap stamp | 📝 prd-ready | [`docs/prds/improvements-3b-contracts.md`](docs/prds/improvements-3b-contracts.md) | #208, #209, #210, #211 <!-- mc:open=208,209,210,211 --> |
 | 3c | Close knowledge-loop write side | ⏳ queued | [`docs/prds/improvements-3c-knowledge-loop.md`](docs/prds/improvements-3c-knowledge-loop.md) (stub) | <!-- mc:none --> |
 | 3d | Crash-layer correctness + measurement | ⏳ queued | [`docs/prds/improvements-3d-crash-correctness.md`](docs/prds/improvements-3d-crash-correctness.md) (stub) | <!-- mc:none --> |
 | 3e | Live grill artifacts + ADRs | ⏳ queued | [`docs/prds/improvements-3e-live-grill.md`](docs/prds/improvements-3e-live-grill.md) (stub) | <!-- mc:none --> |
@@ -96,6 +99,7 @@
 <!-- Append links to `docs/adr/NNNN-*.md` as decisions are recorded. -->
 
 - [`0001-autonomous-forge-architecture.md`](docs/adr/0001-autonomous-forge-architecture.md) — 3-tier model + optional-by-layers principle + operator-setup requirement (P1 / sub-phase 1a). **Now historical** — the 3-tier model survives as future vision but its P2–P6 phasing has been superseded by P3 (Improvements) + P4 (WHJ). See `docs/design/improvements-overview.md` for the new direction.
+- [`0002-phase-isolation.md`](docs/adr/0002-phase-isolation.md) — Phases communicate only via on-disk artifacts; session memory between phases is forbidden (P3 / sub-phase 3b).
 
 ## 🌑 Out of scope
 

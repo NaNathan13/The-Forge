@@ -13,6 +13,7 @@ The Forge runs a four-phase pipeline. Both modes (Dev and WHJ) share this shape 
 
 These hold in both modes. If a future change wants to touch any of the below, the change applies to both modes simultaneously. There is no "dev-mode pipeline" or "WHJ-mode pipeline."
 
+- Phases communicate only via on-disk artifacts — see [ADR-0002](../adr/0002-phase-isolation.md).
 - The four-phase shape (Ponder, Forge, Temper, Seal) is identical.
 - The dependency-aware queue (topo-sort by blockers) is identical — only how blockers are parsed differs (issue body vs task frontmatter).
 - The dispatch loop logic in Forge is identical — only the queue source differs (GitHub Issues vs local task files).
