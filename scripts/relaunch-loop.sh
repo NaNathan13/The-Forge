@@ -330,7 +330,13 @@ main() {
 
     # Fresh context window every call: plain `claude -p --output-format json`.
     # The SessionStart hook (slice 4c) injects the continuation `latest` for us.
-    json_output="$("$claude_bin" -p --output-format json 2>/dev/null)"
+    #
+    # FORGE_LOOP_MANAGED=1 is the explicit "this is a loop-managed generation"
+    # marker. The P2 hooks key off it: SessionStart stamps the genbaseline only
+    # when it is set, the Stop hook enforces the handoff only when it is set.
+    # Interactive `claude` sessions a developer opens by hand never carry it, so
+    # they are never stamped and never blocked — see design doc §4.C / issue #181.
+    json_output="$(FORGE_LOOP_MANAGED=1 "$claude_bin" -p --output-format json 2>/dev/null)"
     exit_code=$?
 
     # ── Crash path ───────────────────────────────────────────────────────────

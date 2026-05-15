@@ -195,6 +195,37 @@ test_thrash_breaker_does_not_trip_under_the_limit() {
   assert_not_contains "$RUN_OUT" "circuit breaker tripped"
 }
 
+# ── FORGE_LOOP_MANAGED marker exported into each generation (issue #181) ─────
+
+test_loop_exports_forge_loop_managed_marker() {
+  # The loop must export FORGE_LOOP_MANAGED=1 into the env of every `claude -p`
+  # generation it launches — that is the marker the P2 hooks key off to tell a
+  # loop-managed session from an interactive one. The claude stub's env probe
+  # records what reached the child; assert it saw the marker set to 1.
+  local probe="$WORKDIR/env-probe"
+  FORGE_MAX_GENERATIONS=1 \
+    CLAUDE_STUB_ENV_PROBE="$probe" \
+    run_loop "$FIXTURES/clean-handoff-under-budget.sh" --slug demo
+  assert_exit_code 0 "$RUN_RC"
+  assert_file_exists "$probe" "the claude stub should have recorded its environment"
+  assert_contains "$(cat "$probe")" "FORGE_LOOP_MANAGED=1" \
+    "the loop must export FORGE_LOOP_MANAGED=1 into each generation"
+}
+
+test_loop_exports_marker_on_every_generation() {
+  # The marker is exported on every relaunch, not just the first — cap at 3
+  # generations and assert the probe recorded the marker set three times.
+  local probe="$WORKDIR/env-probe"
+  FORGE_MAX_GENERATIONS=3 \
+    CLAUDE_STUB_ENV_PROBE="$probe" \
+    run_loop "$FIXTURES/clean-handoff-under-budget.sh" --slug demo
+  assert_exit_code 0 "$RUN_RC"
+  local count
+  count="$(grep -c "FORGE_LOOP_MANAGED=1" "$probe")"
+  assert_eq "3" "$count" \
+    "the loop must export the marker into every generation, not just the first"
+}
+
 # ── Argument handling ────────────────────────────────────────────────────────
 
 test_rejects_unknown_role() {
