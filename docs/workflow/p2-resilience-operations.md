@@ -302,6 +302,73 @@ generation to *not* hand off early, remove it first:
 rm -f .forge/continuation/<slug>/handoff-signal
 ```
 
+### Recovering from a tripped crash breaker
+
+Distinct from the **handoff** thrash breaker above, the **crash-respin** breaker
+(sub-phase 3d) guards against a session that crashes on startup and respawns
+forever. It counts non-zero `claude` exits across **launchd-respawned loop
+processes** (the persistent `.crash-window` counter under
+`.forge/continuation/<slug>/`) and trips when more than
+`FORGE_CRASH_MAX_RESPINS` crashes happen within `FORGE_CRASH_WINDOW_SECONDS`
+(built-in defaults: 5 / 300). On trip, the loop writes a **stay-down sentinel**
+at `.forge/continuation/<slug>/.crash-breaker-tripped` and the *next* loop
+start exits 0 — `KeepAlive.SuccessfulExit=false` in the plist then halts
+launchd respawn. The crash layer has stopped and is waiting for you.
+
+#### Step 1 — confirm the agent stopped respawning
+
+```sh
+launchctl print gui/$(id -u)/com.forge.<slug> | grep -E 'state|last exit'
+```
+
+A `state = not running` line (or `last exit code = 0`) means the stay-down
+sentinel took effect.
+
+#### Step 2 — read the sentinel
+
+```sh
+cat .forge/continuation/<slug>/.crash-breaker-tripped
+```
+
+The sentinel records the trip timestamp, window stats, the most recent exit
+code, the last twenty crash timestamps + exit codes, and the recovery
+instructions. The exit code (and the exit codes in the window) are the
+fastest tell for which failure mode is at play.
+
+#### Step 3 — investigate the crashes
+
+`.forge/launchd-loop.err.log` is the after-the-fact record of what each
+`claude` invocation wrote before dying.
+
+```sh
+tail -n 200 .forge/launchd-loop.err.log
+```
+
+Match the timestamps from the sentinel against the log to find each crash's
+stderr. Common causes: a missing dependency in `EnvironmentVariables` (`claude`
+binary not on PATH after a shell-config change), a malformed continuation
+file the SessionStart hook can't parse, or a project-level config error that
+makes `claude -p` exit non-zero on startup.
+
+#### Step 4 — clear the sentinel and restart
+
+Once you've addressed the root cause:
+
+```sh
+rm .forge/continuation/<slug>/.crash-breaker-tripped
+```
+
+Then either wait for the next reboot (`RunAtLoad` will start it) or
+kickstart the agent immediately:
+
+```sh
+launchctl kickstart -k gui/$(id -u)/com.forge.<slug>
+```
+
+The persistent `.crash-window` counter is not cleared — it keeps pruning by
+window, so old crashes age out naturally. If you want to reset it explicitly,
+`rm .forge/continuation/<slug>/.crash-window` before the kickstart.
+
 ### Recovering from a crash or hang (usually automatic)
 
 You normally do nothing here — it is listed so you recognize it in the logs:

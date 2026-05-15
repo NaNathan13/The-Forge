@@ -104,6 +104,14 @@ DEFAULT_THRASH_WINDOW_SECONDS=300
 # at startup (after slug derivation) and cleared at loop start.
 PID_FILE=""
 
+# Crash-respin breaker defaults — fallback for when resilience.config is silent
+# on the crash pair. Distinct from the handoff thrash defaults above: those
+# count clean FORGE_CONTINUE handoffs within a single loop process; these count
+# CRASH respawns across loop processes (each crash exits the loop; launchd
+# respawns it; the counter persists to see the cycle).
+DEFAULT_CRASH_MAX_RESPINS=5
+DEFAULT_CRASH_WINDOW_SECONDS=300
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONTINUATION_SH="$SCRIPT_DIR/continuation.sh"
 
@@ -288,6 +296,61 @@ thrash_check() {
   return 0
 }
 
+# ── Crash-respin circuit breaker (sub-phase 3d) ──────────────────────────────
+# Counts CRASH respawns (non-zero `claude` exits) across loop-process restarts.
+# Each crash exits the loop; launchd respawns it (KeepAlive.SuccessfulExit=false);
+# the counter must therefore PERSIST across loop processes — unlike the handoff
+# thrash counter above, which is per-run scratch. When the count exceeds
+# FORGE_CRASH_MAX_RESPINS within FORGE_CRASH_WINDOW_SECONDS, a stay-down sentinel
+# is written; the next loop start gates on the sentinel and exits 0, which
+# (combined with SuccessfulExit=false in the plist) halts launchd respawn.
+# A human operator clears the sentinel after investigating.
+CRASH_FILE=""
+CRASH_SENTINEL=""
+
+crash_init() {
+  local forge_dir="$1" slug="$2"
+  local dir="$forge_dir/continuation/$slug"
+  mkdir -p "$dir" 2>/dev/null || true
+  CRASH_FILE="$dir/.crash-window"
+  CRASH_SENTINEL="$dir/.crash-breaker-tripped"
+  # NOTE: do NOT truncate CRASH_FILE — it must persist across loop processes
+  # so successive crash respawns accumulate in the same window.
+  [[ -f "$CRASH_FILE" ]] || : > "$CRASH_FILE"
+}
+
+# Append a crash timestamp + exit code, prune to window, return EXIT_THRASH if tripped.
+crash_check() {
+  local max="$1" window_secs="$2" exit_code="$3"
+  local now cutoff kept count
+  now="$(date +%s)"
+  cutoff="$(( now - window_secs ))"
+  printf '%s\t%s\n' "$now" "$exit_code" >> "$CRASH_FILE"
+  kept="$(awk -v c="$cutoff" '$1 >= c' "$CRASH_FILE")"
+  printf '%s\n' "$kept" > "$CRASH_FILE"
+  count="$(grep -c . "$CRASH_FILE" 2>/dev/null || printf '0')"
+  if [[ "$count" -gt "$max" ]]; then
+    write_crash_sentinel "$max" "$window_secs" "$count" "$exit_code"
+    log "crash breaker tripped: ${count} crashes within ${window_secs}s (max ${max})"
+    log "  → wrote $CRASH_SENTINEL; next launchd respawn will stay down"
+    return "$EXIT_THRASH"
+  fi
+  return 0
+}
+
+write_crash_sentinel() {
+  local max="$1" window_secs="$2" count="$3" last_exit="$4"
+  {
+    printf 'crash-breaker tripped at %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    printf 'window: %s crashes within %ss (max %s)\n' "$count" "$window_secs" "$max"
+    printf 'most recent exit code: %s\n' "$last_exit"
+    printf '\nrecent crash timestamps + exit codes:\n'
+    tail -n 20 "$CRASH_FILE"
+    printf '\nRecovery: investigate the crashes (logs at .forge/launchd-loop.err.log)\n'
+    printf 'then `rm %s` to clear the breaker.\n' "$CRASH_SENTINEL"
+  } > "$CRASH_SENTINEL"
+}
+
 # ── Generation recording ─────────────────────────────────────────────────────
 # Bump the monotonic per-slug generation counter via continuation.sh. The
 # continuation helper owns gen-NNN.md / `latest`; here we only need the count to
@@ -329,16 +392,30 @@ main() {
   fi
 
   # Circuit-breaker tunables — config first, built-in defaults otherwise.
-  local thrash_max thrash_window throttle
+  local thrash_max thrash_window throttle crash_max crash_window
   thrash_max="$(config_get FORGE_THRASH_MAX_GENERATIONS "$cfg")"
   thrash_window="$(config_get FORGE_THRASH_WINDOW_SECONDS "$cfg")"
   throttle="$(config_get FORGE_THROTTLE_SECONDS "$cfg")"
+  crash_max="$(config_get FORGE_CRASH_MAX_RESPINS "$cfg")"
+  crash_window="$(config_get FORGE_CRASH_WINDOW_SECONDS "$cfg")"
   [[ "$thrash_max" =~ ^[0-9]+$ ]] || thrash_max="$DEFAULT_THRASH_MAX_GENERATIONS"
   [[ "$thrash_window" =~ ^[0-9]+$ ]] || thrash_window="$DEFAULT_THRASH_WINDOW_SECONDS"
   [[ "$throttle" =~ ^[0-9]+$ ]] || throttle=0
+  [[ "$crash_max" =~ ^[0-9]+$ ]] || crash_max="$DEFAULT_CRASH_MAX_RESPINS"
+  [[ "$crash_window" =~ ^[0-9]+$ ]] || crash_window="$DEFAULT_CRASH_WINDOW_SECONDS"
 
   local max_generations="${FORGE_MAX_GENERATIONS:-0}"
   [[ "$max_generations" =~ ^[0-9]+$ ]] || max_generations=0
+
+  # Crash-breaker init + stay-down gate. Must run BEFORE thrash_init so a
+  # tripped breaker halts the loop before any per-run state is touched.
+  crash_init "$forge_dir" "$SLUG"
+  if [[ -f "$CRASH_SENTINEL" ]]; then
+    log "crash breaker tripped — staying down (rm $CRASH_SENTINEL to recover)"
+    cat "$CRASH_SENTINEL" >&2
+    # SuccessfulExit=false in the plist → launchd does NOT respawn on exit 0.
+    exit 0
+  fi
 
   thrash_init "$forge_dir" "$SLUG"
   pid_init "$forge_dir" "$SLUG"
@@ -376,6 +453,12 @@ main() {
     # PROPAGATE it to launchd — do not mask, do not respin. This is the boundary
     # between the two supervision layers.
     if [[ "$exit_code" -ne 0 ]]; then
+      # Record the crash in the persistent window; on trip, write the stay-down
+      # sentinel. The `|| true` is intentional: even when crash_check returns
+      # the trip code, we still propagate the ORIGINAL crash exit so launchd
+      # sees the real failure. The sentinel halts the NEXT respawn via the
+      # startup gate above.
+      crash_check "$crash_max" "$crash_window" "$exit_code" || true
       log "claude exited non-zero (${exit_code}) — propagating to launchd, not respinning"
       exit "$exit_code"
     fi
