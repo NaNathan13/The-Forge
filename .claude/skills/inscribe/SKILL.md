@@ -20,6 +20,7 @@ Or auto-invoked by `/ponder` after the grill, which passes:
 - **Sub-phase ID:** e.g. `2a`, `3b` (from MISSION-CONTROL.md)
 - **Dev mode:** `fast`, `balanced`, or `tdd` (resolved during ponder's size check)
 - **Size reason:** a one-sentence rationale for the size call, captured during ponder's size check. Inscribe renders this verbatim into PRD frontmatter as `**Why this size?** <rationale>` (see A1 / B0).
+- **ADR candidates:** `adr_candidates` — a (possibly empty) list of picked ADRs from the grill's ADR-offer step. Each entry carries the title framing, Context / Decision / Rationale / Rejected-alternatives synthesized from the grill, and an optional Revisit precondition. Inscribe physically writes one `docs/adr/NNNN-<slug>.md` per entry in step A0 (Path A) or B-1 (Path B) **before** the PRD or any issue artifacts. When the list is empty, the ADR-emission step is skipped entirely (see "No-op behavior" under A0 / B-1).
 
 ## Inputs
 
@@ -84,10 +85,27 @@ Used when scope spans multiple shippable slices, introduces new vocabulary, or m
 
 | Step | Action | Pause? | Artifact |
 | --- | --- | --- | --- |
+| A0 | Write picked ADRs (skip when `adr_candidates` is empty) | No | One `docs/adr/NNNN-<slug>.md` per candidate; path list carried to A4 |
 | A1 | Write PRD | No | `docs/prds/<feature>.md` |
 | A2 | File issues | No | N issues filed with `{sub-phase-id}/{slice-type}: ...` titles |
 | A3 | Triage all issues | No | All issues labeled `ready-for-agent` + `slice:*`; kanban → **Ready** |
 | A4 | Update MC + print handoff | No | `MISSION-CONTROL.md` updated; next command printed |
+
+#### A0. Write picked ADRs
+
+If `adr_candidates` is non-empty, write each picked ADR **before** any PRD or issue artifacts. (PRD body in A1 and issue bodies in A2 may reference the new ADR numbers — they must exist on disk first.) For each candidate, in the order ponder passed them:
+
+1. **Compute the next ADR number.** Scan `docs/adr/` for files matching `NNNN-*.md`, **excluding `0000-template.md`**. Take the max `NNNN` and add 1, zero-padded to 4 digits. (First ADR after 0001–0003 is `0004`. If `docs/adr/` is empty or holds only the template, the first written number is `0001`.) When writing multiple ADRs in one A0 run, increment per-candidate so each picked ADR gets a unique number — the second written this run is `max + 2`, the third `max + 3`, etc.
+2. **Read the template** at `docs/adr/0000-template.md` and substitute placeholders:
+   - **Title** — from the candidate's framing. Slug = kebab-case of the title, lowercased, ASCII only (e.g. `Phase isolation: hand-offs only via on-disk artifacts` → `phase-isolation`). Keep the slug short — match the existing ADRs' brevity.
+   - **Status / Date / Phase** — `Accepted` / today's date in UTC (`YYYY-MM-DD`) / `P<n> — <phase-name> · sub-phase <id>` derived from `sub_phase_id`.
+   - **Context / Decision / Rationale / Rejected alternatives** — synthesized from the grill conversation. Use what the grill captured for each candidate; do not invent rationale.
+   - **Revisit precondition** — include this `##` heading **only when** the candidate carries identifiable change-conditions (the grill flagged them). Otherwise omit the heading entirely — the template's comment is explicit on this point.
+   - **Consequences / Related** — fill from the grill. `Related` should at minimum cross-reference the PRD this ADR was filed alongside (a forward reference is fine — `A1` writes the PRD next).
+3. **Write to `docs/adr/NNNN-<slug>.md`.** New file per candidate. Do not edit the template itself.
+4. **Carry the path list to A4.** Maintain a running list of newly-written ADR paths (e.g. `docs/adr/0004-foo.md`, `docs/adr/0005-bar.md`) — A4's handoff step appends one row per path to `MISSION-CONTROL.md`'s `## 📡 ADRs` section.
+
+**No-op behavior.** When `adr_candidates` is empty, skip step A0 entirely. No prose line is emitted ("no ADRs written" is the *absence* of A0 output — silence is the signal). MC's `## 📡 ADRs` section is not touched in A4. The PRD and issues are written exactly as they would be today.
 
 #### A1. Write PRD
 
@@ -110,6 +128,8 @@ Rules:
 
 See `docs/prds/improvements-3b-contracts.md` for the canonical example.
 
+**ADR cross-references.** When `adr_candidates` was non-empty (A0 wrote one or more ADRs), the PRD body **may** reference the new ADR numbers — either via a `## Related` section near the end (parallel to ADR-0001's `## Related`) or via inline citations like `(see ADR-NNNN)` at the decision points the ADR records. The convention is *available, not mandatory*: judgment call per PRD on which shape reads best. When `adr_candidates` is empty, no reference is required.
+
 #### A2. File issues
 
 Create issues using the title format `{sub-phase-id}/{slice-type}: {description}`. Each issue body uses the standard template:
@@ -128,6 +148,8 @@ Create issues using the title format `{sub-phase-id}/{slice-type}: {description}
 
 None - can start immediately
 ```
+
+**ADR cross-references.** When `adr_candidates` was non-empty and a slice's design space is constrained by a freshly-emitted ADR (e.g. an ADR that records the boundary the slice must respect), the issue body **may** reference the new ADR number in `## What to build` — e.g. "(see ADR-NNNN for the rationale)". The reference is *available, not mandatory*; only add it when it would save a future temper from re-deriving the constraint.
 
 #### A3. Triage ALL slices
 
@@ -154,10 +176,23 @@ Determine the **recommended build order**: logic slices first, then mixed, then 
 
 | Step | Action | Pause? | Artifact |
 | --- | --- | --- | --- |
+| B-1 | Write picked ADRs (skip when `adr_candidates` is empty) | No | One `docs/adr/NNNN-<slug>.md` per candidate; path list carried to B3 |
 | B0 | Write PRD (**tdd mode only**; skip for `fast` / `balanced`) | No | `docs/prds/<feature>.md` |
 | B1 | `gh issue create` | No | One issue filed |
 | B2 | Invoke `/triage` on that issue | No | Issue labeled + agent brief + kanban → **Ready** |
 | B3 | Update MC + print handoff | No | `MISSION-CONTROL.md` updated; next command printed |
+
+#### B-1. Write picked ADRs
+
+If `adr_candidates` is non-empty, write each picked ADR **before** the PRD (if one is written) or the issue. The mechanics are identical to step A0 — the same numbering rule, template substitution, and path-list bookkeeping apply, with two single-slice specifics:
+
+1. **Compute the next ADR number** by `max(existing NNNN under docs/adr/ excluding 0000) + 1`, zero-padded. When writing multiple candidates in one B-1 run, increment per-candidate.
+2. **Template substitution** is the same — title / slug / status / date / phase / Context / Decision / Rationale / Rejected alternatives / Consequences / Related — with `Revisit precondition` included only when the candidate carries identifiable change-conditions.
+3. **Carry the path list to B3** so the handoff step appends one row per newly-written ADR to MC's `## 📡 ADRs` section.
+
+ADRs can be written for single-slice work regardless of dev mode — the ADR-emission step is independent of the PRD branch in B0. If `mode=fast` or `mode=balanced` and no PRD is written, B-1 still writes the ADRs; only B0 is skipped.
+
+**No-op behavior.** When `adr_candidates` is empty, skip step B-1 entirely. No prose line, no MC ADR rows added in B3, no change to issue or PRD content.
 
 #### B0. Write PRD (tdd mode only)
 
@@ -166,6 +201,8 @@ When the resolved dev mode is `tdd`, write a PRD even for single-slice work — 
 Synthesise the conversation into `docs/prds/<feature>.md` using the same shape as Path A's A1, **including the `**Why this size?**` frontmatter line** (same mechanical render rule — see A1). The captured `size_reason` answers *why single-slice and not sub-phase* for this work; render it verbatim into the `>` block. Keep the PRD scoped to the one slice — no need to enumerate sibling slices that don't exist. The issue body filed in B1 should reference the PRD (e.g. `See \`docs/prds/<feature>.md\` for the full PRD.`).
 
 When mode is `fast` or `balanced`, skip this step entirely and go straight to B1 — single-slice behavior is unchanged from today.
+
+**ADR cross-references.** When a PRD is written in B0 **and** `adr_candidates` was non-empty (B-1 wrote one or more ADRs), the PRD body **may** reference the new ADR numbers — same convention as A1: a `## Related` section near the end or inline citations like `(see ADR-NNNN)`. Available, not mandatory. When `adr_candidates` is empty (B-1 was skipped), no reference is required. The B1 issue body **may** likewise reference a freshly-emitted ADR in `## What to build` when the slice's design space is constrained by it — same shape as the A2 convention.
 
 ## Handoff (both paths)
 
@@ -221,7 +258,17 @@ After all issues are triaged:
 
    Never emit `/forge --phase none` — that's not a valid form. The `--phase` flag only appears when a real sub-phase ID was resolved.
 
-3. **Print the slice-list summary:**
+3. **Append newly-written ADRs to MC's `## 📡 ADRs` section.** If A0 / B-1 wrote one or more ADRs this run (the path list carried forward is non-empty), append **one row per path** to the `## 📡 ADRs` bullet list in `MISSION-CONTROL.md`. Row format, verbatim:
+
+   ```
+   - [`NNNN-slug.md`](docs/adr/NNNN-slug.md) — <one-line summary> (P<n> / sub-phase <id>).
+   ```
+
+   Where `NNNN-slug.md` matches the filename written in A0 / B-1, the one-line summary distills the ADR's Decision in one sentence, and `P<n> / sub-phase <id>` is derived from the sub-phase the ADR was filed under (same source as the ADR's `**Phase:**` header). Append in the order the ADRs were written (ascending NNNN), at the bottom of the existing list.
+
+   When the path list is empty (A0 / B-1 was skipped because `adr_candidates` was empty), skip this step entirely — the `## 📡 ADRs` section is not touched, and no prose line is emitted.
+
+4. **Print the slice-list summary:**
 
 ```
 Filed N issues for sub-phase <sub-phase-id>:
