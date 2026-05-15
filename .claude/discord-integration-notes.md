@@ -131,10 +131,55 @@ amux / Overstory call in P4.
 - Tier-0's channel: separate server? separate channel category? How do you address
   "talk to project X's orchestrator" from the Tier-0 channel?
 
+## 2026-05-15 update — Claude Code Agent View landscape shift
+
+Background research run on 2026-05-15 (one day after this doc was written) surfaced
+two load-bearing shifts. The notes above are still correct on intent; the
+implementation path is now lighter than they assumed.
+
+**1. Anthropic shipped Claude Code Agent View (May 2026).** Per-user supervisor
+daemon at `~/.claude/daemon.log`, machine-wide session roster at
+`~/.claude/daemon/roster.json`, per-session state at `~/.claude/jobs/<id>/state.json`.
+`claude agents` from any session opens a unified table of every running CC session
+on the host. **This is the "many sessions, one machine" substrate that amux /
+Overstory previously had to invent themselves** — exactly the Tier-0 ↔ Tier-1
+lifecycle layer the north-star doc was reaching for. Adopting it means the
+Forge-side Discord plugin can ride first-party roster/state primitives instead of
+re-implementing process supervision per project.
+
+**2. The official Discord plugin is *not* a session manager.** Confirmed: Channels
+is a single-session-per-pairing chat transport. If `claude` is not running, events
+drop. Always-on still requires the relaunch-loop + `launchd` substrate this doc
+already names — Channels does not replace it. The plugin solves the transport
+question and nothing else; lifecycle / multi-codebase routing remains a Forge-side
+build.
+
+**Revised verdict for P5 (or its successor under the gutted roadmap):** Build the
+Forge-Discord plugin as a thin shim — Channels handles the Discord MCP transport,
+Agent View handles per-machine session lifecycle + roster, `forge` continues to
+own the queue and worker dispatch. Do *not* migrate to nanoclaw (28.9k stars but
+forces a move off Claude Code onto bare Agent SDK + Docker — too invasive for the
+Mac mini target). `cc-connect` (9.3k stars, multi-platform CC↔chat bridge with
+`/dir` codebase routing and `/new`/`/switch` lifecycle commands) is the closest
+off-the-shelf fallback if Channels' single-pairing model proves too restrictive in
+practice.
+
+**What this changes for current planning:** the Discord work itself stays out of
+scope for the Improvements phase. The two recs already in scope that touch Discord
+adjacency — `#30` (install-manifest in `light-the-forge.sh`) and the validation
+contracts — should note Agent View's `roster.json` as the hand-off surface so the
+manifest is pointing at the right thing when the Discord work begins.
+
+**Full research output:** see `docs/research/2026-05-15-cc-session-managers.md`
+(filed alongside this update for the comparison table + sources).
+
 ## Sources
 
 - [Claude Code Docs — Push events into a running session with channels](https://code.claude.com/docs/en/channels)
 - [Claude Code Docs — Run Claude Code programmatically (headless / `-p`)](https://code.claude.com/docs/en/headless)
+- [Claude Code Agent View](https://claudefa.st/blog/guide/agents/agent-view) — first-party local supervisor daemon + roster (May 2026)
 - [GitHub — chadingTV/claudecode-discord](https://github.com/chadingTV/claudecode-discord)
 - [GitHub — zebbern/claude-code-discord](https://github.com/zebbern/claude-code-discord)
 - [GitHub — nanocoai/nanoclaw](https://github.com/nanocoai/nanoclaw)
+- [GitHub — chenhg5/cc-connect](https://github.com/chenhg5/cc-connect) — 9.3k-star multi-platform CC↔chat bridge with `/dir` routing
+- [Anthropic Managed Agents (InfoQ)](https://www.infoq.com/news/2026/04/anthropic-managed-agents/)
