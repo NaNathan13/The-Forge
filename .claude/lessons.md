@@ -13,6 +13,8 @@ Cap: 50 entries. When full, oldest-by-`Last seen` is pruned on next append.
 
 When temper catches a recurring error and overcomes it, append a new entry. Dedupe by exact `Error signature` match — re-encounters bump the `Last seen` line of the existing entry instead of creating a duplicate.
 
+**Human curation fallback.** When an agent flags friction but can't cleanly generalise it into a lesson (or writes a poorly-shaped entry), edit this file and `.claude/knowledge/` directly. This is normal — the agent is close to the error, you're close to the pattern. The `Error signature` dedupe rule handles overlap with later agent writes; if an agent re-encounters the same wall, it bumps the existing `Last seen` line rather than duplicating.
+
 ---
 
 <!-- entries below -->
