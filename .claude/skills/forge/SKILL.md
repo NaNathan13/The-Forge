@@ -525,12 +525,19 @@ Discipline §B) — one ccusage call serves both.
 ## Friction Review
 
 The drained-queue generation, **before dispatching the seal subagent**:
-1. Check for any PRs with the `friction` label: `gh pr list --label friction --state open --json number,title`
+
+1. Check for any PRs with the `friction` label in this batch:
+   `gh pr list --label friction --state open --json number,title`
 2. For each, read the friction comment.
-3. If a pattern appears across multiple PRs, append a lesson to `.claude/lessons.md` (the index) and a detail file to `.claude/knowledge/<slug>.md` per the format in `.claude/lessons.md`.
+3. **Cross-PR pattern only.** If ≥2 PRs in this batch share an error
+   signature, write **one** cross-PR lesson — append to `.claude/lessons.md`
+   and write `.claude/knowledge/<slug>.md` per the format in
+   `.claude/lessons.md`. Per-run lessons are temper's job
+   (see temper/SKILL.md §Lesson write-back); do not duplicate them here.
 4. Report the friction summary to the user.
 
-Note: friction-labelled PRs are intentionally **skipped** by `/seal`. They stay open for human review.
+Note: friction-labelled PRs are intentionally **skipped** by `/seal`. They
+stay open for human review.
 
 ## End of Run — Auto-ship
 
