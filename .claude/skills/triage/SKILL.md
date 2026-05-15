@@ -73,12 +73,41 @@ Show counts and a one-line summary per issue. Let the maintainer pick.
 4. **Grill (if needed).** If the issue needs fleshing out, run a `/grill-me` session.
 
 5. **Apply the outcome:**
-   - `ready-for-agent` — post an agent brief comment ([AGENT-BRIEF.md](AGENT-BRIEF.md)). **Apply a `slice:*` label** (see "Picking the slice label" below). **Move the card to Ready on the Kanban board** by running `.claude/scripts/kanban-move.sh <issue-number> ready`.
+   - `ready-for-agent` — **first, validate `## Blocked by`** (see "Blocked-by validation" below). If the validator fails, refuse to apply the label and surface the offending `#N` to the maintainer. Otherwise: post an agent brief comment ([AGENT-BRIEF.md](AGENT-BRIEF.md)). **Apply a `slice:*` label** (see "Picking the slice label" below). **Move the card to Ready on the Kanban board** by running `.claude/scripts/kanban-move.sh <issue-number> ready`.
    - `ready-for-human` — same structure as an agent brief, but note why it can't be delegated. **Apply a `slice:*` label**. **Move the card to Ready** by running `.claude/scripts/kanban-move.sh <issue-number> ready`.
    - `needs-info` — post triage notes (template below).
    - `wontfix` (bug) — polite explanation, then close.
    - `wontfix` (enhancement) — write to `.out-of-scope/`, link to it from a comment, then close ([OUT-OF-SCOPE.md](OUT-OF-SCOPE.md)).
    - `needs-triage` — apply the role. Optional comment if there's partial progress.
+
+## Blocked-by validation
+
+Before applying `ready-for-agent` to any issue, run the write-time integrity
+check on its `## Blocked by` section. This catches typo-references (e.g.
+`#137` when the actual blocker is `#173`) and stale dependencies (an `#N`
+that has since been closed) **at triage time**, before the issue ever
+enters the forge queue.
+
+```
+test/validate-blocked-by.sh <issue-number>
+```
+
+The validator reads the issue body via `gh issue view`, parses the `## Blocked
+by` section, and asserts every `#N` reference is a real, OPEN GitHub issue.
+Empty sections, missing sections, and sections whose first word is "None"
+(case-insensitive) all pass — they mean "no dependencies."
+
+Exit-code contract:
+
+- **`0`** — section is valid. Proceed to apply `ready-for-agent`.
+- **`1`** — one or more `#N` references are missing or closed. Per-failure
+  messages on stderr name the offending `#N` and the reason (missing vs.
+  closed). **Refuse to apply `ready-for-agent`** and surface the failure to
+  the maintainer; the issue's `## Blocked by` section needs to be fixed first.
+- **`2`** — runtime/usage error (e.g. `gh` unavailable, issue does not
+  exist). Surface to the maintainer; do not silently fall through.
+
+This validator is also used by [Batch triage (from /inscribe)](#batch-triage-from-inscribe) — every issue in a batch is validated before its `ready-for-agent` label is applied, in the same way.
 
 ## Picking the slice label
 
@@ -141,6 +170,7 @@ When called by `/inscribe`, triage receives **all issues at once**. In batch mod
 2. **Build order determines the recommended first temper.** Issues arrive ordered logic-first, then mixed, then UI.
 
 3. **Per-issue steps:**
+   - **Validate `## Blocked by`** first per [Blocked-by validation](#blocked-by-validation). If the validator fails, skip the rest of this issue's steps (do **not** apply `ready-for-agent`) and surface the failing `#N` to the maintainer at end-of-batch — the issue stays unlabeled until the reference is fixed.
    - Apply category label (`enhancement` or `bug`)
    - Apply state label (`ready-for-agent`)
    - Apply slice label (`slice:logic` / `slice:ui` / `slice:mixed`)
