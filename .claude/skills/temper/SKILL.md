@@ -82,10 +82,13 @@ trailing text, no code fences around the line, no pretty-printing — one object
 line so Forge can parse it deterministically.
 
 ```
-TEMPER:RESULT {"status":"success","issue":3,"pr":42,"branch":"feat/#3-foo","tokens":null,"friction":null}
+TEMPER:RESULT {"v":1,"status":"success","issue":3,"pr":42,"branch":"feat/#3-foo","tokens":null,"friction":null}
 ```
 
 Required fields on every emission:
+- `v` — protocol version (integer). Currently `1`. Always emit it. (Absent is
+  accepted by `validate-sentinel.sh` as a back-compat legacy case for one
+  release, but new temper emissions must include it.)
 - `status` — one of `success`, `continue`, `needs_human`, `fail`
 - `issue` — issue number (integer)
 - `branch` — branch name (string), or `null` if branch was never created
@@ -105,27 +108,27 @@ Examples:
 
 Success:
 ```
-TEMPER:RESULT {"status":"success","issue":21,"pr":58,"branch":"feat/#21-temper-sentinel-json","tokens":null,"friction":null}
+TEMPER:RESULT {"v":1,"status":"success","issue":21,"pr":58,"branch":"feat/#21-temper-sentinel-json","tokens":null,"friction":null}
 ```
 
 Continuation (context or rate-limit hand-off):
 ```
-TEMPER:RESULT {"status":"continue","issue":21,"pr":null,"branch":"feat/#21-temper-sentinel-json","tokens":null,"friction":null,"continuation_file":".claude/temper-continue-21.md"}
+TEMPER:RESULT {"v":1,"status":"continue","issue":21,"pr":null,"branch":"feat/#21-temper-sentinel-json","tokens":null,"friction":null,"continuation_file":".claude/temper-continue-21.md"}
 ```
 
 Needs human (CI stuck after retries):
 ```
-TEMPER:RESULT {"status":"needs_human","issue":21,"pr":58,"branch":"feat/#21-temper-sentinel-json","tokens":null,"friction":null,"reason":"ci-stuck"}
+TEMPER:RESULT {"v":1,"status":"needs_human","issue":21,"pr":58,"branch":"feat/#21-temper-sentinel-json","tokens":null,"friction":null,"reason":"ci-stuck"}
 ```
 
 Friction flagged but resolved enough to land a PR for human review:
 ```
-TEMPER:RESULT {"status":"needs_human","issue":21,"pr":58,"branch":"feat/#21-temper-sentinel-json","tokens":null,"friction":"flaky test in CI — retried twice, still intermittent; left PR open for review","reason":"friction"}
+TEMPER:RESULT {"v":1,"status":"needs_human","issue":21,"pr":58,"branch":"feat/#21-temper-sentinel-json","tokens":null,"friction":"flaky test in CI — retried twice, still intermittent; left PR open for review","reason":"friction"}
 ```
 
 Unrecoverable failure:
 ```
-TEMPER:RESULT {"status":"fail","issue":21,"pr":null,"branch":"feat/#21-temper-sentinel-json","tokens":null,"friction":null,"reason":"branch creation blocked by hook"}
+TEMPER:RESULT {"v":1,"status":"fail","issue":21,"pr":null,"branch":"feat/#21-temper-sentinel-json","tokens":null,"friction":null,"reason":"branch creation blocked by hook"}
 ```
 
 ## Dev mode resolution

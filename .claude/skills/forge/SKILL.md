@@ -256,7 +256,13 @@ defined in `docs/shared/pipeline.md`.
 3. Read `status`, `issue`, `pr`, `branch`, and (if present) `continuation_file`,
    `reason`, `friction`. `tokens` is always `null` from temper — Forge fills it in via
    ccusage during the token-logging step (see "Token Logging").
-4. If no `TEMPER:RESULT` line is found, treat the run as `status: "fail"` with reason
+4. Read the protocol-version field `v` if present. Current emitters set `"v": 1`;
+   a sentinel without `v` is a legacy emitter and is still accepted (back-compat
+   window). For now Forge handles `v=1` and absent identically — they describe the
+   same schema. A future schema bump will branch on `v` so old and new emitters can
+   coexist during the migration; the version field exists precisely so that change
+   does not require a flag-day.
+5. If no `TEMPER:RESULT` line is found, treat the run as `status: "fail"` with reason
    `"no result sentinel"` and apply the fail branch below.
 
 **Action by `status`:**

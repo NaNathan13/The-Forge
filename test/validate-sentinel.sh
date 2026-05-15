@@ -50,6 +50,12 @@ set -uo pipefail
 #   status=="fail"         → reason (string)
 #   status=="success"      → no extras
 #
+# Optional protocol version (since v1):
+#   v         — integer (currently 1). Absent is accepted as a back-compat
+#               case for one release — a sentinel without `v` is treated as
+#               legacy (pre-version-field) and still validates. A future
+#               sub-phase will make `v` required and pin the accepted values.
+#
 # See `docs/shared/pipeline.md` §"Sentinel protocol" for the canonical schema
 # and `.claude/skills/temper/SKILL.md` §"Emit the result sentinel" for the
 # emission rules.
@@ -199,6 +205,30 @@ fi
 friction_type="$(echo "$json" | jq -r '.friction | type')"
 if [[ "$friction_type" != "string" && "$friction_type" != "null" ]]; then
   die 1 "field 'friction' must be a string or null, got $friction_type"
+fi
+
+# ── Optional protocol version `v` (since v1) ─────────────────────────────────
+#
+# The protocol gained a `"v": 1` version field so future schema bumps can be
+# non-breaking. For one back-compat release the field is OPTIONAL:
+#   - absent  → accepted (legacy sentinel from a pre-version-field temper)
+#   - present → must be the integer 1
+# A future sub-phase will make this required and pin a richer set of accepted
+# values once we ship a v2 transition.
+has_v="$(echo "$json" | jq -r 'has("v")')"
+if [[ "$has_v" == "true" ]]; then
+  v_type="$(echo "$json" | jq -r '.v | type')"
+  if [[ "$v_type" != "number" ]]; then
+    die 1 "field 'v' must be an integer, got $v_type"
+  fi
+  is_int="$(echo "$json" | jq -r '.v | (. == (. | floor))')"
+  if [[ "$is_int" != "true" ]]; then
+    die 1 "field 'v' must be an integer (no decimal component)"
+  fi
+  v_value="$(echo "$json" | jq -r '.v')"
+  if [[ "$v_value" != "1" ]]; then
+    die 1 "field 'v' must be 1 (the only currently-defined protocol version), got $v_value"
+  fi
 fi
 
 # ── Status-specific extras ───────────────────────────────────────────────────
