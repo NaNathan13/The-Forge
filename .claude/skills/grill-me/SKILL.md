@@ -19,6 +19,45 @@ Use the `Edit` tool, not `Write`. Single-row change only — leave surrounding r
 
 If the grill is not tied to a sub-phase (e.g. an exploratory grill or a single-slice), skip this step — and skip the restore step below too.
 
+## Glossary upkeep (per-question self-check)
+
+After resolving a question, ask yourself: did this round define, sharpen, or redefine a term? Run the two-step check below before posing the next question.
+
+The self-check is **one line of prose, not a heuristic match**. It fires *only* when the round genuinely defined or contradicted a term. Cosmetic variation (casing, plural, synonym already listed under `_Avoid_:` on an existing entry) does **not** fire the check. Operator burnout from false positives is the failure mode this discipline exists to prevent.
+
+### A. New / fuzzy / absent term path (proactive write)
+
+If the round resolved a term that is fuzzy, overloaded, or absent from `CONTEXT.md`, write the entry directly to `CONTEXT.md` using the existing entry format:
+
+```markdown
+**Term**: Definition. Mention the canonical name, where it lives, and what it is NOT. _Avoid_: "rejected synonym" (reason).
+```
+
+Use the `Edit` tool — single-block insert into the existing `## Language` section, sorted alphabetically with the existing entries (or appended if no clear sort key matches). Do **not** `Write` over the whole file; leave surrounding entries untouched.
+
+Then emit one prose line to the transcript:
+
+```
+noted: **Term** → CONTEXT.md
+```
+
+### B. Conflict path (surface + micro-resolve)
+
+If the round's term **conflicts** with an existing `CONTEXT.md` entry (the user's usage contradicts the recorded definition), emit one inline flag line:
+
+```
+⚠️ conflicts with **Term** in CONTEXT.md: "<existing definition first sentence>"
+```
+
+Then issue a single `AskUserQuestion` with **four** options before posing the next grill question:
+
+- **keep** — existing definition stands; user's usage is loose, ignore for this grill. No write.
+- **update** — rewrite the existing entry with the new definition. Single `Edit` against the existing entry.
+- **new sense / new term** — the user's term is a separate concept; append as a new entry with a disambiguating slug. Existing entry stands.
+- **defer** — record nothing, surface only; user revisits later.
+
+Resolve before the next grill question — do not stack conflicts.
+
 ## Restore on exit/abort
 
 The `🔥 grilling` status is a transient marker. It must be replaced before the grill session ends, or the sub-phase row will sit at `🔥 grilling` forever after the user walks away.
