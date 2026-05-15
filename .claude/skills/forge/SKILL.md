@@ -125,26 +125,72 @@ Before dispatching any workers:
    injected, or it has no `phase:` line, the run is unscoped — keep the whole
    `ready-for-agent` queue.
 
-3. **Parse the dependency graph.** For each issue, scan the body for a `## Blocked by` section. Possible values:
+3. **Validate queue artifacts (shape checks).** Before parsing the dependency graph,
+   run shape checks against every issue in the resolved queue. This is the ponder→forge
+   analogue of "CI must be green before merge" — it catches malformed issues at queue
+   time so a temper worker is never dispatched on something `/triage` couldn't have
+   produced cleanly. For each issue, run these three checks:
+
+   - **`slice:*` label present.** The issue must carry exactly one of: `slice:logic`,
+     `slice:ui`, `slice:mixed`, `slice:docs`, `slice:script`, `slice:skill`. Read from
+     the `labels` array on the `gh issue list` JSON already fetched in step 1 — no
+     extra GitHub call needed.
+   - **`## Acceptance` section present and non-empty.** The body (also already fetched
+     in step 1) must contain a `## Acceptance` heading (case-sensitive, exactly two
+     hashes, exactly that word — `## Acceptance criteria` also matches as the same
+     heading family); the section's body (text between that heading and the next
+     `##`/end-of-body) must contain at least one non-whitespace character.
+   - **`## Blocked by` section parseable.** The body must contain a `## Blocked by`
+     section. Its body is parseable iff it is one of:
+     - The literal token `None` (optionally followed by `— can start immediately` or
+       similar prose on the same line — the leading `None` is what makes it valid),
+     - Empty / whitespace-only (treated as no dependencies),
+     - One or more `#N` references in a comma- or newline-separated list. Annotations
+       like `#42 (logic)` are allowed — only the `#N` tokens are load-bearing.
+     Free prose with no `None` and no `#N` references is malformed. (Parsing the
+     `#N` references themselves into the dependency graph is step 4's job; this step
+     only checks that the section is shape-valid.)
+
+   GitHub-specific seam: both inputs come from `gh issue view`-equivalent JSON
+   (`labels[].name` and `body`). A future VCS-abstraction phase would swap the data
+   source; the three checks themselves are VCS-agnostic.
+
+   **On failure:** print one line per offending issue with the issue number and the
+   specific check that failed — e.g.:
+   ```
+   #194 missing slice:* label
+   #194 missing ## Acceptance section
+   #196 ## Blocked by section malformed (free prose, expected None or #N list)
+   ```
+   Then refuse to proceed — do **not** advance to step 4, do **not** present a build
+   queue, do **not** write `gen-001.md`. The operator must fix the issues (re-running
+   `/triage` on each, or editing the issue body) and re-launch forge. This is a
+   pre-flight gate: forge does not auto-skip malformed issues, because a silently
+   dropped slice is a worse failure mode than an explicit halt.
+
+   **On success (all issues pass):** proceed to step 4 with no behavior change. The
+   green path is identical to before this gate existed.
+
+4. **Parse the dependency graph.** For each issue, scan the body for a `## Blocked by` section. Possible values:
    - `None - can start immediately` → no dependencies
    - `#42, #43` (or any comma/newline-separated list of issue numbers) → blocked by those issues
    - `#42 (logic), #43 (db schema)` → also valid; parse out the `#N` tokens
    Issues whose blockers are NOT in the current build queue are treated as unblocked (those blockers presumably already shipped on `main`).
 
-4. **Topo-sort the queue.** Within each "stratum" of the DAG (issues whose blockers are all earlier in the queue), apply the slice-type secondary sort: `slice:logic` first, `slice:mixed` second, `slice:ui` third. Within each slice type, sort by issue number ascending (stable).
+5. **Topo-sort the queue.** Within each "stratum" of the DAG (issues whose blockers are all earlier in the queue), apply the slice-type secondary sort: `slice:logic` first, `slice:mixed` second, `slice:ui` third. Within each slice type, sort by issue number ascending (stable).
 
-5. **Detect cycles or stranded slices.** If any issue's blockers create a cycle, or if a blocker isn't in the queue AND isn't already merged on `main`, flag it to the user. Don't proceed with an inconsistent graph.
+6. **Detect cycles or stranded slices.** If any issue's blockers create a cycle, or if a blocker isn't in the queue AND isn't already merged on `main`, flag it to the user. Don't proceed with an inconsistent graph.
 
-6. **Present the build queue as a numbered table** with a `Blocked by` column:
+7. **Present the build queue as a numbered table** with a `Blocked by` column:
 
    | # | Issue | Title | Slice | Blocked by | Summary |
    |---|-------|-------|-------|------------|---------|
    | 1 | #95  | logic: derive-status function | logic | — | … |
    | 2 | #96  | ui: status chip on cards | ui | #95 | … |
 
-7. **Ask the user to approve, reorder, or remove slices.** Show the dependency edges explicitly: "Building #95 first because #96 is blocked by it." If the user reorders into something that violates a dependency, warn and either re-sort or accept (with their explicit OK).
+8. **Ask the user to approve, reorder, or remove slices.** Show the dependency edges explicitly: "Building #95 first because #96 is blocked by it." If the user reorders into something that violates a dependency, warn and either re-sort or accept (with their explicit OK).
 
-8. **On approval, write `gen-001.md` immediately — before dispatching anything.** Run
+9. **On approval, write `gen-001.md` immediately — before dispatching anything.** Run
    `scripts/continuation.sh write` to create the first continuation generation and fill
    its five sections (see "Continuation generations" below). The approved queue table
    goes in the Execution-frontier **Dispatch queue** field; `approved-queue: true` goes
@@ -155,7 +201,7 @@ Before dispatching any workers:
    approval and the first dispatch cannot re-prompt the human — the SessionStart hook
    will find `gen-001.md` and resume from it instead of falling back to the charter.
 
-9. Begin the autonomous dispatch loop.
+10. Begin the autonomous dispatch loop.
 
 ### Skipping pre-flight on resumed generations
 
