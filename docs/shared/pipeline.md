@@ -41,6 +41,7 @@ Required fields on every emission:
 
 | Field | Type | Description |
 |---|---|---|
+| `v` | integer | Protocol version. Currently `1`. Since v1; future versions will bump this. **Absent = legacy** (a pre-version-field temper) — accepted for one back-compat release, then required. |
 | `status` | string | One of `success`, `continue`, `needs_human`, `fail`. |
 | `issue` | integer | Issue number being built. |
 | `branch` | string \| null | Feature branch name, or `null` if the branch was never created. |
@@ -61,28 +62,46 @@ Status-specific extra fields:
 
 Success:
 ```
-TEMPER:RESULT {"status":"success","issue":21,"pr":58,"branch":"feat/#21-temper-sentinel-json","tokens":null,"friction":null}
+TEMPER:RESULT {"v":1,"status":"success","issue":21,"pr":58,"branch":"feat/#21-temper-sentinel-json","tokens":null,"friction":null}
 ```
 
 Continuation (context or rate-limit hand-off):
 ```
-TEMPER:RESULT {"status":"continue","issue":21,"pr":null,"branch":"feat/#21-temper-sentinel-json","tokens":null,"friction":null,"continuation_file":".claude/temper-continue-21.md"}
+TEMPER:RESULT {"v":1,"status":"continue","issue":21,"pr":null,"branch":"feat/#21-temper-sentinel-json","tokens":null,"friction":null,"continuation_file":".claude/temper-continue-21.md"}
 ```
 
 Needs human (CI stuck after retries):
 ```
-TEMPER:RESULT {"status":"needs_human","issue":21,"pr":58,"branch":"feat/#21-temper-sentinel-json","tokens":null,"friction":null,"reason":"ci-stuck"}
+TEMPER:RESULT {"v":1,"status":"needs_human","issue":21,"pr":58,"branch":"feat/#21-temper-sentinel-json","tokens":null,"friction":null,"reason":"ci-stuck"}
 ```
 
 Friction left for human review:
 ```
-TEMPER:RESULT {"status":"needs_human","issue":21,"pr":58,"branch":"feat/#21-temper-sentinel-json","tokens":null,"friction":"flaky test in CI — retried twice, still intermittent","reason":"friction"}
+TEMPER:RESULT {"v":1,"status":"needs_human","issue":21,"pr":58,"branch":"feat/#21-temper-sentinel-json","tokens":null,"friction":"flaky test in CI — retried twice, still intermittent","reason":"friction"}
 ```
 
 Unrecoverable failure:
 ```
-TEMPER:RESULT {"status":"fail","issue":21,"pr":null,"branch":"feat/#21-temper-sentinel-json","tokens":null,"friction":null,"reason":"branch creation blocked by hook"}
+TEMPER:RESULT {"v":1,"status":"fail","issue":21,"pr":null,"branch":"feat/#21-temper-sentinel-json","tokens":null,"friction":null,"reason":"branch creation blocked by hook"}
 ```
+
+### Protocol version (`v`)
+
+`v` is the schema version field. It was added in sub-phase 3a (audit rec #29)
+after the protocol's first migration — the flag-day swap from four prose
+sentinels (`TEMPER:SUCCESS` et al.) to the structured `TEMPER:RESULT` JSON —
+so that the *next* schema change can be non-breaking: Forge's parser can
+branch on `v` and support two schemas during a transition instead of requiring
+every temper and forge to update atomically.
+
+- **Currently defined values:** `1`.
+- **Absent `v`:** treated as legacy (pre-version-field). Accepted for one
+  back-compat release so a temper that has not been updated yet does not
+  break the forge run. A future sub-phase will make `v` required and pin a
+  richer set of accepted values once a v2 transition ships.
+- **Unknown `v` (e.g. `2`):** rejected by `test/validate-sentinel.sh`. The
+  validator only accepts versions it has been taught. New versions ship by
+  bumping the validator first, then the emitters.
 
 ### Forge dispatch table
 
