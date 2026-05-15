@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# hooks.test.sh — tests for the P2 Stop + SessionStart hooks (issue #140).
+# hooks.test.sh — tests for the P2 Stop + SessionStart hooks (issue #140, #181).
 #
 # Covers .claude/hooks/forge-stop-handoff.sh and .claude/hooks/forge-session-start.sh:
 #   - Stop hook touches .forge/heartbeat/<slug> on every fire (heartbeat).
@@ -9,10 +9,15 @@
 #   - SessionStart hook stamps the generation baseline the Stop hook reads.
 #   - SessionStart hook injects `latest` via additionalContext, falls back to a
 #     charter on first launch, and appends the loop's hand-off-promptly signal.
+#   - Both hooks key off the FORGE_LOOP_MANAGED env marker (issue #181): the
+#     marker set → loop-managed → SessionStart stamps, Stop enforces; the marker
+#     unset → interactive → SessionStart does NOT stamp, Stop allows the turn.
 #
 # These exercise the hooks as the CLI invokes them: hook input JSON on stdin,
 # decision / context JSON on stdout. FORGE_DIR points the hooks at a temp .forge
-# dir so nothing leaks between tests.
+# dir so nothing leaks between tests. FORGE_LOOP_MANAGED is exported in setup so
+# the default for every test is a loop-managed session; the interactive-session
+# tests unset it explicitly.
 #
 # Run via:  test/run-tests.sh test/hooks.test.sh
 #
@@ -38,12 +43,17 @@ setup() {
   SESSION_CWD="$WORKDIR/the-forge"
   mkdir -p "$SESSION_CWD"
   SLUG="the-forge"
+  # Default every test to a loop-managed session: the relaunch loop exports
+  # FORGE_LOOP_MANAGED=1 into each `claude -p` generation, and that is the
+  # common case the hooks were written for. Tests that exercise an interactive
+  # session unset it explicitly (see the FORGE_LOOP_MANAGED section).
+  export FORGE_LOOP_MANAGED=1
   unset FORGE_RETENTION_CAP
 }
 
 teardown() {
   rm -rf "$WORKDIR"
-  unset FORGE_DIR FORGE_RETENTION_CAP
+  unset FORGE_DIR FORGE_RETENTION_CAP FORGE_LOOP_MANAGED
 }
 
 # Build a Stop-hook input JSON object. Args: [stop_hook_active] (default false).
@@ -97,12 +107,12 @@ test_stop_hook_heartbeat_touched_even_when_blocking() {
 # ── Stop hook: handoff enforcement ───────────────────────────────────────────
 
 test_stop_hook_allows_when_no_baseline() {
-  # No .genbaseline → session is not loop-managed (a hand-run interactive
-  # session). The hook must ALLOW — never wedge a hand-run session.
+  # Marker is set (loop-managed) but no .genbaseline was stamped — missing
+  # state. The hook must ALLOW rather than risk wedging on it.
   local out
   out="$(stop_input | bash "$STOP_HOOK" 2>/dev/null)"
   assert_not_contains "$out" '"decision":"block"' \
-    "a non-loop-managed session must not be blocked"
+    "a missing baseline must not block the stop"
 }
 
 test_stop_hook_blocks_when_continuation_not_written() {
@@ -280,6 +290,88 @@ test_session_start_emits_valid_json() {
   local out
   out="$(start_input | bash "$START_HOOK" 2>/dev/null)"
   echo "$out" | jq . >/dev/null || fail "SessionStart output must be valid JSON"
+}
+
+# ── FORGE_LOOP_MANAGED marker: loop-managed vs interactive (issue #181) ──────
+# The relaunch loop exports FORGE_LOOP_MANAGED=1 into every `claude -p`
+# generation. The hooks key off it: SessionStart stamps the genbaseline only
+# when it is set; the Stop hook enforces the handoff only when it is set. An
+# interactive session (no marker) is never stamped and never blocked — this is
+# the fix for the confirmed Stop-hook double-block.
+
+test_session_start_stamps_baseline_when_loop_managed() {
+  # Marker set (the setup default) → loop-managed → the baseline IS stamped.
+  start_input | bash "$START_HOOK" >/dev/null 2>&1
+  assert_file_exists "$FORGE_DIR/heartbeat/$SLUG.genbaseline" \
+    "a loop-managed SessionStart must stamp the genbaseline"
+}
+
+test_session_start_does_not_stamp_baseline_when_interactive() {
+  # Marker unset → interactive session → the baseline must NOT be stamped.
+  # A stamped baseline is exactly what makes the Stop hook enforce the handoff;
+  # stamping it for an interactive session is the confirmed double-block.
+  unset FORGE_LOOP_MANAGED
+  start_input | bash "$START_HOOK" >/dev/null 2>&1
+  assert_file_absent "$FORGE_DIR/heartbeat/$SLUG.genbaseline" \
+    "an interactive SessionStart must not stamp the genbaseline"
+}
+
+test_session_start_still_injects_context_when_interactive() {
+  # Skipping the baseline stamp must not skip context injection — an interactive
+  # session still gets its continuation / charter injected normally.
+  unset FORGE_LOOP_MANAGED
+  printf 'CHARTER: interactive run\n' > "$FORGE_DIR/charter.md"
+  local out ctx
+  out="$(start_input | bash "$START_HOOK" 2>/dev/null)"
+  ctx="$(jq -r '.hookSpecificOutput.additionalContext' <<<"$out")"
+  assert_contains "$ctx" "CHARTER: interactive run" \
+    "an interactive session must still receive injected context"
+}
+
+test_stop_hook_enforces_when_loop_managed_and_no_handoff() {
+  # Marker set + baseline stamped + no new continuation → loop-managed session
+  # skipping its handoff → the hook must BLOCK.
+  echo "000" > "$FORGE_DIR/heartbeat/$SLUG.genbaseline"
+  local out
+  out="$(stop_input | bash "$STOP_HOOK" 2>/dev/null)"
+  assert_contains "$out" '"decision":"block"' \
+    "a loop-managed session that skipped its handoff must be blocked"
+}
+
+test_stop_hook_allows_when_interactive_even_with_baseline() {
+  # Marker unset → interactive session. Even if a stale .genbaseline is present
+  # (e.g. left by a prior loop run in the same workdir), the marker check fires
+  # first and the hook must ALLOW — the interactive turn-end is not blocked.
+  unset FORGE_LOOP_MANAGED
+  echo "000" > "$FORGE_DIR/heartbeat/$SLUG.genbaseline"
+  local out
+  out="$(stop_input | bash "$STOP_HOOK" 2>/dev/null)"
+  assert_not_contains "$out" '"decision":"block"' \
+    "an interactive session must not be blocked even with a stale baseline"
+}
+
+test_stop_hook_interactive_can_end_turn_double_block_gone() {
+  # The end-to-end fix for issue #181: an interactive session (no marker) where
+  # SessionStart ran (unconditionally registered) but — correctly — stamped no
+  # baseline. The Stop hook must allow the turn to end. This is the confirmed
+  # double-block, verified gone.
+  unset FORGE_LOOP_MANAGED
+  start_input | bash "$START_HOOK" >/dev/null 2>&1
+  assert_file_absent "$FORGE_DIR/heartbeat/$SLUG.genbaseline" \
+    "interactive SessionStart left no baseline"
+  local out
+  out="$(stop_input | bash "$STOP_HOOK" 2>/dev/null)"
+  assert_not_contains "$out" '"decision":"block"' \
+    "an interactive session must end its turn without the Stop hook blocking"
+}
+
+test_stop_hook_heartbeat_touched_when_interactive() {
+  # The heartbeat is unconditional — it fires before the marker check. An
+  # interactive session is allowed through, but still leaves a heartbeat.
+  unset FORGE_LOOP_MANAGED
+  stop_input | bash "$STOP_HOOK" >/dev/null 2>&1
+  assert_file_exists "$FORGE_DIR/heartbeat/$SLUG" \
+    "the heartbeat must be touched even for an interactive (allowed) session"
 }
 
 # ── Stop + SessionStart together: the round trip ─────────────────────────────

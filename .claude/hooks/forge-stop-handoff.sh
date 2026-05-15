@@ -33,11 +33,18 @@ set -uo pipefail
 # the hook needing to track generation numbers itself — the SessionStart hook
 # stamps the baseline, this hook reads it.
 #
-# If no baseline file exists (the SessionStart hook did not run — e.g. an
-# interactive session a developer opened by hand, not under the relaunch loop),
-# the hook treats the session as not loop-managed and ALLOWS the stop. P2 only
-# enforces handoffs on loop-managed sessions; it must never wedge a hand-run
-# interactive session that has nothing to do with the resilience loop.
+# "Loop-managed" is an explicit positive signal, not an inference (issue #181).
+# The relaunch loop exports FORGE_LOOP_MANAGED=1 into every `claude -p`
+# generation it launches; an interactive session a developer opens by hand never
+# carries it. This hook enforces the handoff ONLY when FORGE_LOOP_MANAGED is set
+# (and a baseline exists). If the marker is unset — an interactive session — the
+# hook ALLOWS the stop unconditionally. P2 only enforces handoffs on loop-managed
+# sessions; it must never wedge a hand-run interactive session that has nothing
+# to do with the resilience loop.
+#
+# The baseline check still runs after the marker check: even a loop-managed
+# session with no baseline yet (SessionStart somehow did not stamp) is allowed,
+# rather than risk wedging on missing state.
 #
 # ── stop_hook_active ─────────────────────────────────────────────────────────
 # Claude Code sets `stop_hook_active: true` in the Stop hook input when the
@@ -145,10 +152,20 @@ main() {
     allow_stop
   fi
 
+  # FORGE_LOOP_MANAGED is the explicit "this generation is loop-managed" marker
+  # (issue #181). The relaunch loop exports it into every `claude -p` generation;
+  # an interactive session never carries it. Unset → not loop-managed → allow the
+  # stop. This is the primary discriminator: P2 must never wedge a hand-run
+  # interactive session, and an interactive SessionStart no longer stamps a
+  # baseline either, so this and the baseline check agree.
+  if [[ -z "${FORGE_LOOP_MANAGED:-}" ]]; then
+    allow_stop
+  fi
+
   # The SessionStart hook stamps a per-session baseline: the continuation
   # generation number that existed when this generation launched. No baseline →
-  # this session is not loop-managed (a hand-run interactive session). P2 only
-  # enforces handoffs on loop-managed sessions — allow.
+  # treat as not loop-managed and allow, rather than risk wedging on missing
+  # state. P2 only enforces handoffs on loop-managed sessions.
   local baseline_file baseline
   baseline_file="$hb_dir/$slug.genbaseline"
   if [[ ! -f "$baseline_file" ]]; then

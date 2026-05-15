@@ -63,7 +63,20 @@ set -euo pipefail
 # The stub ignores the prompt and every CLI flag it is passed (-p, --output-format,
 # --resume, etc.) — it is output-driven, not input-driven. That is deliberate: tests
 # control behaviour through the env knobs, not through prompt text.
+#
+# ── Environment probe (issue #181) ───────────────────────────────────────────
+# The relaunch loop must export FORGE_LOOP_MANAGED=1 into each generation's
+# environment. A test cannot see that from the loop's stdout — so if
+# CLAUDE_STUB_ENV_PROBE points at a file path, the stub appends, on each
+# invocation, one line: `FORGE_LOOP_MANAGED=<value-or-UNSET>`. A test points the
+# probe at a temp file and asserts on its contents to verify the export reached
+# the child process. The probe is inert when CLAUDE_STUB_ENV_PROBE is unset.
 # ─────────────────────────────────────────────────────────────────────────────
+
+# Environment probe — record whether FORGE_LOOP_MANAGED reached this child.
+if [[ -n "${CLAUDE_STUB_ENV_PROBE:-}" ]]; then
+  printf 'FORGE_LOOP_MANAGED=%s\n' "${FORGE_LOOP_MANAGED-UNSET}" >> "$CLAUDE_STUB_ENV_PROBE"
+fi
 
 # Capture which knobs the caller set in the environment *before* sourcing a fixture —
 # the fixture provides a base, the caller's env vars override it (env wins). The

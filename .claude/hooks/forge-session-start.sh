@@ -22,13 +22,22 @@ set -uo pipefail
 #
 # ── The generation baseline (pairs with forge-stop-handoff.sh) ───────────────
 # The Stop hook needs to know whether *this* generation wrote a new continuation
-# file. It cannot track generation numbers itself. So this hook, on every
-# launch, writes the continuation generation number that exists right now to
-# .forge/heartbeat/<slug>.genbaseline. The Stop hook later compares the latest
-# generation number against that baseline: greater → a handoff happened this
-# generation; equal → it did not, block the stop. Stamping the baseline is
-# unconditional — even a first launch (baseline 0) needs it, so the Stop hook
-# can tell a loop-managed session from a hand-run one.
+# file. It cannot track generation numbers itself. So this hook, on a
+# loop-managed launch, writes the continuation generation number that exists
+# right now to .forge/heartbeat/<slug>.genbaseline. The Stop hook later compares
+# the latest generation number against that baseline: greater → a handoff
+# happened this generation; equal → it did not, block the stop.
+#
+# Stamping is gated on the FORGE_LOOP_MANAGED marker (issue #181). The relaunch
+# loop exports FORGE_LOOP_MANAGED=1 into every `claude -p` generation it
+# launches; an interactive session a developer opens by hand never carries it.
+# This hook is registered unconditionally in .claude/settings.json, so it runs
+# for interactive sessions too — but it must only stamp the baseline for
+# loop-managed ones. "Baseline exists" is the Stop hook's "this is loop-managed"
+# discriminator; stamping it for an interactive session would make the Stop hook
+# wrongly enforce the handoff and block the turn (the confirmed double-block).
+# Even a first loop-managed launch (baseline 0) needs the stamp; an interactive
+# launch needs it skipped.
 #
 # A "hand-off promptly" signal file (written by the relaunch loop's budget gate
 # when usage crosses the warn line) is appended to the injected context if
@@ -108,19 +117,27 @@ main() {
 
   forge_dir="$(resolve_forge_dir)"
 
-  # ── Stamp the generation baseline (unconditional) ──────────────────────────
+  # ── Stamp the generation baseline (loop-managed sessions only) ─────────────
   # Write the continuation generation number that exists *now* to
   # .forge/heartbeat/<slug>.genbaseline. The Stop hook reads this to decide
   # whether this generation wrote a new continuation file. 000 if none exist.
-  local latest_num hb_dir baseline_file
-  if [[ -f "$CONTINUATION_SH" ]]; then
-    latest_num="$(bash "$CONTINUATION_SH" latest-num --slug "$slug" 2>/dev/null || echo "")"
+  #
+  # Gated on FORGE_LOOP_MANAGED (issue #181): only the relaunch loop's
+  # `claude -p` generations carry the marker. An interactive session must NOT be
+  # stamped — a stamped baseline is exactly the signal that makes the Stop hook
+  # enforce the handoff, and enforcing it on an interactive turn-end is the
+  # confirmed double-block this gate fixes.
+  if [[ -n "${FORGE_LOOP_MANAGED:-}" ]]; then
+    local latest_num hb_dir baseline_file
+    if [[ -f "$CONTINUATION_SH" ]]; then
+      latest_num="$(bash "$CONTINUATION_SH" latest-num --slug "$slug" 2>/dev/null || echo "")"
+    fi
+    [[ "$latest_num" =~ ^[0-9]+$ ]] || latest_num="000"
+    hb_dir="$forge_dir/heartbeat"
+    baseline_file="$hb_dir/$slug.genbaseline"
+    mkdir -p "$hb_dir" 2>/dev/null || true
+    printf '%s\n' "$latest_num" > "$baseline_file" 2>/dev/null || true
   fi
-  [[ "$latest_num" =~ ^[0-9]+$ ]] || latest_num="000"
-  hb_dir="$forge_dir/heartbeat"
-  baseline_file="$hb_dir/$slug.genbaseline"
-  mkdir -p "$hb_dir" 2>/dev/null || true
-  printf '%s\n' "$latest_num" > "$baseline_file" 2>/dev/null || true
 
   # ── Resolve the continuation `latest` to inject ────────────────────────────
   local latest_path continuation=""
