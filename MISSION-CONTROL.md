@@ -5,24 +5,22 @@
 
 ## 🛰️ Telemetry — right now
 
-**Phase:** P3 — Improvements ▓░░░░░ 1/6
-**In flight:** 3b — Documented contracts + bootstrap stamp (3 of 4 slices shipped; #209 ADR-0003 blocked on merge-conflict resolution)
+**Phase:** P3 — Improvements ▓▓░░░░ 2/6
+**In flight:** —
 **Workflow:** Ponder → Forge → Temper pipeline. See [`docs/workflow/`](docs/workflow/) for details.
 
 **Recommended next prompt:**
 
 ```
-/seal
+/ponder 3c — Close knowledge-loop write side
 ```
-
-> PR #214 (#209 ADR-0003 concurrency cap) has a merge conflict on MISSION-CONTROL.md `## ADRs` section. Resolution is purely additive (keep both ADR-0002 and ADR-0003 lines) and was prepared in `/tmp/seal-conflict-214`, but the force-push was blocked by the harness auto-mode classifier. Run `git push --force-with-lease origin feat/#209-adr-0003-concurrency-cap` from that worktree (or rebase locally), then re-run `/seal` to merge #214 and close 3b.
 
 ## ☄️ In flight
 
 | Sub-phase | Slice | Status |
 | --- | --- | --- |
 | 3b | #208 ADR-0002 phase isolation | ✅ shipped |
-| 3b | #209 ADR-0003 concurrency cap | 🚧 PR #214 blocked on merge-conflict resolution (friction) |
+| 3b | #209 ADR-0003 concurrency cap | ✅ shipped |
 | 3b | #210 install-manifest stamp | ✅ shipped |
 | 3b | #211 "Why this size?" template wiring | ✅ shipped |
 
@@ -66,14 +64,14 @@
 | --- | --- | --- | --- | --- |
 | 2a | Workflow audit + onboarding doc | ✅ shipped | [`docs/prds/pipeline-audit.md`](docs/prds/pipeline-audit.md) | #154, #155, #156, #157, #158, #159, #160, #161, #162, #163, #164, #165, #166 <!-- mc:done=154,155,156,157,158,159,160,161,162,163,164,165,166 --> |
 
-### P3 — Improvements ▓░░░░░ 1/6
+### P3 — Improvements ▓▓░░░░ 2/6
 
 > Finite, scoped refinement pass on The Forge — fix what's empirically broken, polish proven surfaces, get Discord-ready *as a constraint* (no Discord build). Driven by the 2a audit findings, triaged 2026-05-15 via `/grill`. Phase overview + nine locked grill decisions: [`docs/design/improvements-overview.md`](docs/design/improvements-overview.md). When this phase ships green, The Forge is at the launch-pad for the first real product project.
 
 | # | Sub-phase | Status | PRD | Issues |
 | --- | --- | --- | --- | --- |
 | 3a | Validation contracts (`validate-*.sh` family + sentinel `"v":1` + write-time integrity checks) | ✅ shipped | [`docs/prds/improvements-3a-validation.md`](docs/prds/improvements-3a-validation.md) | #192, #193, #194, #195, #196, #197, #198 <!-- mc:done=192,193,194,195,196,197,198 --> |
-| 3b | Documented contracts + bootstrap stamp | 🚧 in-progress | [`docs/prds/improvements-3b-contracts.md`](docs/prds/improvements-3b-contracts.md) | #208, #209, #210, #211 <!-- mc:open=208,209,210,211 --> |
+| 3b | Documented contracts + bootstrap stamp | ✅ shipped | [`docs/prds/improvements-3b-contracts.md`](docs/prds/improvements-3b-contracts.md) | #208, #209, #210, #211 <!-- mc:done=208,209,210,211 --> |
 | 3c | Close knowledge-loop write side | ⏳ queued | [`docs/prds/improvements-3c-knowledge-loop.md`](docs/prds/improvements-3c-knowledge-loop.md) (stub) | <!-- mc:none --> |
 | 3d | Crash-layer correctness + measurement | ⏳ queued | [`docs/prds/improvements-3d-crash-correctness.md`](docs/prds/improvements-3d-crash-correctness.md) (stub) | <!-- mc:none --> |
 | 3e | Live grill artifacts + ADRs | ⏳ queued | [`docs/prds/improvements-3e-live-grill.md`](docs/prds/improvements-3e-live-grill.md) (stub) | <!-- mc:none --> |
