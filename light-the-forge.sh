@@ -31,6 +31,42 @@ yellow() { printf '%s%s%s\n' "$YELLOW" "$*" "$N" >&2; }
 red()    { printf '%s%s%s\n' "$RED" "$*" "$N" >&2; }
 bold()   { printf '%s%s%s\n' "$BOLD" "$*" "$N"; }
 
+# ─── install-manifest stamp ──────────────────────────────────────────────────
+#
+# Writes .forge/install-manifest.json recording which Forge SHA was installed
+# and when. Refreshed on every run — this is install state, not user state.
+# Precondition for future --update / drift-check tooling and for any Discord
+# plugin that needs to know which Forge SHA a given project is on.
+
+write_install_manifest() {
+  local src="$1" target="$2"
+  if ! command -v jq >/dev/null 2>&1; then
+    yellow "  ! jq not found — skipping install-manifest stamp (will be re-checked below)"
+    return 0
+  fi
+  local forge_sha forge_ref installed_at
+  forge_sha="$(git -C "$src" rev-parse HEAD 2>/dev/null || echo unknown)"
+  forge_ref="$(git -C "$src" rev-parse --abbrev-ref HEAD 2>/dev/null || echo unknown)"
+  installed_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  local skills_json
+  if [[ -d "$src/.claude/skills" ]]; then
+    skills_json="$(cd "$src/.claude/skills" && find . -mindepth 1 -maxdepth 1 -type d \
+      | sed 's|^\./||' | sort | jq -R . | jq -s .)"
+  else
+    skills_json='[]'
+  fi
+  mkdir -p "$target/.forge"
+  jq -n \
+    --argjson v 1 \
+    --arg forge_sha "$forge_sha" \
+    --arg forge_ref "$forge_ref" \
+    --arg installed_at "$installed_at" \
+    --argjson skills "$skills_json" \
+    '{v: $v, forge_sha: $forge_sha, forge_ref: $forge_ref, installed_at: $installed_at, skills: $skills}' \
+    > "$target/.forge/install-manifest.json"
+  green "  ✓ Install manifest stamped (.forge/install-manifest.json)"
+}
+
 # ─── banner ───────────────────────────────────────────────────────────────────
 
 clear 2>/dev/null || true
@@ -152,6 +188,8 @@ if [[ "$ALREADY_CLONED" == "false" ]]; then
 
   green "  ✓ Kit files copied"
 
+  write_install_manifest "$SRC" "$TARGET"
+
   # Drop update helper
   mkdir -p "$TARGET/.claude/scripts"
   cat > "$TARGET/.claude/scripts/update.sh" <<'UPDATER'
@@ -160,6 +198,9 @@ if [[ "$ALREADY_CLONED" == "false" ]]; then
 cd "$(dirname "$0")/../.." && curl -fsSL https://raw.githubusercontent.com/NaNathan13/The-Forge/main/light-the-forge.sh | bash
 UPDATER
   chmod +x "$TARGET/.claude/scripts/update.sh"
+else
+  # Already-cloned path — source and target are the same directory.
+  write_install_manifest "$TARGET" "$TARGET"
 fi
 
 # ─── prereq checks ───────────────────────────────────────────────────────────

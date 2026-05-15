@@ -10,6 +10,7 @@ It holds one committed config file plus two gitignored runtime directories.
 ```
 .forge/
 ├── resilience.config        # committed — tunable thresholds (see below)
+├── install-manifest.json    # gitignored runtime — install stamp (see below)
 ├── README.md                # this file
 ├── continuation/            # gitignored runtime — handoff files, per session
 │   └── <slug>/
@@ -21,6 +22,15 @@ It holds one committed config file plus two gitignored runtime directories.
 ├── watchdog.log             # gitignored runtime — liveness-watchdog events
 └── launchd-*.log            # gitignored runtime — launchd agent stdout/stderr
 ```
+
+## `install-manifest.json`
+
+Written by `light-the-forge.sh` on every bootstrap — refreshed on every run,
+this is install state, not user state. Records the Forge git SHA + ref that
+was installed, the install timestamp, and the list of skills copied. Precondition
+for future `--update` / upstream-drift tooling and for any plugin (e.g. a Discord
+bot) that needs to know which Forge SHA a given project is on. Schema is `v: 1`
+JSON — see `light-the-forge.sh` for the writer; no validator ships yet.
 
 `continuation/`, `heartbeat/`, and the `*.log` files are **gitignored**
 (`.gitignore`): they are per-machine runtime state. `resilience.config` is
