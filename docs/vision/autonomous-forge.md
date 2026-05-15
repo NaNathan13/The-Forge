@@ -1,8 +1,15 @@
-# Autonomous Forge — North Star
+# Autonomous Forge — North Star (historical)
 
-**Status:** 📝 sub-phase 1a filed (#129–#131) — living doc, updated as each phase is designed + built
+**Status:** 📝 sub-phase 1a shipped (#129–#131); **roadmap superseded** 2026-05-15 — see [`the-forge.md`](the-forge.md) for the current vision
 **Created:** 2026-05-14
 **Phase:** P1 — Autonomous Forge · sub-phase 1a (research + design) — see [`MISSION-CONTROL.md`](../../MISSION-CONTROL.md)
+
+> ⚠️ **Read first:** [`the-forge.md`](the-forge.md) is now the authoritative top-level
+> vision. This doc retains the 3-tier model, the optional-by-layers principle, the
+> R1/R2/R3 research findings, and the architectural constraints — all still correct
+> and still inputs to future phase design. **Only the P2–P6 phasing table below is
+> stale.** Today's roadmap lives in `MISSION-CONTROL.md` as P3 — Improvements +
+> P4 — Dev Mode + future levels.
 
 > This is the thinking / plans / notes / research-findings doc for the initiative.
 > Every phase and slice under this initiative must serve the goal below. If a piece

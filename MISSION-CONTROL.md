@@ -76,13 +76,13 @@
 | 3e | Live grill artifacts + ADRs | ⏳ queued | [`docs/prds/improvements-3e-live-grill.md`](docs/prds/improvements-3e-live-grill.md) (stub) | <!-- mc:none --> |
 | 3f | MC deepening + reconciliation | ⏳ queued | [`docs/prds/improvements-3f-mc-deepening.md`](docs/prds/improvements-3f-mc-deepening.md) (stub) | <!-- mc:none --> |
 
-### P4 — Weenie Hut Junior ░ 0/?
+### P4 — Dev Mode ░ 0/?
 
-> Non-technical user mode for The Forge. **Phase exists; scope deliberately deferred** per Improvements grill lock #6 — the WHJ `/ponder` runs after P3 ships, informed by what the first product project teaches us about real demand. Design notes: [`docs/design/whj-overview.md`](docs/design/whj-overview.md). Source material: [`.forge-dev/future/weenie-hut-junior.md`](.forge-dev/future/weenie-hut-junior.md).
+> Replaces the current `fast`/`balanced`/`tdd` developer-modes system (shipped in P0a) with three workflow-character modes: **Weenie Hut Junior** (non-technical users), **Fast** (spike/prototype), and **Default** (sensible TDD modeled on Claude Code's brainstorm-plugin, *not* full Matt-Pocock-style RGR). **Phase exists; scope deliberately deferred** per Improvements grill lock #6 — the P4 `/ponder` runs after P3 ships, informed by what the first product project teaches us about which mode needs depth first. Design notes: [`docs/design/dev-mode-overview.md`](docs/design/dev-mode-overview.md). WHJ-mode source material: [`.forge-dev/future/weenie-hut-junior.md`](.forge-dev/future/weenie-hut-junior.md). Historical: [`docs/prds/developer-modes.md`](docs/prds/developer-modes.md) (the system being replaced).
 
 | # | Sub-phase | Status | PRD | Issues |
 | --- | --- | --- | --- | --- |
-| 4a | Scope (TBD post-P3) | ⏳ scope-TBD | [`docs/design/whj-overview.md`](docs/design/whj-overview.md) (stub) | <!-- mc:none --> |
+| 4a | Scope (TBD post-P3) | ⏳ scope-TBD | [`docs/design/dev-mode-overview.md`](docs/design/dev-mode-overview.md) (stub) | <!-- mc:none --> |
 
 ## 🛸 Architectural items
 

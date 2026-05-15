@@ -43,7 +43,7 @@ sub-phase below.
 | 3 | **MC #14** — cheap version IN (dependency + sequencing columns on existing MC tables); expensive sibling `roadmap.md` deferred to a future Tier-0 phase | A |
 | 4 | **#21 systemd port** — OUT; document the gap, revisit when a non-macOS host enters play | B |
 | 5 | **Organizing principle** — smallest blast radius first, MC deepening last; 6 sub-phases (3a → 3f) | C |
-| 6 | **WHJ scope** — stub the phase as P4, re-grill scope after Improvements ships and the first product project teaches us what users actually need | D |
+| 6 | **P4 Dev Mode scope** — stub the phase as P4 (originally framed as "WHJ"; reframed mid-session to **Dev Mode** with three sub-modes: WHJ + Fast + Default). Re-grill scope after Improvements ships and the first product project teaches us what users actually need | D |
 | 7 | **MC gutting** — keep shipped sub-phases as historical record; gut the autonomous-forge P2–P6 `⏳ planned` rows; finish P1.1c first (already shipped 2026-05-14), then start Improvements | A |
 | 8 | **PRD strategy** — hybrid: one overview doc (this) + per-sub-phase PRDs that reference it; matches the existing P1 vision/design pattern | B |
 | 9 | **PRD detail** — 3a written full now; 3b–3f written as stubs (scope paragraph + recs list + slice candidates), filled in just-in-time when each sub-phase is `/ponder`-ed | B |
@@ -99,8 +99,10 @@ Deliberate carve-outs, captured here so future re-readers don't relitigate them:
 - **VCS abstraction layer.** Per grill lock #2, decisions stay compatible
   (clean seams) but no `gh`-to-Bitbucket / `gh`-to-local generalisation is built.
   That work belongs to WHJ v2.
-- **Building Weenie Hut Junior mode.** P4 is a stub. Scope re-grilled
-  post-Improvements.
+- **Building the P4 Dev Mode redesign.** P4 is a stub (three-mode redesign:
+  WHJ + Fast + Default — replaces the current `fast`/`balanced`/`tdd` system).
+  The existing dev-mode system stays untouched in P3 — no collapse, no
+  half-migration. Scope re-grilled post-Improvements.
 - **The autonomous-forge P2–P6 phase plan from `docs/vision/autonomous-forge.md`.**
   That vision doc is preserved as a historical artifact but its phasing table
   is no longer authoritative — MC's new structure (P3 Improvements + P4 WHJ)
