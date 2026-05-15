@@ -5,17 +5,17 @@
 
 ## 🛰️ Telemetry — right now
 
-**Phase:** P1 — Autonomous Forge ▓▓░ 2/3
+**Phase:** P1 — Autonomous Forge ▓▓▓ 3/3
 **In flight:** —
 **Workflow:** Ponder → Forge → Temper pipeline. See [`docs/workflow/`](docs/workflow/) for details.
 
 **Recommended next prompt:**
 
 ```
-/forge --phase 1c
+_All features shipped or in motion. No recommendation._
 ```
 
-> Build all 1c slices — wire the forge orchestrator into the P2 relaunch loop. 5 slices #181–#185 triaged `ready-for-agent`. Origin: #175 (closed as expanded into this sub-phase). PRD: [`docs/prds/forge-relaunch-loop-integration.md`](docs/prds/forge-relaunch-loop-integration.md).
+> Sub-phase 1c shipped — forge is wired into the P2 relaunch loop (5/5 slices #181–#185). P1 — Autonomous Forge is complete. Next initiative to be `/ponder`-ed when scoped.
 
 ## ☄️ In flight
 
@@ -45,7 +45,7 @@
 | 0b | Template invariant + push-to-main freedom | ✅ shipped | [`docs/prds/template-invariant.md`](docs/prds/template-invariant.md) | #115, #116, #117, #118, #119, #120, #121 <!-- mc:done=115,116,117,118,119,120,121 --> |
 | 0z | Pipeline audit cleanup (2026-05-13) | ✅ shipped | — | #66, #67, #68, #69, #70, #71, #72, #73, #74, #75, #76, #77, #78, #79, #80, #81, #82, #83, #84, #85, #86, #87, #88 <!-- mc:done=66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88 --> |
 
-### P1 — Autonomous Forge ▓▓░ 2/3
+### P1 — Autonomous Forge ▓▓▓ 3/3
 
 > Initiative north star: [`docs/vision/autonomous-forge.md`](docs/vision/autonomous-forge.md). Built in optional layers — the base pipeline stays a drop-in; fleet / Discord / Tier-0 are opt-in. Sub-phases 1b… are `/ponder`-ed just-in-time as each roadmap phase comes up.
 
@@ -53,7 +53,7 @@
 | --- | --- | --- | --- | --- |
 | 1a | Research + design (north-star, ADR, P2/P3 design docs) | ✅ shipped | [`docs/prds/autonomous-forge.md`](docs/prds/autonomous-forge.md) | #129, #130, #131 <!-- mc:done=129,130,131 --> |
 | 1b | P2 single-session resilience — build | ✅ shipped | [`docs/prds/p2-single-session-resilience-build.md`](docs/prds/p2-single-session-resilience-build.md) | #136, #137, #138, #139, #140, #141, #142, #143, #152 <!-- mc:done=136,137,138,139,140,141,142,143,152 --> |
-| 1c | Wire forge into the P2 relaunch loop | 📝 prd-ready | [`docs/prds/forge-relaunch-loop-integration.md`](docs/prds/forge-relaunch-loop-integration.md) | #181, #182, #183, #184, #185 <!-- mc:open=181,182,183,184,185 --> |
+| 1c | Wire forge into the P2 relaunch loop | ✅ shipped | [`docs/prds/forge-relaunch-loop-integration.md`](docs/prds/forge-relaunch-loop-integration.md) | #181, #182, #183, #184, #185 <!-- mc:done=181,182,183,184,185 --> |
 
 ### P2 — Pipeline Audit ▓ 1/1
 
