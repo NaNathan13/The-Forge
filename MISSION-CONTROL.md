@@ -5,23 +5,23 @@
 
 ## 🛰️ Telemetry — right now
 
-**Phase:** P3 — Improvements ░░░░░░ 0/6
-**In flight:** 3a — Validation contracts (6/7 slices shipped; #195 stuck on gh OAuth `workflow` scope — needs human)
+**Phase:** P3 — Improvements ▓░░░░░ 1/6
+**In flight:** —
 **Workflow:** Ponder → Forge → Temper pipeline. See [`docs/workflow/`](docs/workflow/) for details.
 
 **Recommended next prompt:**
 
 ```
-/temper 195
+/ponder 3b — Documented contracts + bootstrap stamp
 ```
 
-> Retry #195 (validate-mc.sh + CI workflow wiring) once the `gh` CLI is re-authed with the `workflow` scope. The other six 3a slices (#192, #193, #194, #196, #197, #198) shipped 2026-05-15.
+> 3a shipped 2026-05-15 (all seven validation slices: #192–#198). Next: grill out sub-phase 3b — documented contracts + bootstrap stamp.
 
 ## ☄️ In flight
 
 | Sub-phase | Slice | Status |
 | --- | --- | --- |
-| 3a | #195 (1 slice; 6/7 shipped) | 🚧 in-progress |
+| _None in flight._ | | |
 
 ## 🪐 Phase progress
 
@@ -63,13 +63,13 @@
 | --- | --- | --- | --- | --- |
 | 2a | Workflow audit + onboarding doc | ✅ shipped | [`docs/prds/pipeline-audit.md`](docs/prds/pipeline-audit.md) | #154, #155, #156, #157, #158, #159, #160, #161, #162, #163, #164, #165, #166 <!-- mc:done=154,155,156,157,158,159,160,161,162,163,164,165,166 --> |
 
-### P3 — Improvements ░░░░░░ 0/6
+### P3 — Improvements ▓░░░░░ 1/6
 
 > Finite, scoped refinement pass on The Forge — fix what's empirically broken, polish proven surfaces, get Discord-ready *as a constraint* (no Discord build). Driven by the 2a audit findings, triaged 2026-05-15 via `/grill`. Phase overview + nine locked grill decisions: [`docs/design/improvements-overview.md`](docs/design/improvements-overview.md). When this phase ships green, The Forge is at the launch-pad for the first real product project.
 
 | # | Sub-phase | Status | PRD | Issues |
 | --- | --- | --- | --- | --- |
-| 3a | Validation contracts (`validate-*.sh` family + sentinel `"v":1` + write-time integrity checks) | 🚧 in-progress | [`docs/prds/improvements-3a-validation.md`](docs/prds/improvements-3a-validation.md) | #192, #193, #194, #195, #196, #197, #198 <!-- mc:open=195 --> |
+| 3a | Validation contracts (`validate-*.sh` family + sentinel `"v":1` + write-time integrity checks) | ✅ shipped | [`docs/prds/improvements-3a-validation.md`](docs/prds/improvements-3a-validation.md) | #192, #193, #194, #195, #196, #197, #198 <!-- mc:done=192,193,194,195,196,197,198 --> |
 | 3b | Documented contracts + bootstrap stamp | ⏳ queued | [`docs/prds/improvements-3b-contracts.md`](docs/prds/improvements-3b-contracts.md) (stub) | <!-- mc:none --> |
 | 3c | Close knowledge-loop write side | ⏳ queued | [`docs/prds/improvements-3c-knowledge-loop.md`](docs/prds/improvements-3c-knowledge-loop.md) (stub) | <!-- mc:none --> |
 | 3d | Crash-layer correctness + measurement | ⏳ queued | [`docs/prds/improvements-3d-crash-correctness.md`](docs/prds/improvements-3d-crash-correctness.md) (stub) | <!-- mc:none --> |
