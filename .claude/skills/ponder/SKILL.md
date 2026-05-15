@@ -85,7 +85,23 @@ Pass the resolved mode to `/inscribe` alongside the size decision. When mode=`td
 
 ### 3. Summarise resolved decisions
 
-Output a short bulleted summary of everything the grill resolved. Ask:
+Output a short bulleted summary of everything the grill resolved.
+
+**ADR-candidate offer.** If `grill-me` logged one or more ADR candidates during the grill (see `.claude/skills/grill-me/SKILL.md` §"ADR-candidate self-check" — silent mid-grill logging gated on the three-part test in `CLAUDE.md` §`When to write an ADR`), render the batched list before the "Ready to write it up?" prompt:
+
+```
+ADR candidates flagged during this grill:
+  1. <one-sentence framing>
+  2. <one-sentence framing>
+```
+
+Then issue a single multi-select `AskUserQuestion` — one option per candidate plus a final **"None — skip all"** option. The operator picks zero-or-more in this single decision point; no mid-grill prompts per candidate.
+
+Carry the picked candidates' **full framings** forward to `/inscribe` as a new parameter `adr_candidates` — an ordered list of one-sentence framings (empty when "None — skip all" was selected, or when no candidates were logged). `/inscribe` is the place that physically writes any picked ADRs.
+
+**No-op behavior:** when zero candidates were logged, skip the rendering and the multi-select `AskUserQuestion` entirely. Do not render an empty "ADR candidates: none" placeholder. Pass `adr_candidates` as an empty list to `/inscribe`.
+
+Then ask:
 
 > **Ready to write it up, or more to grill?**
 
@@ -98,6 +114,7 @@ Invoke the `/inscribe` sub-skill, passing:
 - **Sub-phase ID:** e.g. `2a` (or "none" for standalone work)
 - **Dev mode:** `fast`, `balanced`, or `tdd` (resolved in step 2)
 - **Size reason:** the one-sentence rationale captured during the size check (step 2). Inscribe renders this into the PRD frontmatter `>` block as `**Why this size?** <rationale>`.
+- **`adr_candidates`:** the ordered list of one-sentence ADR-candidate framings the operator picked in step 3 (empty list when "None — skip all" was selected or no candidates were logged). Inscribe emits one ADR per framing under `docs/adr/`.
 
 Inscribe handles everything from here: PRD writing (sub-phase always; single-slice only when mode=`tdd`), issue filing, triaging all slices, updating MISSION-CONTROL.md, and printing the handoff.
 

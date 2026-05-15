@@ -58,6 +58,16 @@ Then issue a single `AskUserQuestion` with **four** options before posing the ne
 
 Resolve before the next grill question — do not stack conflicts.
 
+### C. ADR-candidate self-check (silent log)
+
+After each resolved question, run the three-part ADR test from `CLAUDE.md` §`When to write an ADR` against the decision just resolved. The canonical rule lives in `CLAUDE.md`; do not duplicate it here.
+
+If **all three** parts hold (hard to reverse + surprising without context + real trade-off), log a one-sentence framing of the trade-off into conversation state as an **ADR candidate**. Keep it specific to the decision — one sentence, naming the chosen direction and the rejected alternative.
+
+Do **not** prompt the operator mid-grill. Do not emit a transcript line. Continue silently to the next question. The batched list is surfaced once by `/ponder` step 3, where the operator picks zero-or-more candidates in a single decision point.
+
+If fewer than three parts hold, log nothing. ADRs document trades; they do not document choices.
+
 ## Restore on exit/abort
 
 The `🔥 grilling` status is a transient marker. It must be replaced before the grill session ends, or the sub-phase row will sit at `🔥 grilling` forever after the user walks away.
