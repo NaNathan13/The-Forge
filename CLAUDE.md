@@ -61,3 +61,5 @@ Context is precious. Anything not listed below is either **human-only** document
 - `docs/vision/*` — forward-direction shelf (for humans deciding next moves)
 
 Every file in these categories carries a `> **Audience:** humans only` header. **If a file you're about to Read has that header, stop and reconsider** — it almost certainly isn't what you need; the same content is encoded in a Claude-readable shape somewhere else (SKILL.md, an ADR, a workflow doc, MISSION-CONTROL.md, or path-scoped rules).
+
+**Observability.** Every load of `CLAUDE.md` or `.claude/rules/*.md` is logged as one JSONL record to `.claude/instructions-loaded.jsonl` via the `InstructionsLoaded` hook. The log is gitignored and is the observability surface 3h's token-waste audit reads. Known gaps: (1) `InstructionsLoaded` does NOT fire for `SKILL.md` loads — skill-load accounting is out of scope for 3g, carry-forward to 3h; (2) the log has no rotation yet — accumulates until 3h audits it, rotation is a 3h follow-up if needed.
