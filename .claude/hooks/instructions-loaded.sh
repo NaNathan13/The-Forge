@@ -11,7 +11,9 @@ set -uo pipefail
 # Per-invocation, this handler reads the payload JSON from stdin, derives `ts`
 # (ISO 8601 UTC with `Z` suffix) and `bytes` (`wc -c` on the loaded file), and
 # appends exactly one JSONL line to `.claude/instructions-loaded.jsonl`. The
-# log is the observability surface 3h's token-waste audit will read.
+# log is the observability surface a future token-waste audit will read
+# (originally scoped as sub-phase 3h, deferred 2026-05-16 pending real-session
+# data — see docs/design/improvements-overview.md §"Extension batch").
 #
 # ── Schema (sentinel-protocol shape, `v:1` + `type` discriminator) ───────────
 # {
@@ -33,11 +35,13 @@ set -uo pipefail
 # ── Known gap: SKILL.md loads NOT covered ────────────────────────────────────
 # `InstructionsLoaded` fires for CLAUDE.md and `.claude/rules/*.md` only.
 # Skill-load observability needs a different mechanism (likely `PreToolUse` on
-# the `Skill` tool) and is out of scope for 3g — carry-forward to 3h.
+# the `Skill` tool) and is out of scope for 3g — carry-forward to whichever
+# phase revives the deferred token-waste audit.
 #
 # ── Known gap: no log rotation ───────────────────────────────────────────────
-# `.claude/instructions-loaded.jsonl` accumulates without rotation. If 3h's
-# audit finds the file unwieldy, 3h will add rotation as a follow-up slice.
+# `.claude/instructions-loaded.jsonl` accumulates without rotation. If the
+# future audit finds the file unwieldy, rotation lands as a follow-up slice
+# at that time.
 #
 # ── Failure mode ─────────────────────────────────────────────────────────────
 # Hook failures must NEVER block instruction loading. On any error (missing

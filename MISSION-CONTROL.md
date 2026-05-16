@@ -12,15 +12,15 @@
 **Recommended next prompt:**
 
 ```
-/ponder 3h
+/ponder 3i
 ```
 
 ## ☄️ In flight
 
 | Sub-phase | Slice | Status |
 | --- | --- | --- |
-| 3h | Token-waste audit | ⏳ queued — blocked by 3g (c) |
-| 3i | Doc reconciliation | ⏳ queued — blocked by 3g, 3h |
+| 3h | Token-waste audit | ⏸ deferred — needs ≥3 real sessions of post-3g log data; revisit after P4 grill + first product project |
+| 3i | Doc reconciliation | ⏳ queued — unblocked |
 
 ## 🪐 Phase progress
 
@@ -75,8 +75,8 @@
 | 3e | Live grill artifacts + ADRs | ✅ shipped | — | [`docs/prds/improvements-3e-live-grill.md`](docs/prds/improvements-3e-live-grill.md) | #230, #231, #232 <!-- mc:done=230,231,232 --> |
 | 3f | MC deepening + reconciliation | ✅ shipped | — | [`docs/prds/improvements-3f-mc-deepening.md`](docs/prds/improvements-3f-mc-deepening.md) | <!-- mc:done=236,237,238,239,240 --> |
 | 3g | Context-loading hardening | ✅ shipped | — | [`docs/prds/improvements-3g-context-hardening.md`](docs/prds/improvements-3g-context-hardening.md) | <!-- mc:done=247,248,249 --> |
-| 3h | Token-waste audit | ⏳ queued | 3g | [`docs/prds/improvements-3h-token-waste-audit.md`](docs/prds/improvements-3h-token-waste-audit.md) | <!-- mc:none --> |
-| 3i | Doc reconciliation | ⏳ queued | 3g, 3h | [`docs/prds/improvements-3i-doc-reconciliation.md`](docs/prds/improvements-3i-doc-reconciliation.md) | <!-- mc:none --> |
+| 3h | Token-waste audit | ⏸ deferred | — | [`docs/prds/improvements-3h-token-waste-audit.md`](docs/prds/improvements-3h-token-waste-audit.md) | <!-- mc:none --> |
+| 3i | Doc reconciliation | ⏳ queued | — | [`docs/prds/improvements-3i-doc-reconciliation.md`](docs/prds/improvements-3i-doc-reconciliation.md) | <!-- mc:none --> |
 
 ### P4 — Dev Mode ░ 0/1
 

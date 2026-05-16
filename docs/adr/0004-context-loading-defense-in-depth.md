@@ -113,8 +113,10 @@ is needed.
   intentional — fail-loud on authorship error rather than tolerating
   ambiguous banner placement.
 - **Audit observability.** Deny events are emitted to
-  `.claude/instructions-loaded.jsonl` with `type:"read_denied"`. Sub-phase
-  3h's token-waste audit can reconstruct how often Claude attempted to load
+  `.claude/instructions-loaded.jsonl` with `type:"read_denied"`. A future
+  token-waste audit (originally scoped as sub-phase 3h, deferred 2026-05-16
+  pending real-session data — see [`docs/design/improvements-overview.md`](../design/improvements-overview.md)
+  §"Extension batch") can reconstruct how often Claude attempted to load
   human-only files — a signal that would be lost without logging.
 - **Removing either mechanism requires an ADR amendment.** Future
   maintainers seeing two mechanisms for one purpose should not collapse them

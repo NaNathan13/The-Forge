@@ -75,10 +75,21 @@ Three further sub-phases extend P3 to address both, ending in a single
 doc-reconciliation pass so `how-the-forge-works.md` is only rewritten
 once against the final state.
 
+**2026-05-16 mid-extension update — 3h deferred.** 3g shipped on
+2026-05-16. The `/ponder 3h` immediately after surfaced that the
+observability log had no real-session data yet (3 entries, all
+synthetic or session-start), and the audit's substantive findings
+are data-bound. 3h was deferred and re-enters scope after P4 Dev
+Mode + the first product project produce real session data. The
+extension batch therefore ships as **3g → 3i**, with 3h as a
+parked sub-phase awaiting its data substrate. See
+[`docs/prds/improvements-3h-token-waste-audit.md`](../prds/improvements-3h-token-waste-audit.md)
+§"Deferred" for the gating reasoning.
+
 | # | Sub-phase | Source | Why this is its own sub-phase |
 |---|---|---|---|
 | 3g | **Context-loading hardening** | 2026-05-16 research (VERDICT: EXTEND) | Promotes the context-loading policy from behavioral guidance to harness-enforced + observable. Three actions: `PreToolUse` Read hook or `permissions.deny`, real `paths:` frontmatter on `.claude/rules/*.md`, `InstructionsLoaded` hook wired to `.claude/instructions-loaded.jsonl`. Smallest blast radius of the extension. |
-| 3h | **Token-waste audit** | User-stated goal + 3g (c)'s log | Data-driven audit of where context still over-loads even with 3g's enforcement in place. Reads the 3g log + `token-usage.jsonl`, writes the audit doc, ships cheap-now fixes inline, files follow-ups. **Pause for ≥3 real sessions between 3g and 3h** so the log accumulates representative data. |
+| 3h | **Token-waste audit** ⏸ **deferred 2026-05-16** | User-stated goal + 3g (c)'s log | Data-driven audit of where context still over-loads even with 3g's enforcement in place. **Deferred at `/ponder` time** — the log had 3 entries (all synthetic / session-start) and the substantive findings are data-bound. Re-enters scope after P4 Dev Mode + the first product project produce real session data. See [`docs/prds/improvements-3h-token-waste-audit.md`](../prds/improvements-3h-token-waste-audit.md) §"Deferred" for the reasoning. |
 | 3i | **Doc reconciliation** | Doc-surface staleness after the extension | Reconciles `how-the-forge-works.md`, writes the condensed `the-forge-at-a-glance.md` companion (~250 lines, same 13-section structure), updates `vision/the-forge.md` + `CLAUDE.md` § Context loading. Ships last so doc surfaces are only rewritten once. |
 
 ### Cuts (recorded recs that do NOT ship this phase)
@@ -129,17 +140,17 @@ Deliberate carve-outs, captured here so future re-readers don't relitigate them:
 
 ## Acceptance — phase done when
 
-- All **nine** sub-phases (3a–3i) have shipped with their issue lists fully
-  closed and reconciled in MC. The initial batch (3a–3f) reached this state on
-  2026-05-16; the extension batch (3g–3i) is in flight.
+- All **shipping** sub-phases (3a–3g, 3i — eight of the nine originally
+  scoped) have shipped with their issue lists fully closed and reconciled in
+  MC. The initial batch (3a–3f) reached this state on 2026-05-16; the extension
+  batch ships as 3g → 3i with **3h deferred** (see entry above + the 3h PRD's
+  "Deferred" section). 3h is parked, not cut — it re-enters scope when there
+  is enough post-3g session data to audit against.
 - `docs/audit/AUDIT-SUMMARY.md` §B has been annotated with which recs shipped
   in which sub-phase and which were explicitly cut.
-- The 3h audit doc exists under `docs/audit/` capturing measured token-waste
-  shapes; any cheap-now fixes have shipped inline, anything bigger is filed as
-  a follow-up issue.
-- `docs/how-the-forge-works.md` is reconciled against the final post-3g+3h
-  state; the condensed companion (`docs/the-forge-at-a-glance.md` or
-  equivalent) exists and is human-only.
+- `docs/how-the-forge-works.md` is reconciled against the final post-3g state;
+  the condensed companion (`docs/the-forge-at-a-glance.md` or equivalent)
+  exists and is human-only.
 - `MISSION-CONTROL.md` recommended-next-prompt advances to `/ponder` of P4
   (Dev Mode scope grill).
 

@@ -1,9 +1,40 @@
 # PRD — Token-waste audit (stub)
 
-> Sub-phase **3h** (Phase **P3 — Improvements**) · Status: 🔥 stub-prd — fill in at `/ponder` time · Filed 2026-05-16
+> Sub-phase **3h** (Phase **P3 — Improvements**) · Status: ⏸ **deferred 2026-05-16** · Filed 2026-05-16
 >
 > Umbrella context: [`docs/design/improvements-overview.md`](../design/improvements-overview.md).
 > Source: User-stated goal ("keep this system token efficient while still being autonomous") + the 3g observability log.
+
+## Deferred — 2026-05-16
+
+`/ponder 3h` opened immediately after 3g shipped and surfaced the gating
+problem the PRD itself warned about: the observability log
+`.claude/instructions-loaded.jsonl` had **3 entries** (1 synthetic
+`read_denied` from the 3g(a) build test + 2 from the ponder session's
+own `session_start`). Zero rows from real `/forge` or `/temper` runs.
+
+The grill walked the four proceed-anyway alternatives (static-only
+audit, audit-infra split, full-scope-against-empty-log, manufacture
+data inside 3h) and concluded the substantive findings are data-bound
+— the interesting waste shapes (subdir-rule persistence across a
+long-running forge, cumulative load across a multi-temper run, SKILL.md
+loads the hook doesn't yet capture) only appear in live sessions, not
+in static byte counts of skills/rules/CLAUDE.md.
+
+Decision: skip 3h for now. The audit re-enters scope when there are
+enough real post-3g sessions to characterize. The natural data
+generators are queued: P4 Dev Mode's `/ponder` + the first product
+project built on The Forge. Revisit then.
+
+Carry-forwards from 3g remain valid and live in
+[`docs/prds/improvements-3g-context-hardening.md`](improvements-3g-context-hardening.md)
+§"Carry-forwards to 3h"; whichever phase revives this audit inherits
+that starting list.
+
+The body below records the original stub-PRD intent and is kept for
+that future ponder's reference. Nothing below is committed work.
+
+---
 
 ## Stub notice
 
