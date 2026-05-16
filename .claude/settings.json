@@ -4,6 +4,13 @@
     "type": "command",
     "command": ".claude/statusline/budget-mirror.sh"
   },
+  "permissions": {
+    "deny": [
+      "Read(docs/how-the-forge-works.md)",
+      "Read(docs/audit/**)",
+      "Read(docs/vision/**)"
+    ]
+  },
   "hooks": {
     "SessionStart": [
       {
@@ -24,6 +31,14 @@
       {
         "hooks": [
           { "type": "command", "command": ".claude/hooks/instructions-loaded.sh" }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Read",
+        "hooks": [
+          { "type": "command", "command": ".claude/hooks/read-human-only-guard.sh" }
         ]
       }
     ]
