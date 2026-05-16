@@ -19,6 +19,13 @@
           { "type": "command", "command": ".claude/hooks/forge-stop-handoff.sh" }
         ]
       }
+    ],
+    "InstructionsLoaded": [
+      {
+        "hooks": [
+          { "type": "command", "command": ".claude/hooks/instructions-loaded.sh" }
+        ]
+      }
     ]
   }
 }

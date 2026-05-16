@@ -11,6 +11,7 @@ Thumbs.db
 .claude/forge-continue.md
 .claude/temper-summary-*.md
 .claude/token-usage.jsonl
+.claude/instructions-loaded.jsonl
 .claude/worktrees/
 .claude/settings.local.json
 .claude/scheduled_tasks.lock
