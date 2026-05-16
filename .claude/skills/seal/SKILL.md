@@ -175,6 +175,39 @@ MC:        advanced <K> rows from in-progress → shipped
 Next:      <whatever the new Recommended next prompt is>
 ```
 
+### 9. Print the re-planning prompt
+
+After the run summary, print **exactly one** final line — a low-friction nudge to re-grill the roadmap if the just-shipped batch changed what should come next. Print-and-move-on: no `AskUserQuestion`, no blocking, no follow-up prose. The operator either acts or skims past.
+
+Exact format (one line, no trailing prose):
+
+```
+Roadmap check: <phase> is <bar> <N/M>, last up: <next-id>. Still the right plan, or worth a re-grill?
+```
+
+Where:
+
+- `<phase>` — the current phase name as it now appears in MC's Telemetry banner (e.g. `P3`). Take the leading phase token from the `**Phase:**` line of `MISSION-CONTROL.md` (everything up to but not including the ` — `). After step 5's reconcile, this line reflects the just-sealed state.
+- `<bar>` — the progress bar string for that phase. Source: run `bash scripts/derive-progress.sh` and take the bar (the run of `▓`/`░` glyphs) from the matching `### <phase> ...` line. Do not re-derive by hand; the script is the source of truth.
+- `<N/M>` — the fraction from the same `derive-progress.sh` line.
+- `<next-id>` — the next `⏳ queued` sub-phase ID in the current phase's table, in document order (e.g. `3f`). If no `⏳ queued` rows remain in the current phase, use the em-dash literal `—`. Other status emoji (`🔥 grilling`, `📝 prd-ready`, `🚧 in-progress`, `✅ shipped`, `⏸ deferred`, `⏳ scope-TBD`) do **not** count as queued — only the bare `⏳ queued` status.
+
+Example, sealing the slice that closed out 3e (phase P3 still in flight with 3f queued):
+
+```
+Roadmap check: P3 is ▓▓▓▓▓░ 5/6, last up: 3f. Still the right plan, or worth a re-grill?
+```
+
+Example, sealing the slice that closed out 3f (no queued sub-phases left in P3):
+
+```
+Roadmap check: P3 is ▓▓▓▓▓▓ 6/6, last up: —. Still the right plan, or worth a re-grill?
+```
+
+This is the final line of `/seal`. Nothing after it.
+
+> **Why `/seal`-only.** The re-planning prompt is *not* copied into `/ponder`'s pre-step. By the time the operator has typed `/ponder`, they've already committed to planning — re-prompting them at that point is redundant. The decision moment is right after a batch ships, when the roadmap delta is freshest.
+
 ## Conflict resolution subagent
 
 Seal never resolves merge conflicts inline. When step 4 detects a conflict, it dispatches a fresh subagent with a tightly scoped contract. The subagent's job is **resolve and force-push** — nothing else. Seal owns the merge decision.
@@ -233,3 +266,5 @@ The conflict-resolution subagent runs in a fresh context window — it doesn't c
 - **Don't run step 5 (MC reconciliation) without step 4 (the merges).** Step 5 reads GitHub issue state; if the PRs haven't merged yet, the issues are still open and nothing will advance.
 - **Don't skip the user-approval prompt in step 3.** Even though /seal is "wrap-up", it does irreversible merges. The one-screen review is a cheap safety belt.
 - **Don't resolve merge conflicts inline.** Step 4a dispatches a fresh subagent — keep seal's context lean and the resolution logic isolated. Seal still owns the retry-merge decision.
+- **Don't make the re-planning prompt interactive.** Step 9 prints one line and exits. No `AskUserQuestion`, no follow-up confirmation, no "press y to start /ponder". The whole point is zero-friction prompting — turn it into a question and the operator starts ignoring it.
+- **Don't duplicate the re-planning prompt in `/ponder`.** It's a `/seal`-tail nudge by design. Once the operator has typed `/ponder` they've already chosen to plan; re-prompting them mid-planning is noise.
