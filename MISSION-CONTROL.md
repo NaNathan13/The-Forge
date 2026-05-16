@@ -19,7 +19,6 @@
 
 | Sub-phase | Slice | Status |
 | --- | --- | --- |
-| 3g | Context-loading hardening | 📝 prd-ready — 3 slices filed (#247, #248, #249) |
 | 3h | Token-waste audit | ⏳ queued — blocked by 3g (c) |
 | 3i | Doc reconciliation | ⏳ queued — blocked by 3g, 3h |
 
@@ -63,7 +62,7 @@
 | --- | --- | --- | --- | --- | --- |
 | 2a | Workflow audit + onboarding doc | ✅ shipped | — | [`docs/prds/pipeline-audit.md`](docs/prds/pipeline-audit.md) | #154, #155, #156, #157, #158, #159, #160, #161, #162, #163, #164, #165, #166 <!-- mc:done=154,155,156,157,158,159,160,161,162,163,164,165,166 --> |
 
-### P3 — Improvements ▓▓▓▓▓▓░░░ 6/9
+### P3 — Improvements ▓▓▓▓▓▓▓░░ 7/9
 
 > Finite, scoped refinement pass on The Forge — fix what's empirically broken, polish proven surfaces, get Discord-ready *as a constraint* (no Discord build). Driven by the 2a audit findings, triaged 2026-05-15 via `/grill`. The initial batch (3a–3f) shipped 2026-05-16; an extension batch (3g–3i) was filed the same day, sourced from a 2026-05-16 best-practices research finding + a user-stated token-efficiency goal. Phase overview + locked decisions + extension rationale: [`docs/design/improvements-overview.md`](docs/design/improvements-overview.md). When this phase ships green, The Forge is at the launch-pad for the first real product project.
 
@@ -75,7 +74,7 @@
 | 3d | Crash-layer correctness + measurement | ✅ shipped | — | [`docs/prds/improvements-3d-crash-correctness.md`](docs/prds/improvements-3d-crash-correctness.md) | #224, #225, #226 <!-- mc:done=224,225,226 --> |
 | 3e | Live grill artifacts + ADRs | ✅ shipped | — | [`docs/prds/improvements-3e-live-grill.md`](docs/prds/improvements-3e-live-grill.md) | #230, #231, #232 <!-- mc:done=230,231,232 --> |
 | 3f | MC deepening + reconciliation | ✅ shipped | — | [`docs/prds/improvements-3f-mc-deepening.md`](docs/prds/improvements-3f-mc-deepening.md) | <!-- mc:done=236,237,238,239,240 --> |
-| 3g | Context-loading hardening | 📝 prd-ready | — | [`docs/prds/improvements-3g-context-hardening.md`](docs/prds/improvements-3g-context-hardening.md) | #247, #248, #249 <!-- mc:done=247,248,249 --> |
+| 3g | Context-loading hardening | ✅ shipped | — | [`docs/prds/improvements-3g-context-hardening.md`](docs/prds/improvements-3g-context-hardening.md) | <!-- mc:done=247,248,249 --> |
 | 3h | Token-waste audit | ⏳ queued | 3g | [`docs/prds/improvements-3h-token-waste-audit.md`](docs/prds/improvements-3h-token-waste-audit.md) | <!-- mc:none --> |
 | 3i | Doc reconciliation | ⏳ queued | 3g, 3h | [`docs/prds/improvements-3i-doc-reconciliation.md`](docs/prds/improvements-3i-doc-reconciliation.md) | <!-- mc:none --> |
 
