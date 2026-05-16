@@ -12,15 +12,17 @@
 **Recommended next prompt:**
 
 ```
-/ponder 3i
+/forge --phase 3i
 ```
+
+> Build all 3i slices
 
 ## ☄️ In flight
 
 | Sub-phase | Slice | Status |
 | --- | --- | --- |
 | 3h | Token-waste audit | ⏸ deferred — needs ≥3 real sessions of post-3g log data; revisit after P4 grill + first product project |
-| 3i | Doc reconciliation | ⏳ queued — unblocked |
+| 3i | Doc reconciliation | 📝 prd-ready — #254 → #255 |
 
 ## 🪐 Phase progress
 
@@ -76,7 +78,7 @@
 | 3f | MC deepening + reconciliation | ✅ shipped | — | [`docs/prds/improvements-3f-mc-deepening.md`](docs/prds/improvements-3f-mc-deepening.md) | <!-- mc:done=236,237,238,239,240 --> |
 | 3g | Context-loading hardening | ✅ shipped | — | [`docs/prds/improvements-3g-context-hardening.md`](docs/prds/improvements-3g-context-hardening.md) | <!-- mc:done=247,248,249 --> |
 | 3h | Token-waste audit | ⏸ deferred | — | [`docs/prds/improvements-3h-token-waste-audit.md`](docs/prds/improvements-3h-token-waste-audit.md) | <!-- mc:none --> |
-| 3i | Doc reconciliation | ⏳ queued | — | [`docs/prds/improvements-3i-doc-reconciliation.md`](docs/prds/improvements-3i-doc-reconciliation.md) | <!-- mc:none --> |
+| 3i | Doc reconciliation | 📝 prd-ready | — | [`docs/prds/improvements-3i-doc-reconciliation.md`](docs/prds/improvements-3i-doc-reconciliation.md) | #254, #255 <!-- mc:open=254,255 --> |
 
 ### P4 — Dev Mode ░ 0/1
 
