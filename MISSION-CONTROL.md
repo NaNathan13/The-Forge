@@ -12,17 +12,14 @@
 **Recommended next prompt:**
 
 ```
-/forge --phase 3i
+/ponder 4a
 ```
-
-> Build all 3i slices
 
 ## ☄️ In flight
 
 | Sub-phase | Slice | Status |
 | --- | --- | --- |
 | 3h | Token-waste audit | ⏸ deferred — needs ≥3 real sessions of post-3g log data; revisit after P4 grill + first product project |
-| 3i | Doc reconciliation | 📝 prd-ready — #254 → #255 |
 
 ## 🪐 Phase progress
 
@@ -64,7 +61,7 @@
 | --- | --- | --- | --- | --- | --- |
 | 2a | Workflow audit + onboarding doc | ✅ shipped | — | [`docs/prds/pipeline-audit.md`](docs/prds/pipeline-audit.md) | #154, #155, #156, #157, #158, #159, #160, #161, #162, #163, #164, #165, #166 <!-- mc:done=154,155,156,157,158,159,160,161,162,163,164,165,166 --> |
 
-### P3 — Improvements ▓▓▓▓▓▓▓░░ 7/9
+### P3 — Improvements ▓▓▓▓▓▓▓▓░ 8/9
 
 > Finite, scoped refinement pass on The Forge — fix what's empirically broken, polish proven surfaces, get Discord-ready *as a constraint* (no Discord build). Driven by the 2a audit findings, triaged 2026-05-15 via `/grill`. The initial batch (3a–3f) shipped 2026-05-16; an extension batch (3g–3i) was filed the same day, sourced from a 2026-05-16 best-practices research finding + a user-stated token-efficiency goal. Phase overview + locked decisions + extension rationale: [`docs/design/improvements-overview.md`](docs/design/improvements-overview.md). When this phase ships green, The Forge is at the launch-pad for the first real product project.
 
@@ -78,7 +75,7 @@
 | 3f | MC deepening + reconciliation | ✅ shipped | — | [`docs/prds/improvements-3f-mc-deepening.md`](docs/prds/improvements-3f-mc-deepening.md) | <!-- mc:done=236,237,238,239,240 --> |
 | 3g | Context-loading hardening | ✅ shipped | — | [`docs/prds/improvements-3g-context-hardening.md`](docs/prds/improvements-3g-context-hardening.md) | <!-- mc:done=247,248,249 --> |
 | 3h | Token-waste audit | ⏸ deferred | — | [`docs/prds/improvements-3h-token-waste-audit.md`](docs/prds/improvements-3h-token-waste-audit.md) | <!-- mc:none --> |
-| 3i | Doc reconciliation | 📝 prd-ready | — | [`docs/prds/improvements-3i-doc-reconciliation.md`](docs/prds/improvements-3i-doc-reconciliation.md) | #254, #255 <!-- mc:open=254,255 --> |
+| 3i | Doc reconciliation | ✅ shipped | — | [`docs/prds/improvements-3i-doc-reconciliation.md`](docs/prds/improvements-3i-doc-reconciliation.md) | #254, #255 <!-- mc:done=254,255 --> |
 
 ### P4 — Dev Mode ░ 0/1
 
