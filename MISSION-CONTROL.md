@@ -5,17 +5,15 @@
 
 ## 🛰️ Telemetry — right now
 
-**Phase:** P3 — Improvements ▓▓▓▓▓░ 5/6
+**Phase:** P4 — Dev Mode ░ 0/1
 **In flight:** —
 **Workflow:** Ponder → Forge → Temper pipeline. See [`docs/workflow/`](docs/workflow/) for details.
 
 **Recommended next prompt:**
 
 ```
-/forge --phase 3f
+/ponder 4a
 ```
-
-> Build all 3f slices
 
 ## ☄️ In flight
 
@@ -76,9 +74,9 @@
 | 3c | Close knowledge-loop write side | ✅ shipped | — | [`docs/prds/improvements-3c-knowledge-loop.md`](docs/prds/improvements-3c-knowledge-loop.md) | #216, #217, #218, #219 <!-- mc:done=216,217,218,219 --> |
 | 3d | Crash-layer correctness + measurement | ✅ shipped | — | [`docs/prds/improvements-3d-crash-correctness.md`](docs/prds/improvements-3d-crash-correctness.md) | #224, #225, #226 <!-- mc:done=224,225,226 --> |
 | 3e | Live grill artifacts + ADRs | ✅ shipped | — | [`docs/prds/improvements-3e-live-grill.md`](docs/prds/improvements-3e-live-grill.md) | #230, #231, #232 <!-- mc:done=230,231,232 --> |
-| 3f | MC deepening + reconciliation | 📝 prd-ready | — | [`docs/prds/improvements-3f-mc-deepening.md`](docs/prds/improvements-3f-mc-deepening.md) | <!-- mc:open=236,237,238,239,240 --> |
+| 3f | MC deepening + reconciliation | 📝 prd-ready | — | [`docs/prds/improvements-3f-mc-deepening.md`](docs/prds/improvements-3f-mc-deepening.md) | <!-- mc:done=236,237,238,239,240 --> |
 
-### P4 — Dev Mode ░ 0/?
+### P4 — Dev Mode ░ 0/1
 
 > Replaces the current `fast`/`balanced`/`tdd` developer-modes system (shipped in P0a) with three workflow-character modes: **Weenie Hut Junior** (non-technical users), **Fast** (spike/prototype), and **Default** (sensible TDD modeled on Claude Code's brainstorm-plugin, *not* full Matt-Pocock-style RGR). **Phase exists; scope deliberately deferred** per Improvements grill lock #6 — the P4 `/ponder` runs after P3 ships, informed by what the first product project teaches us about which mode needs depth first. Design notes: [`docs/design/dev-mode-overview.md`](docs/design/dev-mode-overview.md). WHJ-mode source material: [`.forge-dev/future/weenie-hut-junior.md`](.forge-dev/future/weenie-hut-junior.md). Historical: [`docs/prds/developer-modes.md`](docs/prds/developer-modes.md) (the system being replaced).
 
