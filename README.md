@@ -4,6 +4,15 @@ A drop-in Claude Code workflow that takes a project from idea to shipped code. P
 
 **Pipeline:** `/ponder` (grill + PRD + triage) --> `/forge` (build queue) --> `/temper <N>` (branch, implement, test, PR, CI) --> `/seal` (merge + reconcile). Runs end-to-end after you approve the build queue.
 
+## Why this is different
+
+- **Context can't bloat.** Each step runs in a fresh model session with structurally-capped work, so a 12-hour run uses the same per-step context as minute one.
+- **End-to-end autonomous.** One approval at "here's the build queue" — it plans, branches, builds, tests, opens PRs, gets CI green, and merges without you babysitting.
+- **One source of truth.** `MISSION-CONTROL.md` tracks every phase, slice, and status, auto-reconciled against GitHub after every merge.
+- **Hard wall between AI-readable and human-only docs.** Onboarding narratives, audits, vision docs — blocked from Claude's context at the harness level by two independent guards.
+- **Learns from its own walls.** When a worker hits a problem, it logs a one-line lesson. The next worker that hits the same signature gets the detailed fix automatically.
+- **Friction is a first-class signal.** Stuck workers label their PR `friction` or `needs-human` and stop. The auto-merger skips them. Half-broken work never merges by accident.
+
 ## Quickstart
 
 ```bash
