@@ -201,18 +201,25 @@ deliberately outside the normal flow.
 
 Hooks live in `.claude/hooks/` and are **deterministic bash** — no Claude
 runtime, no token cost. The Claude Code harness fires them on lifecycle events
-(registered in `.claude/settings.json`). The Forge ships four.
+(registered in `.claude/settings.json`). The Forge ships six (three resilience /
+drift hooks, two context-discipline hooks added in P3 sub-phase 3g, plus one
+disabled template).
 
 | Hook | Event | What it does · why it exists |
 |---|---|---|
 | **forge-session-start.sh** | `SessionStart` | Resolves the session slug, reads `.forge/continuation/<slug>/latest`, and injects that continuation file's full contents as the session's opening context (`additionalContext`). On a genuine first launch it injects the session charter instead. It also stamps the generation baseline the Stop hook reads. This is the piece that makes the relaunch loop *continuous* rather than *amnesiac* — the loop provides a fresh process, this hook provides the memory. |
 | **forge-stop-handoff.sh** | `Stop` | Two jobs. (1) **Heartbeat** — touches `.forge/heartbeat/<slug>` with a fresh timestamp on every fire, the liveness signal the watchdog reads. (2) **Handoff enforcement** — blocks a stop if the current generation is exiting *without* having written its continuation file, so a handoff is never silently skipped. A Stop hook can only `block`/allow — it cannot inject messages or read context percentages — so it does the one thing it can. |
 | **mission-control-drift.sh** | `SessionStart` | Detects drift between GitHub issue state and `MISSION-CONTROL.md`. Beyond the original open-vs-closed check, the widened version catches three additional drift cases: (a) a `🚧 in-progress` sub-phase with no open PR, (b) a "Recommended next prompt" pointing at an already-shipped phase, (c) a phase progress bar that disagrees with the rows below it (re-derived via `scripts/derive-progress.sh`). Silent otherwise; always exits 0 so it never blocks session start. Keeps the project ledger honest without manual auditing. |
+| **instructions-loaded.sh** | `InstructionsLoaded` | Emits one JSONL record to `.claude/instructions-loaded.jsonl` for every load of `CLAUDE.md` or `.claude/rules/*.md` — capturing `load_reason` (e.g. `path_glob_match`), matched file, and timestamp. The same log file also receives `read_denied` records from the banner-scan hook below. Gitignored runtime substrate; the observability surface a future token-waste audit (3h — deferred) will read. **Known gap:** does NOT fire for `SKILL.md` loads — skill-load accounting carries forward to whichever phase revives the audit. Shipped in P3 sub-phase 3g. |
+| **read-human-only-guard.sh** | `PreToolUse` (Read) | Defense-in-depth banner enforcement. Scans line 1 of the file the Read tool is about to open; if it matches the `> **Audience:** humans only` banner, denies the Read with the reason string `"Denied — file is human-only (banner on line 1). See CLAUDE.md § Context loading for what to load instead."` Complements the static `permissions.deny` block in `.claude/settings.json` — the static block covers three known paths (`docs/how-the-forge-works.md`, `docs/audit/**`, `docs/vision/**`); this hook covers any banner-bearing file regardless of path. **Banner must be on line 1** — buried banners are silently unprotected (deliberate fail-loud on banner-authorship). Trade-off recorded in [ADR-0004](adr/0004-context-loading-defense-in-depth.md). Shipped in P3 sub-phase 3g. |
 | **example-block-bad-command.sh** | `PreToolUse` (Bash) | A **template**, not an active hook. A worked example of a project-specific Bash guardrail — copy it, rename it, edit the regex to block a command that bypasses your conventions (e.g. `npx tsc`, `git commit --no-verify`). Ships disabled so every project has the pattern on hand. |
 
 The continuation/heartbeat-related hooks are part of the crash-resilience
 layer — audited in [`docs/audit/crash-resilience.md`](audit/crash-resilience.md)
-and [`docs/audit/context-discipline.md`](audit/context-discipline.md).
+and [`docs/audit/context-discipline.md`](audit/context-discipline.md). The two
+3g hooks (`instructions-loaded.sh` + `read-human-only-guard.sh`) are the
+context-loading enforcement and observability surface; their cross-section
+counterpart in CLAUDE.md is §12 below.
 
 ---
 
@@ -459,7 +466,19 @@ The Forge keeps several doc surfaces that the pipeline reads — most of them
 - **`CLAUDE.md`** — the always-loaded project instructions: stack, check
   command, dev mode, rules. Read every session. Carries a three-part
   ADR-worthiness test (hard-to-reverse, surprising-without-context, real
-  trade-off) that grill-me references when offering to write an ADR.
+  trade-off) that grill-me references when offering to write an ADR. Its
+  **§ Context loading** is the contract for what a Claude session is
+  allowed to load: a layer table (always / session-state / glossary /
+  path-scoped / skill / knowledge / task-relevant), an explicit
+  human-only list, an **Enforcement** paragraph documenting the
+  defense-in-depth pair shipped in P3 sub-phase 3g (the static
+  `permissions.deny` block plus the `read-human-only-guard.sh`
+  `PreToolUse` hook — see [ADR-0004](adr/0004-context-loading-defense-in-depth.md)),
+  and an **Observability** paragraph documenting the
+  `instructions-loaded.sh` `InstructionsLoaded` hook + its JSONL log
+  at `.claude/instructions-loaded.jsonl`. The JSONL is treated as a
+  prose footnote (an *output* of the path-scoped layer, not an *input*
+  Claude reads) — it does not earn a row in the layer table.
 - **`CONTEXT.md`** — the ubiquitous-language glossary. Skills read it
   reactively when a term is ambiguous. `grill-me` enforces per-question
   Glossary upkeep — drift between grill answers and `CONTEXT.md` is
@@ -529,3 +548,5 @@ four-checkbox status header and a one-line verdict.
 | 9 | Planning discipline — grill-me → PRD → triage rigor (incl. the "grill-me with docs" eval) | [`docs/audit/planning-discipline.md`](audit/planning-discipline.md) |
 | 10 | Ubiquitous language / glossary discipline — the `CONTEXT.md` pattern | [`docs/audit/ubiquitous-language.md`](audit/ubiquitous-language.md) |
 | 11 | Mission Control & full project planning — `MISSION-CONTROL.md` as the project-state ledger | [`docs/audit/mission-control.md`](audit/mission-control.md) |
+
+(3h — token-waste audit — is deferred. When it ships, its outputs land here.)
