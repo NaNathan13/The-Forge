@@ -4,14 +4,14 @@
 > **Context:** ran during the audit-recs triage grill; user surfaced the idea of a
 > Discord-channel-as-control-surface that spins up/down CC sessions and routes them
 > at codebases. This is the landscape scan that informed the cross-referenced
-> update in `.claude/discord-integration-notes.md`.
+> update in `docs/vision/discord-control-plane.md`.
 >
 > **Bottom line:** Anthropic just (May 2026) shipped Claude Code Agent View — a
 > per-user supervisor daemon + machine-wide session roster — which makes the
 > "many sessions, one machine" problem dramatically lighter than the previous
 > field assumed.
 
-## Re-evaluated prior art (named in `.claude/discord-integration-notes.md`)
+## Re-evaluated prior art (named in `docs/vision/discord-control-plane.md`)
 
 | Project | Discord? | Codebase routing | Lifecycle mgmt | Maturity | Daemon-mode | Key blocker for our case |
 |---|---|---|---|---|---|---|

@@ -47,7 +47,7 @@
 
 ### P1 — Autonomous Forge ▓▓▓ 3/3
 
-> Original initiative north star: [`docs/vision/autonomous-forge.md`](docs/vision/autonomous-forge.md). **Superseded as roadmap** — sub-phases beyond 1c (fleet substrate, Discord control plane, Tier-0 sudo orchestrator) do not ship as P-stack phases; they re-enter the roadmap after P4 (WHJ), if at all. Retained as historical record + future-vision input. The Discord-specific design context (including the 2026-05-15 Agent View finding) lives in [`.claude/discord-integration-notes.md`](.claude/discord-integration-notes.md) and [`docs/research/2026-05-15-cc-session-managers.md`](docs/research/2026-05-15-cc-session-managers.md).
+> Original initiative north star: [`docs/vision/autonomous-forge.md`](docs/vision/autonomous-forge.md). **Superseded as roadmap** — sub-phases beyond 1c (fleet substrate, Discord control plane, Tier-0 sudo orchestrator) do not ship as P-stack phases; they re-enter the roadmap after P4 (WHJ), if at all. Retained as historical record + future-vision input. The Discord-specific design context (including the 2026-05-15 Agent View finding) lives in [`docs/vision/discord-control-plane.md`](docs/vision/discord-control-plane.md) and [`docs/research/2026-05-15-cc-session-managers.md`](docs/research/2026-05-15-cc-session-managers.md). The Tier-0 cross-project rollup is sketched in [`docs/vision/tier0-sudo-orchestrator.md`](docs/vision/tier0-sudo-orchestrator.md).
 
 | # | Sub-phase | Status | Blocked by | PRD | Issues |
 | --- | --- | --- | --- | --- | --- |

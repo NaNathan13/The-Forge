@@ -1,7 +1,7 @@
 # The Forge — Vision
 
 **Status:** living doc, replaces the roadmap portion of [`autonomous-forge.md`](autonomous-forge.md) (which is retained as historical context)
-**Updated:** 2026-05-15
+**Updated:** 2026-05-16 (P3 ✅ shipped 6/6 reconciled)
 
 > The Forge is a drop-in, file-based workflow that turns one idea into a shipped
 > project autonomously — with good context discipline, structured worker
@@ -24,6 +24,14 @@ The base workflow is shipped and works today. The dev-mode redesign, the
 self-continuing autonomous loop, the Discord control plane, and the cross-project
 "sudo orchestrator" are the four named future capabilities.
 
+**As of 2026-05-16, P3 — Improvements has shipped (6/6).** The
+Discord-ready constraint is closed: sentinel `"v":1` versioning,
+install-manifest, PID-file kill target, crash-respin circuit breaker, MC
+deepening (Blocked-by column + stub-row convention + `derive-progress.sh`
++ `reconcile-mc.sh`), inline ADR emission, and the full
+`validate-*.sh` family all landed. P4 — Dev Mode is the only phase
+between today and "first product project."
+
 ## What's shipped today
 
 | Capability | What it is | Where it lives |
@@ -37,7 +45,12 @@ self-continuing autonomous loop, the Discord control plane, and the cross-projec
 | **Knowledge library** | `lessons.md` index + `.claude/knowledge/<slug>.md` details; reactive-read, capped, deduped | `.claude/` |
 | **Glossary discipline** | `CONTEXT.md` — domain glossary, read reactively by skills | repo root |
 | **Best-practices baseline** | 11-facet audit (`docs/audit/`) + `AUDIT-SUMMARY.md` benchmarking the architecture against Anthropic's published guidance and the wider agentic-dev field | `docs/audit/` |
-| **Refinement pass in progress** | Phase **P3 — Improvements** (in flight) — fixes empirically-broken things + polishes proven surfaces + stays Discord-ready as a constraint | `docs/design/improvements-overview.md` + `docs/prds/improvements-3*.md` |
+| **Validation contracts** | `validate-sentinel.sh`, `validate-skills.sh`, `validate-continuation.sh`, `validate-mc.sh`, `validate-blocked-by.sh` — thin code layer enforcing the prose contracts the skill files describe; sentinel carries `"v":1`; CI workflow runs them all | `test/validate-*.sh` |
+| **Inline ADR emission** | `grill-me` offers an ADR when a decision passes the three-part test; `inscribe` writes it from a template fixture | `.claude/skills/grill-me/`, `.claude/skills/inscribe/`, `docs/adr/0000-template.md` |
+| **Bootstrap stamp** | `light-the-forge.sh` writes `.forge/install-manifest.json` recording version + install time — the hand-off surface a future Tier-0 / Agent View integration will read | `light-the-forge.sh`, `.forge/install-manifest.json` |
+| **MC deepening** | `Blocked by` column on sub-phase tables, forward-roadmap stub-row convention, `scripts/derive-progress.sh` (progress bars derived not hand-synced), `scripts/reconcile-mc.sh` (standalone reconcile), widened drift hook, `/seal` re-planning prompt | `MISSION-CONTROL.md`, `scripts/derive-progress.sh`, `scripts/reconcile-mc.sh`, `.claude/hooks/` |
+| **Knowledge-loop write side** | `temper` + `diagnose` write back to `lessons.md` after overcoming a wall; human-curation fallback documented | `.claude/skills/temper/`, `.claude/skills/diagnose/`, `.claude/lessons.md` |
+| **Refinement pass shipped** | Phase **P3 — Improvements** complete (6/6 sub-phases) — fixed empirically-broken things, polished proven surfaces, closed the Discord-ready constraint without building Discord | `docs/design/improvements-overview.md` + `docs/prds/improvements-3*.md` |
 
 ## The three dev modes (P4 — Dev Mode, planned)
 
@@ -90,7 +103,7 @@ sitting on top of Claude Code Agent View's per-machine supervisor daemon +
 roster (both shipped May 2026). The Forge-side work is a thin shim wiring
 Channels → Agent View → `forge`. Full landscape research:
 [`docs/research/2026-05-15-cc-session-managers.md`](../research/2026-05-15-cc-session-managers.md).
-Discord-specific notes: [`.claude/discord-integration-notes.md`](../../.claude/discord-integration-notes.md).
+Discord-specific design notes: [`discord-control-plane.md`](discord-control-plane.md).
 
 ### 4. Future — Tier-0 sudo orchestrator
 
@@ -98,6 +111,7 @@ A top-level session that orchestrates the project orchestrators, surfaces
 cross-project status, and produces a daily standup across every project you have
 running. Reads Agent View's roster + each project's `MISSION-CONTROL.md`.
 Built last, only if a flat fleet of Tier-1 orchestrators proves unmanageable.
+Design stub: [`tier0-sudo-orchestrator.md`](tier0-sudo-orchestrator.md).
 
 ## Design principles
 
@@ -145,8 +159,8 @@ any single skill rewrite.
 | **P0 — Foundations** | Developer modes (historical: `fast`/`balanced`/`tdd`), template invariant, push-to-main freedom, original pipeline audit cleanup | ✅ shipped |
 | **P1 — Autonomous Forge** | Research + single-session resilience build + forge-into-relaunch-loop wiring | ✅ shipped (3/3) — original roadmap of P2–P6 inside this phase **superseded** by the new top-level P3 + P4 |
 | **P2 — Pipeline Audit** | 11-facet audit + onboarding doc + `AUDIT-SUMMARY.md` | ✅ shipped (1/1) — feeds P3 |
-| **P3 — Improvements** | Validation contracts + knowledge-loop write side + crash-layer correctness + live grill artifacts + MC deepening + documented contracts. Six sub-phases (3a–3f). | 🚧 in progress — 3a slices #192–#198 filed, queued for `/forge` |
-| **P4 — Dev Mode** | Three-mode redesign (WHJ + Fast + Default). Replaces the P0a 3-mode system. | ⏳ scope-TBD post-P3 |
+| **P3 — Improvements** | Validation contracts + documented contracts + knowledge-loop write side + crash-layer correctness + live grill artifacts + MC deepening. Six sub-phases (3a–3f). | ✅ shipped (6/6) — closes the Discord-ready constraint without building Discord |
+| **P4 — Dev Mode** | Three-mode redesign (WHJ + Fast + Default). Replaces the P0a 3-mode system. | ⏳ scope-TBD — `/ponder 4a` next, ideally after the first product project teaches us which mode needs the deepest work |
 | **Future — Self-continuing autonomous loop** | Orchestrator-continues-itself capability. Not yet a filed phase; the next vision-level question after P4. | 🌑 not filed |
 | **Future — Discord control plane** | One channel ↔ one Tier-1 session. Channels + Agent View + Forge shim. Notes filed; phase not. | 🌑 not filed |
 | **Future — Tier-0 sudo orchestrator** | Cross-project rollup + daily standup. Last, optional. | 🌑 not filed |

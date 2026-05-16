@@ -90,7 +90,7 @@ the audit listed `systemd` second; we cut that, so the order collapses to:
 Deliberate carve-outs, captured here so future re-readers don't relitigate them:
 
 - **Discord control plane.** Channels-based plugin + Agent View integration is
-  filed in `.claude/discord-integration-notes.md` (2026-05-15 update) and
+  filed in `docs/vision/discord-control-plane.md` and
   `docs/research/2026-05-15-cc-session-managers.md`. Not built here.
 - **Tier-0 / sudo orchestrator.** Out of scope per grill lock #1. The Forge's
   resilience layer's composition with Agent View's supervisor daemon is flagged
@@ -122,8 +122,8 @@ Deliberate carve-outs, captured here so future re-readers don't relitigate them:
 
 - `docs/audit/AUDIT-SUMMARY.md` — the 32 recommendations, grouped into 9 themes.
 - `docs/audit/<facet>.md` — the eleven facet docs for the underlying detail.
-- `.claude/discord-integration-notes.md` (2026-05-15 update) — the Agent View
-  finding and what it changes about Discord-readiness.
+- `docs/vision/discord-control-plane.md` — the Agent View finding and what it
+  changes about Discord-readiness.
 - `docs/research/2026-05-15-cc-session-managers.md` — full landscape scan of
   Claude Code session manager prior art.
 - `.forge-dev/future/weenie-hut-junior.md` — input to the P4 stub.
