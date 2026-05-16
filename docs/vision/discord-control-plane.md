@@ -1,5 +1,7 @@
 # Discord Control Plane — Design Notes
 
+> **Audience:** humans only — Claude should not load this file. See `CLAUDE.md` § Context loading.
+
 **Status:** pre-build helper doc · **For:** level 3 of the autonomy spectrum (Discord-driven Tier-1 orchestration) · **Sequence:** built after P4 (Dev Mode), if at all
 **Created:** 2026-05-14 · **Updated:** 2026-05-15 (Agent View landscape shift folded inline)
 **See also:** [`the-forge.md`](the-forge.md) — autonomy-spectrum overview · [`autonomous-forge.md`](autonomous-forge.md) — original 3-tier model (historical) · [`../research/2026-05-15-cc-session-managers.md`](../research/2026-05-15-cc-session-managers.md) — session-manager landscape

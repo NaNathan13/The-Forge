@@ -1,5 +1,7 @@
 # Tier-0 Sudo Orchestrator — Design Notes
 
+> **Audience:** humans only — Claude should not load this file. See `CLAUDE.md` § Context loading.
+
 **Status:** stub design doc · **For:** level 4 of the autonomy spectrum (cross-project rollup) · **Sequence:** built after the Discord control plane, if at all
 **Created:** 2026-05-16
 **See also:** [`the-forge.md`](the-forge.md) — autonomy-spectrum overview · [`discord-control-plane.md`](discord-control-plane.md) — level 3 (the channel-per-project surface this sits on top of)

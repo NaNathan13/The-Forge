@@ -1,5 +1,7 @@
 # The Forge — Vision
 
+> **Audience:** humans only — Claude should not load this file. See `CLAUDE.md` § Context loading.
+
 **Status:** living doc, replaces the roadmap portion of [`autonomous-forge.md`](autonomous-forge.md) (which is retained as historical context)
 **Updated:** 2026-05-16 (P3 ✅ shipped 6/6 reconciled)
 

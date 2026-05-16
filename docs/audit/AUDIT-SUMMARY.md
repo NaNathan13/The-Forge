@@ -1,7 +1,9 @@
 # Audit Summary — P2 Sub-phase 2a Pipeline Audit
 
+> **Audience:** humans only — Claude should not load this file. See `CLAUDE.md` § Context loading.
+
 > **Consolidated review of the 2a pipeline audit.** This doc rolls up the eleven
-> `docs/audit/*.md` facet docs and the `.claude/how-the-forge-works.md` onboarding
+> `docs/audit/*.md` facet docs and the `docs/how-the-forge-works.md` onboarding
 > explainer into one scannable review — so the operator can see the verdicts and
 > the recommended work without reading twelve files. It is a *review* of the audit
 > output, not a new audit. All eleven facet docs and the onboarding doc shipped to

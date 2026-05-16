@@ -1,5 +1,7 @@
 # Audit — Planning Discipline
 
+> **Audience:** humans only — Claude should not load this file. See `CLAUDE.md` § Context loading.
+
 > **Status**
 > - [x] Documented — how The Forge does it today
 > - [x] Researched — the concept + real-world anchors

@@ -1,5 +1,7 @@
 # Autonomous Forge — North Star (historical)
 
+> **Audience:** humans only — Claude should not load this file. See `CLAUDE.md` § Context loading.
+
 **Status:** 📝 sub-phase 1a shipped (#129–#131); **roadmap superseded** 2026-05-15 — see [`the-forge.md`](the-forge.md) for the current vision
 **Created:** 2026-05-14
 **Phase:** P1 — Autonomous Forge · sub-phase 1a (research + design) — see [`MISSION-CONTROL.md`](../../MISSION-CONTROL.md)

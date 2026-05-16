@@ -40,15 +40,24 @@ Write an ADR (under `docs/adr/`) only when **all three** of the following hold f
 
 If any of the three fails, do not write an ADR. ADRs document trades; they do not document choices.
 
-## Docs
+## Context loading
 
-- [`CONTEXT.md`](./CONTEXT.md) — ubiquitous language and domain glossary. Read reactively when disambiguating terms.
-- [`MISSION-CONTROL.md`](./MISSION-CONTROL.md) — project state. Read at session start, not every turn.
-- [`.claude/lessons.md`](./.claude/lessons.md) — failed-then-fixed patterns.
-- [`.claude/rules/`](./.claude/rules/) — auto-loaded path-scoped rules. Add as you find patterns worth enforcing.
-- [`docs/adr/`](./docs/adr/) — architectural decisions (create the dir on first ADR).
-- [`docs/prds/`](./docs/prds/) — feature PRDs (created by `/inscribe`).
-- [`docs/workflow/`](./docs/workflow/) — pipeline reference docs.
-- [`docs/workflow/p2-resilience-operations.md`](./docs/workflow/p2-resilience-operations.md) — P2 operator guide: install the `launchd` agents, read the logs, recover from a tripped circuit breaker (macOS-only crash layer).
-- [`WORKFLOW.md`](./WORKFLOW.md) — bot-facing workflow cheat-sheet (on-demand, not every turn).
-- [`.forge/README.md`](./.forge/README.md) — P2 single-session resilience substrate (continuation files, `resilience.config`, slug derivation). Read when touching `scripts/continuation.sh` or the `.forge/` runtime dirs.
+Context is precious. Anything not listed below is either **human-only** documentation or loaded **reactively** when judged relevant to the task.
+
+| Layer | Source | When it loads |
+|---|---|---|
+| Always | this file, the auto-memory index | every session start |
+| Session-state | `MISSION-CONTROL.md` | once at session start (not every turn) |
+| Glossary | `CONTEXT.md` | reactively when a term is ambiguous |
+| Path-scoped | `.claude/rules/<rule>.md` | auto-injected by the harness when a file matching the rule's glob is touched |
+| Skill | `.claude/skills/<name>/SKILL.md` | when the matching `/command` is invoked |
+| Knowledge loop | `.claude/lessons.md` → `.claude/knowledge/<slug>.md` | reactively when an error signature matches an entry |
+| Task-relevant | `docs/adr/*`, `docs/prds/*`, `docs/workflow/*`, `.forge/README.md`, `WORKFLOW.md` | reactively when the current task calls for them |
+
+**Human-only — never load these into a Claude session:**
+
+- `docs/how-the-forge-works.md` — onboarding narrative for someone reading the repo cold
+- `docs/audit/*` — the P2 audit facets + `AUDIT-SUMMARY.md` (evaluative, for humans)
+- `docs/vision/*` — forward-direction shelf (for humans deciding next moves)
+
+Every file in these categories carries a `> **Audience:** humans only` header. **If a file you're about to Read has that header, stop and reconsider** — it almost certainly isn't what you need; the same content is encoded in a Claude-readable shape somewhere else (SKILL.md, an ADR, a workflow doc, MISSION-CONTROL.md, or path-scoped rules).

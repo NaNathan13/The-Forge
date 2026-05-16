@@ -31,7 +31,7 @@ re-audits.
 
 ### Deliverable A — the onboarding explainer (1 slice)
 
-`.claude/how-the-forge-works.md` — a from-scratch narrative walkthrough for someone
+`docs/how-the-forge-works.md` — a from-scratch narrative walkthrough for someone
 reading the repo cold.
 
 - **Descriptive only.** It explains what each part does and *why* it exists. It does
@@ -105,7 +105,7 @@ have **no `Blocked by:` edges**. Forge runs them in slice order, max 2 concurren
 
 | Slice | What | File |
 | --- | --- | --- |
-| `2a/logic` | Onboarding explainer — everything that moves, descriptive, links to audit docs | `.claude/how-the-forge-works.md` |
+| `2a/logic` | Onboarding explainer — everything that moves, descriptive, links to audit docs | `docs/how-the-forge-works.md` |
 | `2a/logic` | Audit — phased pipeline pattern | `docs/audit/phased-pipeline.md` |
 | `2a/logic` | Audit — subagent orchestration | `docs/audit/subagent-orchestration.md` |
 | `2a/logic` | Audit — sentinel protocol | `docs/audit/sentinel-protocol.md` |
@@ -143,7 +143,7 @@ after the onboarding doc — no build dependency is needed.
 
 ## Acceptance — sub-phase done when
 
-- `.claude/how-the-forge-works.md` exists, covers every moving part of the repo, is
+- `docs/how-the-forge-works.md` exists, covers every moving part of the repo, is
   purely descriptive, and links to all 11 `docs/audit/` docs.
 - All 11 `docs/audit/<facet>.md` files exist, each with the uniform status header
   (4 stage checkboxes + verdict line) and the three fixed sections.
