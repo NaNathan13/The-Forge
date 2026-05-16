@@ -116,38 +116,26 @@ Flow:
 
 5. Record the outcome in seal's run summary (step 8) so the user can see which PRs went through the conflict path and which ended in friction.
 
-### 5. Reconcile MISSION-CONTROL.md
+### 5. Reconcile MISSION-CONTROL.md (+ commit + push)
 
-a. **Read MISSION-CONTROL.md.** Identify every row carrying a `<!-- mc:open=N,N,N -->` marker.
+Run `scripts/reconcile-mc.sh`. Show the operator any commit + push output it produced.
 
-b. **Query GitHub for each tracked issue.** For each `N`, run:
+```bash
+bash scripts/reconcile-mc.sh
+```
 
-   `gh issue view N --json state -q .state`
+The script is the sole writer of `MISSION-CONTROL.md` (sub-phase 3f / issue #238). It performs the full close-out in one pass:
 
-   Collect issues that report `CLOSED`.
+- Reads MC and queries `gh issue view N --json state -q .state` for every row's `<!-- mc:open=N,N -->` marker.
+- Advances rows whose full marker set is `CLOSED`: status `🚧 in-progress` → `✅ shipped`, marker `mc:open=...` → `mc:done=...`, `Blocked by` cell → `—`.
+- Recomputes phase progress bars via `scripts/derive-progress.sh`.
+- Recomputes the "Telemetry — right now" banner (Phase + In flight count, `—` when zero).
+- Recomputes the "Recommended next prompt" using the priority order baked into the script.
+- Shows the diff on stdout. If non-empty, commits with `chore(mc): reconcile YYYY-MM-DD — <summary>` and pushes.
 
-c. **Advance shipped rows.** For each row whose `mc:open=` set is fully contained in the closed-issue set:
-   - Change row status emoji from `🚧 in-progress` to `✅ shipped`.
-   - Replace the row marker `<!-- mc:open=N,N,N -->` → `<!-- mc:done=N,N,N -->`.
+If the diff is empty, the script prints `reconcile-mc: MISSION-CONTROL.md already in sync.` and exits 0. Either way, no further MC steps run in seal — the script owns the full close-out.
 
-d. **Recompute phase progress bars.** For each phase header:
-   - Count rows with `✅ shipped` → `N`.
-   - Count total rows → `M`.
-   - Render: `▓` × N + `░` × (M-N) + ` N/M`.
-
-e. **Update the "Telemetry — right now" banner.**
-   - **Phase:** name the phase with the most recent in-flight or queued sub-phase.
-   - **In flight:** count of rows with `🚧 in-progress`. If 0, write `—`.
-
-f. **Recompute the "Recommended next prompt".** Priority order — first match wins:
-   1. **Open temper PRs remain:** `/seal` (still more to close).
-   2. **Temper in progress:** any row `🚧 in-progress` AND open issues with `ready-for-agent` + `slice:*` → `/temper <lowest-open-issue>`.
-   3. **Ready to temper:** any issue with `ready-for-agent` + `slice:*` → `/forge` (let the orchestrator dispatch).
-   4. **PRD ready:** any row `📝 prd-ready` with issues filed → `/forge`.
-   5. **Queued sub-phases remain:** any row `⏳ queued` → `/ponder <sub-phase-name>`.
-   6. **Done:** `_All features shipped or in motion. No recommendation._`.
-
-g. **Show the MC diff.** Run `git diff MISSION-CONTROL.md`. If empty, note "MISSION-CONTROL already in sync."
+The on-demand operator invocation (`bash scripts/reconcile-mc.sh`, e.g. after a human-closed issue or an out-of-band merge) uses the exact same code path; that is the point of the extraction.
 
 ### 6. Final cleanup
 
@@ -170,17 +158,11 @@ fi
 
 Do NOT delete `.claude/token-usage.jsonl` — that's a historical record.
 
-### 7. Commit MISSION-CONTROL.md
+### 7. (Reserved — commit + push handled by step 5.)
 
-If step 5 produced a diff, commit it and push directly:
+`scripts/reconcile-mc.sh` performs the commit + push itself when its diff is non-empty (see step 5). This step number is preserved to keep step numbering stable across the SKILL; the original "Commit MISSION-CONTROL.md" stage no longer has any work of its own.
 
-```bash
-git add MISSION-CONTROL.md
-git commit -m "chore(mc): seal $(date +%Y-%m-%d) — <N> slices shipped"
-git push
-```
-
-In interactive mode, ask once before pushing. Default yes. In `--auto` mode, push without prompting.
+If you need to skip the auto-push (e.g. interactive review on a sensitive branch), run `bash scripts/reconcile-mc.sh --dry-run` in step 5 instead, then commit + push by hand once you've reviewed the diff.
 
 ### 8. Print the run summary
 
