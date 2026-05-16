@@ -202,6 +202,139 @@ test_unknown_flag_returns_2() {
   assert_exit_code 2 "$VALIDATOR_RC"
 }
 
+# ── Sub-phase table column shape ─────────────────────────────────────────────
+# The slice-1 change formalized MC's sub-phase tables with a `Blocked by`
+# column. The validator must recognize the new shape, accept stub rows, and
+# reject tables missing the column.
+
+test_passes_on_well_formed_subphase_table() {
+  write_mc '## 🪐 Phase progress
+
+### P0 Foundations ▓ 1/1
+
+| # | Sub-phase | Status | Blocked by | PRD | Issues |
+| --- | --- | --- | --- | --- | --- |
+| 0a | Foo | ✅ shipped | — | [`docs/prds/foo.md`](docs/prds/foo.md) | #1 <!-- mc:done=1 --> |
+'
+  run_validator
+  assert_exit_code 0 "$VALIDATOR_RC"
+  assert_contains "$VALIDATOR_OUT" "validate-mc: OK"
+}
+
+test_fails_on_subphase_table_missing_blocked_by_column() {
+  # Old shape — missing the `Blocked by` column.
+  write_mc '## 🪐 Phase progress
+
+### P0 Foundations ▓ 1/1
+
+| # | Sub-phase | Status | PRD | Issues |
+| --- | --- | --- | --- | --- |
+| 0a | Foo | ✅ shipped | [`docs/prds/foo.md`](docs/prds/foo.md) | #1 <!-- mc:done=1 --> |
+'
+  run_validator
+  assert_exit_code 1 "$VALIDATOR_RC"
+  assert_contains "$VALIDATOR_OUT" "sub-phase table header"
+  assert_contains "$VALIDATOR_OUT" "Blocked by"
+}
+
+test_fails_on_subphase_table_blocked_by_in_wrong_position() {
+  # `Blocked by` present but placed after PRD instead of after Status.
+  write_mc '## 🪐 Phase progress
+
+### P0 Foundations ▓ 1/1
+
+| # | Sub-phase | Status | PRD | Blocked by | Issues |
+| --- | --- | --- | --- | --- | --- |
+| 0a | Foo | ✅ shipped | [`docs/prds/foo.md`](docs/prds/foo.md) | — | #1 <!-- mc:done=1 --> |
+'
+  run_validator
+  assert_exit_code 1 "$VALIDATOR_RC"
+  assert_contains "$VALIDATOR_OUT" "sub-phase table header"
+}
+
+test_accepts_stub_row_shape() {
+  # `⏳ queued` / `⏳ scope-TBD` stub row with `<!-- mc:none -->` must pass.
+  write_mc '## 🪐 Phase progress
+
+### P4 — Dev Mode ░ 0/1
+
+| # | Sub-phase | Status | Blocked by | PRD | Issues |
+| --- | --- | --- | --- | --- | --- |
+| 4a | Scope (TBD post-P3) | ⏳ scope-TBD | — | [`docs/design/dev-mode-overview.md`](docs/design/dev-mode-overview.md) (stub) | <!-- mc:none --> |
+'
+  run_validator
+  assert_exit_code 0 "$VALIDATOR_RC"
+  assert_contains "$VALIDATOR_OUT" "validate-mc: OK"
+}
+
+test_ignores_non_subphase_tables_for_column_check() {
+  # The Architectural-items table has a different header shape and must not
+  # be flagged by the sub-phase column check.
+  write_mc '## 🪐 Phase progress
+
+### P0 Foundations ▓ 1/1
+
+| # | Sub-phase | Status | Blocked by | PRD | Issues |
+| --- | --- | --- | --- | --- | --- |
+| 0a | Foo | ✅ shipped | — | — | #1 <!-- mc:done=1 --> |
+
+## 🛸 Architectural items
+
+| # | Item | Sequence | Status | Issues |
+| --- | --- | --- | --- | --- |
+| A1 | Some prerequisite | 1 | ⏳ queued | — |
+'
+  run_validator
+  assert_exit_code 0 "$VALIDATOR_RC"
+}
+
+# ── In-progress Blocked-by ID-existence check ────────────────────────────────
+
+test_passes_on_inprogress_row_with_known_blocked_by_id() {
+  write_mc '## 🪐 Phase progress
+
+### P3 — Improvements ▓░ 1/2
+
+| # | Sub-phase | Status | Blocked by | PRD | Issues |
+| --- | --- | --- | --- | --- | --- |
+| 3a | Foo | ✅ shipped | — | [`docs/prds/foo.md`](docs/prds/foo.md) | #1 <!-- mc:done=1 --> |
+| 3b | Bar | 🚧 in-progress | 3a | [`docs/prds/bar.md`](docs/prds/bar.md) | #2 <!-- mc:open=2 --> |
+'
+  run_validator
+  assert_exit_code 0 "$VALIDATOR_RC"
+}
+
+test_passes_on_inprogress_row_with_multiple_known_ids() {
+  write_mc '## 🪐 Phase progress
+
+### P3 — Improvements ▓▓░ 2/3
+
+| # | Sub-phase | Status | Blocked by | PRD | Issues |
+| --- | --- | --- | --- | --- | --- |
+| 3a | Foo | ✅ shipped | — | — | #1 <!-- mc:done=1 --> |
+| 3b | Bar | ✅ shipped | — | — | #2 <!-- mc:done=2 --> |
+| 3c | Baz | 🚧 in-progress | 3a, 3b | [`docs/prds/baz.md`](docs/prds/baz.md) | #3 <!-- mc:open=3 --> |
+'
+  run_validator
+  assert_exit_code 0 "$VALIDATOR_RC"
+}
+
+test_fails_on_inprogress_row_with_unknown_blocked_by_id() {
+  write_mc '## 🪐 Phase progress
+
+### P3 — Improvements ▓░ 1/2
+
+| # | Sub-phase | Status | Blocked by | PRD | Issues |
+| --- | --- | --- | --- | --- | --- |
+| 3a | Foo | ✅ shipped | — | [`docs/prds/foo.md`](docs/prds/foo.md) | #1 <!-- mc:done=1 --> |
+| 3b | Bar | 🚧 in-progress | 9z | [`docs/prds/bar.md`](docs/prds/bar.md) | #2 <!-- mc:open=2 --> |
+'
+  run_validator
+  assert_exit_code 1 "$VALIDATOR_RC"
+  assert_contains "$VALIDATOR_OUT" "unknown sub-phase ID"
+  assert_contains "$VALIDATOR_OUT" "9z"
+}
+
 # ── Live-repo guard ──────────────────────────────────────────────────────────
 
 test_no_false_positives_on_shipped_mc() {

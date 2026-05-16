@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
-# validate-mc.sh — validate `MISSION-CONTROL.md` row markers + issue references.
+# validate-mc.sh — validate `MISSION-CONTROL.md` row markers + issue references
+#                  + sub-phase table column shape.
 #
 # Walks `MISSION-CONTROL.md` under the given root (default: the repo root inferred
 # from this script's location) and asserts the embedded HTML-comment row markers
@@ -16,6 +17,14 @@ set -uo pipefail
 #      offline runs or environments without `gh` authentication.
 #   3. No issue number appears in two rows across the whole document
 #      (deduplication: an issue belongs to exactly one sub-phase).
+#   4. Every sub-phase table (any markdown table whose header starts with
+#      `| # | Sub-phase |`) has the expected column sequence
+#      `# | Sub-phase | Status | Blocked by | PRD | Issues`. Stub rows
+#      (`⏳ queued` / `⏳ scope-TBD` with `<!-- mc:none -->`) are valid as long as
+#      they satisfy this shape.
+#   5. Every `🚧 in-progress` row whose `Blocked by` cell is not `—` must
+#      reference one or more sub-phase IDs that actually exist somewhere in MC
+#      (an ID is a cell-text like `3a`, `3b`, `3a, 3b`).
 #
 # This validator is wired into CI (`.github/workflows/validate-mc.yml`) so silent
 # MC drift becomes a failed check on every PR and every push to `main`.
@@ -292,6 +301,158 @@ while IFS= read -r line; do
     esac
   done
 done < "$PREPROC_FILE"
+
+# ── Sub-phase table column-shape + in-progress Blocked-by checks ─────────────
+# Scan the preprocessed file for sub-phase tables. A sub-phase table is any
+# markdown table whose header row starts with `| # | Sub-phase |`. This
+# distinguishes it from the Architectural-items table (header `| # | Item |`)
+# and any future non-sub-phase tables.
+#
+# Required header column sequence (after trimming whitespace around each cell):
+#
+#     # | Sub-phase | Status | Blocked by | PRD | Issues
+#
+# For each data row of every sub-phase table, also collect the sub-phase ID
+# from column 1 (e.g. `3a`, `4a`) into ALL_SUBPHASE_IDS. This is the universe
+# against which `Blocked by` references are validated below.
+#
+# Then for each `🚧 in-progress` data row whose Blocked-by cell is not `—`,
+# split the cell by `,`, trim, and verify each ID is in ALL_SUBPHASE_IDS.
+
+EXPECTED_COLS=("#" "Sub-phase" "Status" "Blocked by" "PRD" "Issues")
+
+# split_table_row <line>
+# Splits a markdown table row by `|`, trims whitespace around each cell, and
+# stores the result in the global CELLS array (length in #CELLS[@]). The
+# leading and trailing pipes are dropped. Lines that are not table rows (no
+# leading `|`) leave CELLS empty.
+#
+# Uses a global rather than echoing one cell per line because some cell values
+# legitimately contain newlines from cell-text quirks (they shouldn't in MC,
+# but defending against future surprises is cheap), and `mapfile` is not
+# available on the bash 3.2 that ships with macOS.
+split_table_row() {
+  CELLS=()
+  local line="$1"
+  [[ "$line" != \|* ]] && return 0
+  local trimmed="${line#|}"     # drop leading pipe
+  trimmed="${trimmed%|}"        # drop trailing pipe (the row always ends `|`)
+  local IFS='|'
+  read -ra _split_cells <<< "$trimmed"
+  local cell
+  for cell in "${_split_cells[@]}"; do
+    cell="${cell#"${cell%%[![:space:]]*}"}"
+    cell="${cell%"${cell##*[![:space:]]}"}"
+    CELLS+=("$cell")
+  done
+}
+
+declare -a ALL_SUBPHASE_IDS=()
+declare -a INPROGRESS_REFS=()        # parallel arrays: ID-list + line
+declare -a INPROGRESS_REFS_LINES=()
+
+in_subphase_table=0
+saw_header_sep=0
+table_start_line=0
+
+line_no=0
+while IFS= read -r line; do
+  line_no=$((line_no + 1))
+
+  if [[ $in_subphase_table -eq 0 ]]; then
+    # Detect a sub-phase table header: a row whose first two cells are `#` and
+    # `Sub-phase`. Validate the rest of the header columns immediately.
+    if [[ "$line" == \|* ]]; then
+      split_table_row "$line"
+      if [[ ${#CELLS[@]} -ge 2 && "${CELLS[0]}" == "#" && "${CELLS[1]}" == "Sub-phase" ]]; then
+        in_subphase_table=1
+        saw_header_sep=0
+        table_start_line=$line_no
+        # Verify the full column sequence.
+        ok=1
+        if [[ ${#CELLS[@]} -ne ${#EXPECTED_COLS[@]} ]]; then
+          ok=0
+        else
+          for ((i = 0; i < ${#EXPECTED_COLS[@]}; i++)); do
+            if [[ "${CELLS[$i]}" != "${EXPECTED_COLS[$i]}" ]]; then
+              ok=0
+              break
+            fi
+          done
+        fi
+        if [[ $ok -eq 0 ]]; then
+          report_fail "$MC_FILE:$line_no: sub-phase table header must be exactly '| ${EXPECTED_COLS[0]} | ${EXPECTED_COLS[1]} | ${EXPECTED_COLS[2]} | ${EXPECTED_COLS[3]} | ${EXPECTED_COLS[4]} | ${EXPECTED_COLS[5]} |' (got '${CELLS[*]}')"
+        fi
+      fi
+    fi
+    continue
+  fi
+
+  # Inside a sub-phase table. The first non-empty row after the header should
+  # be the markdown separator row (`| --- | --- | ... |`). After that, data
+  # rows continue until we hit a non-table line.
+  if [[ "$line" != \|* ]]; then
+    # Table ended — blank line or new heading.
+    in_subphase_table=0
+    saw_header_sep=0
+    continue
+  fi
+
+  if [[ $saw_header_sep -eq 0 ]]; then
+    # Separator row — accept any `| --- | --- | ... |` shape and move on. We
+    # do not strictly validate it; the existing markdown rendering checks
+    # there.
+    saw_header_sep=1
+    continue
+  fi
+
+  # Data row. Pull cells.
+  split_table_row "$line"
+  if [[ ${#CELLS[@]} -lt ${#EXPECTED_COLS[@]} ]]; then
+    report_fail "$MC_FILE:$line_no: sub-phase table row has ${#CELLS[@]} cells, expected at least ${#EXPECTED_COLS[@]}"
+    continue
+  fi
+  sp_id="${CELLS[0]}"
+  sp_status="${CELLS[2]}"
+  sp_blocked="${CELLS[3]}"
+
+  # Record the sub-phase ID for cross-row reference checks.
+  if [[ -n "$sp_id" ]]; then
+    ALL_SUBPHASE_IDS+=("$sp_id")
+  fi
+
+  # In-progress + non-`—` Blocked-by → collect for the existence check.
+  # The status cell contains emoji + text (e.g. `🚧 in-progress`); a substring
+  # match keeps this resilient to surrounding whitespace or trailing notes.
+  if [[ "$sp_status" == *"in-progress"* && "$sp_blocked" != "—" ]]; then
+    INPROGRESS_REFS+=("$sp_blocked")
+    INPROGRESS_REFS_LINES+=("$line_no")
+  fi
+done < "$PREPROC_FILE"
+
+# Validate in-progress Blocked-by references.
+if [[ ${#INPROGRESS_REFS[@]} -gt 0 ]]; then
+  for ((i = 0; i < ${#INPROGRESS_REFS[@]}; i++)); do
+    refs="${INPROGRESS_REFS[$i]}"
+    refs_line="${INPROGRESS_REFS_LINES[$i]}"
+    IFS=',' read -ra _refs <<< "$refs"
+    for raw_ref in "${_refs[@]}"; do
+      ref="${raw_ref#"${raw_ref%%[![:space:]]*}"}"
+      ref="${ref%"${ref##*[![:space:]]}"}"
+      [[ -z "$ref" ]] && continue
+      found=0
+      for sp in "${ALL_SUBPHASE_IDS[@]}"; do
+        if [[ "$sp" == "$ref" ]]; then
+          found=1
+          break
+        fi
+      done
+      if [[ $found -eq 0 ]]; then
+        report_fail "$MC_FILE:$refs_line: 🚧 in-progress row references unknown sub-phase ID '$ref' in Blocked by"
+      fi
+    done
+  done
+fi
 
 # ── Dedup check ──────────────────────────────────────────────────────────────
 # Every issue number across all rows must be unique. We sort and walk the
