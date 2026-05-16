@@ -63,6 +63,24 @@ recs total across six sub-phases. Six recs are explicitly cut and recorded under
 | 3e | **Live grill artifacts + ADRs** | #9, #10, #12, #13 | Modifies `grill-me` + `inscribe` to write `CONTEXT.md` updates and ADRs inline. One coherent surface (the grill/inscribe path). |
 | 3f | **MC deepening + reconciliation** | #14 (cheap), #15, #16, #17, #18, #19 | Biggest change — MC structure (dependency + sequencing columns), forward-roadmap stub rows, widened reconciliation, `derive-progress.sh`, standalone `reconcile-mc.sh`, re-planning prompt in `/seal`. Ships last so all prior sub-phases settle the MC shape before validation/reconciliation widens. |
 
+### Extension batch (filed 2026-05-16, post-initial-acceptance)
+
+3a–3f shipped 2026-05-15 → 2026-05-16. Two follow-on concerns surfaced
+post-acceptance: (1) a research verification of `CLAUDE.md` § Context
+loading found that our policy is sound but **advisory only** — Claude
+Code ships harness-level enforcement primitives we aren't using; (2)
+the user-stated goal of keeping the system **token-efficient while
+autonomous** wants a quantitative audit rather than a one-time fix.
+Three further sub-phases extend P3 to address both, ending in a single
+doc-reconciliation pass so `how-the-forge-works.md` is only rewritten
+once against the final state.
+
+| # | Sub-phase | Source | Why this is its own sub-phase |
+|---|---|---|---|
+| 3g | **Context-loading hardening** | 2026-05-16 research (VERDICT: EXTEND) | Promotes the context-loading policy from behavioral guidance to harness-enforced + observable. Three actions: `PreToolUse` Read hook or `permissions.deny`, real `paths:` frontmatter on `.claude/rules/*.md`, `InstructionsLoaded` hook wired to `.claude/instructions-loaded.jsonl`. Smallest blast radius of the extension. |
+| 3h | **Token-waste audit** | User-stated goal + 3g (c)'s log | Data-driven audit of where context still over-loads even with 3g's enforcement in place. Reads the 3g log + `token-usage.jsonl`, writes the audit doc, ships cheap-now fixes inline, files follow-ups. **Pause for ≥3 real sessions between 3g and 3h** so the log accumulates representative data. |
+| 3i | **Doc reconciliation** | Doc-surface staleness after the extension | Reconciles `how-the-forge-works.md`, writes the condensed `the-forge-at-a-glance.md` companion (~250 lines, same 13-section structure), updates `vision/the-forge.md` + `CLAUDE.md` § Context loading. Ships last so doc surfaces are only rewritten once. |
+
 ### Cuts (recorded recs that do NOT ship this phase)
 
 | Rec | Why cut |
@@ -111,12 +129,19 @@ Deliberate carve-outs, captured here so future re-readers don't relitigate them:
 
 ## Acceptance — phase done when
 
-- All six sub-phases (3a–3f) have shipped with their issue lists fully closed
-  and reconciled in MC.
+- All **nine** sub-phases (3a–3i) have shipped with their issue lists fully
+  closed and reconciled in MC. The initial batch (3a–3f) reached this state on
+  2026-05-16; the extension batch (3g–3i) is in flight.
 - `docs/audit/AUDIT-SUMMARY.md` §B has been annotated with which recs shipped
   in which sub-phase and which were explicitly cut.
-- `MISSION-CONTROL.md` recommended-next-prompt advances to `/ponder` of P4 (WHJ
-  scope grill).
+- The 3h audit doc exists under `docs/audit/` capturing measured token-waste
+  shapes; any cheap-now fixes have shipped inline, anything bigger is filed as
+  a follow-up issue.
+- `docs/how-the-forge-works.md` is reconciled against the final post-3g+3h
+  state; the condensed companion (`docs/the-forge-at-a-glance.md` or
+  equivalent) exists and is human-only.
+- `MISSION-CONTROL.md` recommended-next-prompt advances to `/ponder` of P4
+  (Dev Mode scope grill).
 
 ## Inputs
 
