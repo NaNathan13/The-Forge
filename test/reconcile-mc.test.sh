@@ -145,6 +145,84 @@ test_shipped_row_advances() {
   assert_contains "$mc" "| 0b | thing two | ✅ shipped | — |" "Blocked by should be — on shipped row"
 }
 
+# ── Test: a prd-ready row whose mc:open issues are all CLOSED advances. ──────
+# The all-closed mc:open set is the shipped signal; the prior status emoji is
+# informational only. The normal forge-auto flow closes issues without ever
+# flipping the MC row to 🚧 in-progress, so the script must advance from
+# 📝 prd-ready and ⏳ queued too — not just from 🚧 in-progress.
+
+test_prd_ready_row_advances() {
+  write_mc '# MC
+
+## 🛰️ Telemetry — right now
+
+**Phase:** P0 ▓░ 1/2
+**In flight:** —
+
+**Recommended next prompt:**
+
+```
+/forge
+```
+
+## 🪐 Phase progress
+
+### P0 ▓░ 1/2
+
+| # | Sub-phase | Status | Blocked by | PRD | Issues |
+| --- | --- | --- | --- | --- | --- |
+| 0a | thing one | ✅ shipped | — | — | #1 <!-- mc:done=1 --> |
+| 0b | thing two | 📝 prd-ready | — | — | #2, #3 <!-- mc:open=2,3 --> |
+
+'
+  stub_gh '1:CLOSED 2:CLOSED 3:CLOSED'
+  stub_git_push
+  run_script --dry-run
+
+  assert_exit_code 0 "$RC" "script should exit 0 on success"
+  local mc
+  mc="$(cat "$WORKDIR/MISSION-CONTROL.md")"
+  assert_contains "$mc" "| 0b | thing two | ✅ shipped" "0b should advance from 📝 prd-ready to ✅ shipped"
+  assert_not_contains "$mc" "📝 prd-ready" "old prd-ready glyph must be gone"
+  assert_contains "$mc" "mc:done=2,3" "marker should switch to mc:done"
+}
+
+test_queued_row_advances() {
+  write_mc '# MC
+
+## 🛰️ Telemetry — right now
+
+**Phase:** P0 ▓░ 1/2
+**In flight:** —
+
+**Recommended next prompt:**
+
+```
+/forge
+```
+
+## 🪐 Phase progress
+
+### P0 ▓░ 1/2
+
+| # | Sub-phase | Status | Blocked by | PRD | Issues |
+| --- | --- | --- | --- | --- | --- |
+| 0a | thing one | ✅ shipped | — | — | #1 <!-- mc:done=1 --> |
+| 0b | thing two | ⏳ queued | — | — | #2 <!-- mc:open=2 --> |
+
+'
+  stub_gh '1:CLOSED 2:CLOSED'
+  stub_git_push
+  run_script --dry-run
+
+  assert_exit_code 0 "$RC" "script should exit 0 on success"
+  local mc
+  mc="$(cat "$WORKDIR/MISSION-CONTROL.md")"
+  assert_contains "$mc" "| 0b | thing two | ✅ shipped" "0b should advance from ⏳ queued to ✅ shipped"
+  assert_not_contains "$mc" "⏳ queued" "old queued glyph must be gone"
+  assert_contains "$mc" "mc:done=2" "marker should switch to mc:done"
+}
+
 # ── Test: a partially-closed row does NOT advance. ───────────────────────────
 
 test_partial_close_does_not_advance() {

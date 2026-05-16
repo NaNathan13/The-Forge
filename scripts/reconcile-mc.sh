@@ -16,7 +16,12 @@ set -uo pipefail
 #   2. Queries `gh issue view N --json state -q .state` for each issue. Rows
 #      whose full `mc:open` set is CLOSED are "shipped".
 #   3. Advances shipped rows in place:
-#        - status emoji `🚧 in-progress` → `✅ shipped`
+#        - status emoji → `✅ shipped`. The all-closed mc:open set IS the
+#          shipped signal; any of `🚧 in-progress` / `📝 prd-ready` /
+#          `⏳ queued` advances. (The pre-3i version only advanced
+#          `🚧 in-progress`, which silently stranded rows that went straight
+#          from prd-ready to closed without temper ever flipping them to
+#          in-progress — the normal forge-auto flow.)
 #        - marker `<!-- mc:open=N,N -->` → `<!-- mc:done=N,N -->`
 #        - `Blocked by` cell → `—` (matches the 6-column schema policy that
 #          shipped rows carry `—`)
@@ -165,12 +170,13 @@ transform_row() {
   s="$(printf '%s' "$s" | awk -F'|' -v OFS='|' '
     {
       if (NF >= 7) {
-        # Status cell: replace in-progress glyph with shipped glyph,
-        # canonicalizing the whole cell to padded form.
+        # Status cell: replace any non-shipped status glyph with the shipped
+        # glyph, canonicalizing the whole cell to padded form. The mc:open
+        # set being all-closed is the shipped signal; the prior status emoji
+        # is informational only and must be advanced regardless of which one
+        # it was (in-progress, prd-ready, or queued).
         cell = $4
-        # Canonicalize cell to ` shipped ` (single-space padded) when the
-        # in-progress glyph is present anywhere inside it.
-        if (match(cell, /🚧[^|]*/)) {
+        if (match(cell, /🚧[^|]*/) || match(cell, /📝[^|]*/) || match(cell, /⏳[^|]*/)) {
           $4 = " ✅ shipped "
         }
         # Blocked by: replace with ` — ` (single-space padded).
