@@ -9,7 +9,6 @@ REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 MC_FILE="$REPO_ROOT/MISSION-CONTROL.md"
 
 [[ -f "$MC_FILE" ]] || exit 0
-command -v gh >/dev/null 2>&1 || exit 0
 
 # Extract every issue number listed in any `mc:open=...` marker.
 issues=$(grep -oE 'mc:open=[0-9,]+' "$MC_FILE" 2>/dev/null \
@@ -17,18 +16,39 @@ issues=$(grep -oE 'mc:open=[0-9,]+' "$MC_FILE" 2>/dev/null \
   | tr ',' '\n' \
   | sort -un)
 
-[[ -z "$issues" ]] && exit 0
-
 # Count how many of those tracked-as-open issues are actually CLOSED on GitHub.
+# Skipped silently when there are no open markers or when `gh` is unavailable
+# — the progress-bar check below runs regardless.
 drift=0
-while IFS= read -r issue; do
-  [[ -z "$issue" ]] && continue
-  state=$(gh issue view "$issue" --json state -q .state 2>/dev/null || echo "UNKNOWN")
-  [[ "$state" == "CLOSED" ]] && drift=$((drift + 1))
-done <<< "$issues"
+if [[ -n "$issues" ]] && command -v gh >/dev/null 2>&1; then
+  while IFS= read -r issue; do
+    [[ -z "$issue" ]] && continue
+    state=$(gh issue view "$issue" --json state -q .state 2>/dev/null || echo "UNKNOWN")
+    [[ "$state" == "CLOSED" ]] && drift=$((drift + 1))
+  done <<< "$issues"
+fi
 
 if [[ "$drift" -gt 0 ]]; then
   echo "📊 Mission Control: $drift closed issue(s) since last sync — run /seal to refresh."
+fi
+
+# --- Phase progress-bar drift (issue #237) ---
+# Compare phase progress bars in MISSION-CONTROL.md to derive-progress.sh's
+# canonical output. The script exits non-zero on drift; we surface its stderr
+# diagnostic lines verbatim. Hook never writes — the fix path is /seal (which
+# invokes scripts/reconcile-mc.sh as the sole writer).
+DERIVE_SCRIPT="$REPO_ROOT/scripts/derive-progress.sh"
+if [[ -x "$DERIVE_SCRIPT" ]]; then
+  derive_stderr="$("$DERIVE_SCRIPT" 2>&1 >/dev/null)"
+  derive_rc=$?
+  if [[ "$derive_rc" -ne 0 && -n "$derive_stderr" ]]; then
+    # Print each diagnostic line with a leading marker so the session banner
+    # groups it visually with the other MC drift signals.
+    while IFS= read -r diag; do
+      [[ -z "$diag" ]] && continue
+      echo "📊 Mission Control: $diag"
+    done <<< "$derive_stderr"
+  fi
 fi
 
 # --- /examine nudge ---
