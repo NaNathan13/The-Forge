@@ -3,7 +3,7 @@
 > **Audience:** humans only — Claude should not load this file. See `CLAUDE.md` § Context loading.
 
 **Status:** living doc, replaces the roadmap portion of [`autonomous-forge.md`](autonomous-forge.md) (which is retained as historical context)
-**Updated:** 2026-05-16 (P3 ✅ shipped 6/6 reconciled)
+**Updated:** 2026-05-16 (P3 ✅ shipped 9/9 reconciled — 3h deferred)
 
 > The Forge is a drop-in, file-based workflow that turns one idea into a shipped
 > project autonomously — with good context discipline, structured worker
@@ -26,13 +26,17 @@ The base workflow is shipped and works today. The dev-mode redesign, the
 self-continuing autonomous loop, the Discord control plane, and the cross-project
 "sudo orchestrator" are the four named future capabilities.
 
-**As of 2026-05-16, P3 — Improvements has shipped (6/6).** The
-Discord-ready constraint is closed: sentinel `"v":1` versioning,
-install-manifest, PID-file kill target, crash-respin circuit breaker, MC
-deepening (Blocked-by column + stub-row convention + `derive-progress.sh`
-+ `reconcile-mc.sh`), inline ADR emission, and the full
-`validate-*.sh` family all landed. P4 — Dev Mode is the only phase
-between today and "first product project."
+**As of 2026-05-16, P3 — Improvements has shipped (9/9, with 3h
+deferred).** The Discord-ready constraint is closed: sentinel `"v":1`
+versioning, install-manifest, PID-file kill target, crash-respin
+circuit breaker, MC deepening (Blocked-by column + stub-row convention
++ `derive-progress.sh` + `reconcile-mc.sh`), inline ADR emission, the
+full `validate-*.sh` family, the 3g context-loading hardening pass
+(defense-in-depth banner enforcement + `instructions-loaded.jsonl`
+observability), and the 3i doc reconciliation all landed. Sub-phase
+3h (token-waste audit) is **deferred** pending ≥3 real sessions of
+post-3g log data — revisited post-P4 + first product project. P4 —
+Dev Mode is the only phase between today and "first product project."
 
 ## What's shipped today
 
@@ -52,7 +56,7 @@ between today and "first product project."
 | **Bootstrap stamp** | `light-the-forge.sh` writes `.forge/install-manifest.json` recording version + install time — the hand-off surface a future Tier-0 / Agent View integration will read | `light-the-forge.sh`, `.forge/install-manifest.json` |
 | **MC deepening** | `Blocked by` column on sub-phase tables, forward-roadmap stub-row convention, `scripts/derive-progress.sh` (progress bars derived not hand-synced), `scripts/reconcile-mc.sh` (standalone reconcile), widened drift hook, `/seal` re-planning prompt | `MISSION-CONTROL.md`, `scripts/derive-progress.sh`, `scripts/reconcile-mc.sh`, `.claude/hooks/` |
 | **Knowledge-loop write side** | `temper` + `diagnose` write back to `lessons.md` after overcoming a wall; human-curation fallback documented | `.claude/skills/temper/`, `.claude/skills/diagnose/`, `.claude/lessons.md` |
-| **Refinement pass shipped** | Phase **P3 — Improvements** complete (6/6 sub-phases) — fixed empirically-broken things, polished proven surfaces, closed the Discord-ready constraint without building Discord | `docs/design/improvements-overview.md` + `docs/prds/improvements-3*.md` |
+| **Refinement pass shipped** | Phase **P3 — Improvements** complete (9/9 sub-phases — 3h deferred) — fixed empirically-broken things, polished proven surfaces, closed the Discord-ready constraint without building Discord. Initial batch 3a–3f + extension batch 3g (context-loading hardening) + 3i (doc reconciliation); 3h (token-waste audit) deferred pending real-session log data. | `docs/design/improvements-overview.md` + `docs/prds/improvements-3*.md` |
 
 ## The three dev modes (P4 — Dev Mode, planned)
 
@@ -161,7 +165,7 @@ any single skill rewrite.
 | **P0 — Foundations** | Developer modes (historical: `fast`/`balanced`/`tdd`), template invariant, push-to-main freedom, original pipeline audit cleanup | ✅ shipped |
 | **P1 — Autonomous Forge** | Research + single-session resilience build + forge-into-relaunch-loop wiring | ✅ shipped (3/3) — original roadmap of P2–P6 inside this phase **superseded** by the new top-level P3 + P4 |
 | **P2 — Pipeline Audit** | 11-facet audit + onboarding doc + `AUDIT-SUMMARY.md` | ✅ shipped (1/1) — feeds P3 |
-| **P3 — Improvements** | Validation contracts + documented contracts + knowledge-loop write side + crash-layer correctness + live grill artifacts + MC deepening. Six sub-phases (3a–3f). | ✅ shipped (6/6) — closes the Discord-ready constraint without building Discord |
+| **P3 — Improvements** | Validation contracts + documented contracts + knowledge-loop write side + crash-layer correctness + live grill artifacts + MC deepening + context-loading hardening (3g) + doc reconciliation (3i). Nine sub-phases (3a–3i); 3h (token-waste audit) deferred. | ✅ shipped (9/9 — 3h deferred) — closes the Discord-ready constraint without building Discord |
 | **P4 — Dev Mode** | Three-mode redesign (WHJ + Fast + Default). Replaces the P0a 3-mode system. | ⏳ scope-TBD — `/ponder 4a` next, ideally after the first product project teaches us which mode needs the deepest work |
 | **Future — Self-continuing autonomous loop** | Orchestrator-continues-itself capability. Not yet a filed phase; the next vision-level question after P4. | 🌑 not filed |
 | **Future — Discord control plane** | One channel ↔ one Tier-1 session. Channels + Agent View + Forge shim. Notes filed; phase not. | 🌑 not filed |
