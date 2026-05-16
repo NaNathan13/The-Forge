@@ -5,21 +5,21 @@
 
 ## 🛰️ Telemetry — right now
 
-**Phase:** P3 — Improvements ▓▓▓▓▓▓░░░ 6/9 (extension batch 3g–3i queued)
+**Phase:** P4 — Dev Mode ░ 0/1
 **In flight:** —
 **Workflow:** Ponder → Forge → Temper pipeline. See [`docs/workflow/`](docs/workflow/) for details.
 
 **Recommended next prompt:**
 
 ```
-/ponder 3g
+/ponder 3h
 ```
 
 ## ☄️ In flight
 
 | Sub-phase | Slice | Status |
 | --- | --- | --- |
-| 3g | Context-loading hardening | ⏳ queued — stub PRD filed |
+| 3g | Context-loading hardening | 📝 prd-ready — 3 slices filed (#247, #248, #249) |
 | 3h | Token-waste audit | ⏳ queued — blocked by 3g (c) |
 | 3i | Doc reconciliation | ⏳ queued — blocked by 3g, 3h |
 
@@ -75,7 +75,7 @@
 | 3d | Crash-layer correctness + measurement | ✅ shipped | — | [`docs/prds/improvements-3d-crash-correctness.md`](docs/prds/improvements-3d-crash-correctness.md) | #224, #225, #226 <!-- mc:done=224,225,226 --> |
 | 3e | Live grill artifacts + ADRs | ✅ shipped | — | [`docs/prds/improvements-3e-live-grill.md`](docs/prds/improvements-3e-live-grill.md) | #230, #231, #232 <!-- mc:done=230,231,232 --> |
 | 3f | MC deepening + reconciliation | ✅ shipped | — | [`docs/prds/improvements-3f-mc-deepening.md`](docs/prds/improvements-3f-mc-deepening.md) | <!-- mc:done=236,237,238,239,240 --> |
-| 3g | Context-loading hardening | ⏳ queued | — | [`docs/prds/improvements-3g-context-hardening.md`](docs/prds/improvements-3g-context-hardening.md) | <!-- mc:none --> |
+| 3g | Context-loading hardening | 📝 prd-ready | — | [`docs/prds/improvements-3g-context-hardening.md`](docs/prds/improvements-3g-context-hardening.md) | #247, #248, #249 <!-- mc:done=247,248,249 --> |
 | 3h | Token-waste audit | ⏳ queued | 3g | [`docs/prds/improvements-3h-token-waste-audit.md`](docs/prds/improvements-3h-token-waste-audit.md) | <!-- mc:none --> |
 | 3i | Doc reconciliation | ⏳ queued | 3g, 3h | [`docs/prds/improvements-3i-doc-reconciliation.md`](docs/prds/improvements-3i-doc-reconciliation.md) | <!-- mc:none --> |
 
@@ -101,6 +101,7 @@
 - [`0001-autonomous-forge-architecture.md`](docs/adr/0001-autonomous-forge-architecture.md) — 3-tier model + optional-by-layers principle + operator-setup requirement (P1 / sub-phase 1a). **Now historical** — the 3-tier model survives as future vision but its P2–P6 phasing has been superseded by P3 (Improvements) + P4 (WHJ). See `docs/design/improvements-overview.md` for the new direction.
 - [`0002-phase-isolation.md`](docs/adr/0002-phase-isolation.md) — Phases communicate only via on-disk artifacts; session memory between phases is forbidden (P3 / sub-phase 3b).
 - [`0003-concurrency-cap.md`](docs/adr/0003-concurrency-cap.md) — Single-worker concurrency cap as a deliberate trade: forge dispatches exactly one temper per generation, with a recorded revisit precondition (P3 / sub-phase 3b).
+- [`0004-context-loading-defense-in-depth.md`](docs/adr/0004-context-loading-defense-in-depth.md) — Context-loading enforcement uses both `permissions.deny` (static, known paths) AND a `PreToolUse` Read hook (dynamic, banner-scan); the two mechanisms cover disjoint failure modes and collapsing breaks one of them (P3 / sub-phase 3g).
 
 ## 🌑 Out of scope
 
