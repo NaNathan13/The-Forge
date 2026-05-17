@@ -76,7 +76,7 @@ flowchart TD
 
 - **Block 0 — Starting point.** Fresh project, existing codebase, or starter template. Reshapes the rest of the Q&A.
 - **Block 0b — Research vs. Build intent.** Asked *only* on the Fresh-project path. Research-first skips Block 4 entirely.
-- **Block 0c — Developer mode.** Asked on every path (Fresh / Existing / Starter). Sets `**Dev mode:** fast|balanced|tdd` in `CLAUDE.md`. Downstream skills (`/temper`, `/ponder`, `/inscribe`) branch on this line.
+- **Block 0c — Developer mode.** Asked on every path (Fresh / Existing / Starter). Sets `**Dev mode:** fast|balanced|tdd` in `CLAUDE.md`. Downstream skills (`/forge`, `/ponder`, `/inscribe`) branch on this line.
 - **Block 1 — Identity.** Project name and one-line description.
 - **Block 2 — Visual review.** Which tool temper uses for UI screenshots (Playwright, iOS Sim MCP, Other, None).
 - **Block 3 — First phase.** The `0a` sub-phase title that lands in `MISSION-CONTROL.md`.

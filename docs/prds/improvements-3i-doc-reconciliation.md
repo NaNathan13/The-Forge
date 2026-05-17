@@ -1,5 +1,8 @@
 # PRD — Doc reconciliation
 
+> **Naming context (after sub-phase 4b, 2026-05-17):** in the body below, "/forge" refers to the orchestrator role now named `/forgemaster`, and "/temper" refers to the builder role now named `/forge`. See [ADR-0005](../adr/0005-pipeline-role-split.md) for the rename rationale.
+
+
 > Sub-phase **3i** (Phase **P3 — Improvements**) · Status: 📝 prd-ready · Filed 2026-05-16
 >
 > **Why this size?** Two coherent doc deliverables emerging from a single batch — reconcile existing human-only docs against post-3g state, and ship a new condensed-companion onboarding doc; both human-only, both touch the same conceptual surface (the 13-section walkthrough), natural sub-phase shape rather than two unrelated standalone slices.

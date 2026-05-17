@@ -67,7 +67,7 @@ generations past the cap after each write.
 ## Charter files — `charter.md` (operator-hand-written, first-launch scope)
 
 A **charter** is the operator's scope statement for a phase-scoped forge run. On a
-genuine first launch — when no `gen-NNN.md` exists yet — `forge-session-start.sh`
+genuine first launch — when no `gen-NNN.md` exists yet — `forgemaster-session-start.sh`
 falls back to injecting a charter instead of a continuation generation, looking in
 order at:
 

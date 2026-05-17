@@ -17,15 +17,17 @@
 
 **Ponder**: The planning phase. The `/ponder` skill grills a fuzzy idea, writes the PRD under `docs/prds/`, files the issues, and triages them through `/triage` until each is `ready-for-agent`. _Avoid_: "plan" (too generic), "design" (often means visual design).
 
-**Forge**: The orchestrator that drains a triaged queue. `/forge` reads issues with `ready-for-agent`, dispatches one **temper** worker per slice, watches their `TEMPER:RESULT` sentinels, and advances the queue. It does **not** implement code or merge PRs itself. _Avoid_: "runner" (collides with GitHub Actions runners), "driver" (too generic).
+**Forgemaster**: The orchestrator that drains a triaged queue. `/forgemaster` reads issues with `ready-for-agent`, dispatches a **`/forge`** (builder) followed by a **`/temper`** (review) worker per slice, watches their `FORGE:RESULT` / `TEMPER:RESULT` sentinels, and advances the queue. It does **not** implement code, review code, or merge PRs itself. Lives at `.claude/skills/forgemaster/SKILL.md`. _Avoid_: "forge" (now the builder), "runner" (collides with GitHub Actions runners), "driver" (too generic).
 
-**Temper**: A single worker that builds one slice end-to-end: branch → implement → check command → PR → green CI. Temper stops at green CI and emits a `TEMPER:RESULT` JSON line — it does **not** merge. Lives at `.claude/skills/temper/SKILL.md`. _Avoid_: "builder" (collides with the `builder` support-agent), "executor" (overloaded).
+**Forge**: A single worker that builds one slice end-to-end: branch → implement → check command → PR → green CI. `/forge` stops at green CI and emits a `FORGE:RESULT` JSON line — it does **not** merge. Lives at `.claude/skills/forge/SKILL.md`. _Avoid_: "temper" (was the pre-4b name; now the review skill), "builder" (collides with the `builder` support-agent), "executor" (overloaded).
 
-**Seal**: The closer skill. After a batch of tempers have all parked at green CI, `/seal` approves + squash-merges every shippable PR, reconciles `MISSION-CONTROL.md`, and scrubs worktrees / continuation files. _Avoid_: "merge" (just the verb), "ship" (used colloquially but not the skill name).
+**Temper**: The review-and-harden phase that runs after `/forge` reaches green CI. `/temper` confirms the PR is shippable, applies the `ready-for-seal` label, and emits a `TEMPER:RESULT` JSON line. In sub-phase 4b `/temper` is a stub passthrough; real review behavior (reviewer-agent dispatch, deeper testing, friction-label decisions) lands in 4c. Lives at `.claude/skills/temper/SKILL.md`. _Avoid_: "review" (too generic verb), "harden" (the action, not the role).
 
-**Slice**: One triaged GitHub issue — the unit of work `/temper` consumes. Labelled `slice:logic`, `slice:ui`, or `slice:mixed`. The slice label drives whether temper writes unit tests, opens a visual-review subagent, etc. _Avoid_: "task" (too generic), "ticket" (Jira-coded), "story" (Agile-coded).
+**Seal**: The closer skill. After every slice in the batch has been built by `/forge` and reviewed by `/temper`, `/seal` approves + squash-merges every PR carrying the `ready-for-seal` label (skipping `friction` / `needs-human` / non-green CI), reconciles `MISSION-CONTROL.md`, and scrubs worktrees / continuation files. _Avoid_: "merge" (just the verb), "ship" (used colloquially but not the skill name).
 
-**Sentinel**: A structured machine-readable line a skill emits to communicate with its parent. Temper emits `TEMPER:RESULT {…json…}`; forge parses the JSON's `status` field to decide what to do next (advance, retry, escalate). The legacy prose sentinels (`TEMPER:SUCCESS`, `TEMPER:NEEDS_HUMAN:<reason>`, …) are deprecated — see `docs/shared/pipeline.md`. _Avoid_: "marker" (collides with MC row markers), "signal" (too generic).
+**Slice**: One triaged GitHub issue — the unit of work `/forge` consumes. Labelled `slice:logic`, `slice:ui`, or `slice:mixed`. The slice label drives whether `/forge` writes unit tests, opens a visual-review subagent, etc. _Avoid_: "task" (too generic), "ticket" (Jira-coded), "story" (Agile-coded).
+
+**Sentinel**: A structured machine-readable line a skill emits to communicate with its parent. `/forge` emits `FORGE:RESULT {…json…}` (build outcome); `/temper` emits `TEMPER:RESULT {…json…}` (review outcome); both share the same JSON schema. Forgemaster parses the JSON's `status` field to decide what to do next (advance, retry, escalate). The legacy prose sentinels (`TEMPER:SUCCESS`, `TEMPER:NEEDS_HUMAN:<reason>`, …) and the legacy build-sentinel name (pre-4b `TEMPER:RESULT` for build outcomes) are deprecated — see `docs/shared/pipeline.md`. _Avoid_: "marker" (collides with MC row markers), "signal" (too generic).
 
 **Sub-phase**: A coherent chunk of work inside a numbered project phase (P0, P1, …). E.g. sub-phase `0a` = "Developer modes". Each sub-phase has one row in `MISSION-CONTROL.md`'s phase-progress table. A sub-phase usually maps to one PRD. _Avoid_: "epic" (Jira-coded), "milestone" (collides with GitHub milestones).
 
@@ -36,7 +38,7 @@
 ```
 User ─runs─→ /ponder ─files─→ Issues ─triage─→ ready-for-agent
                                                     │
-User ─runs─→ /forge ─dispatches─→ Temper worker ─emits─→ TEMPER:RESULT
+User ─runs─→ /forge ─dispatches─→ Temper worker ─emits─→ FORGE:RESULT
                                                     │
 User ─runs─→ /seal ─merges─→ PRs ─reconciles─→ MISSION-CONTROL.md
 ```
@@ -50,7 +52,7 @@ User ─runs─→ /seal ─merges─→ PRs ─reconciles─→ MISSION-CONTROL
 ## Example dialogue
 
 > — "Did temper merge it?"
-> — "No, temper stops at green CI and emits `TEMPER:RESULT`. `/seal` merges the batch."
+> — "No, temper stops at green CI and emits `FORGE:RESULT`. `/seal` merges the batch."
 
 > — "Is that a slice or a sub-phase?"
 > — "Sub-phase — it has its own PRD. The slices are the four issues filed underneath it."

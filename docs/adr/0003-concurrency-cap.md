@@ -1,5 +1,8 @@
 # ADR 0003 — Single-worker concurrency cap as deliberate trade
 
+> **Naming context (after sub-phase 4b, 2026-05-17):** in the body below, "/forge" refers to the orchestrator role now named `/forgemaster`, and "/temper" refers to the builder role now named `/forge`. See [ADR-0005](./0005-pipeline-role-split.md) for the rename rationale.
+
+
 **Status:** Accepted
 **Date:** 2026-05-15
 **Phase:** P3 — Improvements · sub-phase 3b (Documented contracts + bootstrap stamp)

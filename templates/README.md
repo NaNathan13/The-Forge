@@ -20,12 +20,12 @@ This project uses [The Forge](https://github.com/NaNathan13/The-Forge) — a Cla
 workflow that takes a project from idea to shipped code. The pipeline is:
 
 ```
-/ponder  →  /forge  →  /temper <N>  →  /seal
+/ponder  →  /forgemaster  →  /forge <N>  →  /seal
 ```
 
 - `/ponder` — grill the idea, write the PRD, file the issues
-- `/forge` — dispatch a worker per triaged slice
-- `/temper <N>` — build issue `<N>` from branch to green PR
+- `/forgemaster` — dispatch a worker per triaged slice
+- `/forge <N>` — build issue `<N>` from branch to green PR
 - `/seal` — approve and merge the batch, reconcile mission control
 
 See [`WORKFLOW.md`](./WORKFLOW.md) for the full cheat-sheet and [`CLAUDE.md`](./CLAUDE.md)

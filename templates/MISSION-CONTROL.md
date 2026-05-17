@@ -1,13 +1,13 @@
 # 🚀 {{PROJECT_NAME}} — Mission Control
 
 > Ground station for the project's trajectory — where it stands, and the next burn.
-> Auto-updated by pipeline skills (`/inscribe`, `/temper`, `/seal`). Each phase updates the "Recommended next prompt". Drift between this doc and GitHub issue state is surfaced as a SessionStart reminder.
+> Auto-updated by pipeline skills (`/inscribe`, `/forge`, `/seal`). Each phase updates the "Recommended next prompt". Drift between this doc and GitHub issue state is surfaced as a SessionStart reminder.
 
 ## 🛰️ Telemetry — right now
 
 **Phase:** P0 Foundations ⏳ (0/1)
 **In flight:** —
-**Workflow:** Ponder → Forge → Temper pipeline. See [`docs/workflow/`](docs/workflow/) for details.
+**Workflow:** Ponder → Forgemaster → Forge → Temper pipeline. See [`docs/workflow/`](docs/workflow/) for details.
 
 **Recommended next prompt:**
 
@@ -23,7 +23,7 @@
 
 <!--
   Sub-phases live in tables under phase headers. As work is filed and shipped,
-  /inscribe, /temper, and /seal update these rows.
+  /inscribe, /forge, and /seal update these rows.
 
   Status emoji: ⏳ queued · 🔥 grilling · 📝 prd-ready · 🚧 in-progress · ✅ shipped · ⏸ deferred
 
@@ -69,4 +69,4 @@
 
 **Phase progress bars:** `▓` = shipped sub-phase, `░` = not yet shipped. Format: `▓▓░░░ 2/5`.
 
-**Updated by:** `/inscribe` (PRD + issues + triage), `/temper` (in-progress status), `/seal` (post-merge reconciliation). Each phase also updates the "Recommended next prompt".
+**Updated by:** `/inscribe` (PRD + issues + triage), `/forge` (in-progress status), `/seal` (post-merge reconciliation). Each phase also updates the "Recommended next prompt".

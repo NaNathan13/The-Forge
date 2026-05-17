@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
-# forge-stop-handoff.sh — P2 Stop hook: handoff enforcer + heartbeat.
+# forgemaster-stop-handoff.sh — P2 Stop hook: handoff enforcer + heartbeat.
 #
 # Design doc §3a / amended §Q2. Registered on the `Stop` event in
 # .claude/settings.json. A deterministic bash script — no Claude Code runtime,
@@ -21,7 +21,7 @@ set -uo pipefail
 #
 # ── How "this generation wrote its continuation" is detected ─────────────────
 # The relaunch loop (slice 4) launches a fresh `claude` per generation. The
-# SessionStart hook (forge-session-start.sh), on each launch, records a baseline
+# SessionStart hook (forgemaster-session-start.sh), on each launch, records a baseline
 # — the continuation generation number that existed *at session start* — to
 # .forge/heartbeat/<slug>.genbaseline. This Stop hook compares the current
 # latest generation number against that baseline:
@@ -34,9 +34,9 @@ set -uo pipefail
 # stamps the baseline, this hook reads it.
 #
 # "Loop-managed" is an explicit positive signal, not an inference (issue #181).
-# The relaunch loop exports FORGE_LOOP_MANAGED=1 into every `claude -p`
+# The relaunch loop exports FORGEMASTER_LOOP_MANAGED=1 into every `claude -p`
 # generation it launches; an interactive session a developer opens by hand never
-# carries it. This hook enforces the handoff ONLY when FORGE_LOOP_MANAGED is set
+# carries it. This hook enforces the handoff ONLY when FORGEMASTER_LOOP_MANAGED is set
 # (and a baseline exists). If the marker is unset — an interactive session — the
 # hook ALLOWS the stop unconditionally. P2 only enforces handoffs on loop-managed
 # sessions; it must never wedge a hand-run interactive session that has nothing
@@ -152,13 +152,13 @@ main() {
     allow_stop
   fi
 
-  # FORGE_LOOP_MANAGED is the explicit "this generation is loop-managed" marker
+  # FORGEMASTER_LOOP_MANAGED is the explicit "this generation is loop-managed" marker
   # (issue #181). The relaunch loop exports it into every `claude -p` generation;
   # an interactive session never carries it. Unset → not loop-managed → allow the
   # stop. This is the primary discriminator: P2 must never wedge a hand-run
   # interactive session, and an interactive SessionStart no longer stamps a
   # baseline either, so this and the baseline check agree.
-  if [[ -z "${FORGE_LOOP_MANAGED:-}" ]]; then
+  if [[ -z "${FORGEMASTER_LOOP_MANAGED:-}" ]]; then
     allow_stop
   fi
 

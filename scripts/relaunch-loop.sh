@@ -19,9 +19,9 @@ set -uo pipefail
 #   - non-zero exit            → crash/OOM/panic/signal. PROPAGATE the exit code to
 #                                launchd; do NOT silently respin. This is the
 #                                boundary between the two supervision layers.
-#   - exit 0, FORGE_COMPLETE   → work is genuinely done. Break, exit 0. launchd's
+#   - exit 0, FORGEMASTER_COMPLETE   → work is genuinely done. Break, exit 0. launchd's
 #                                SuccessfulExit=false keeps the loop from respinning.
-#   - exit 0, FORGE_CONTINUE   → clean handoff. Record the generation, run the
+#   - exit 0, FORGEMASTER_CONTINUE   → clean handoff. Record the generation, run the
 #                                thrash circuit breaker, run the budget gate, then
 #                                relaunch fresh.
 #   - exit 0, no sentinel      → fault, not a handoff (design §1). Exit non-zero
@@ -73,7 +73,7 @@ set -uo pipefail
 # are the fallback for when a key is absent or malformed.
 #
 # ── Exit codes ───────────────────────────────────────────────────────────────
-#   0    work complete (FORGE_COMPLETE) — clean stop
+#   0    work complete (FORGEMASTER_COMPLETE) — clean stop
 #   1    exit-0 generation with no recognised sentinel — treated as a fault
 #   2    thrash circuit breaker tripped — too many handoffs too fast
 #   3    budget hard line crossed — session is over the hard threshold
@@ -82,8 +82,8 @@ set -uo pipefail
 # ─────────────────────────────────────────────────────────────────────────────
 
 # Sentinel strings carried in `.result` (design §1, amended §1 sentinel contract).
-SENTINEL_CONTINUE="FORGE_CONTINUE"
-SENTINEL_COMPLETE="FORGE_COMPLETE"
+SENTINEL_CONTINUE="FORGEMASTER_CONTINUE"
+SENTINEL_COMPLETE="FORGEMASTER_COMPLETE"
 
 # Exit codes — named so the loop body reads as intent, not magic numbers.
 EXIT_COMPLETE=0
@@ -106,7 +106,7 @@ PID_FILE=""
 
 # Crash-respin breaker defaults — fallback for when resilience.config is silent
 # on the crash pair. Distinct from the handoff thrash defaults above: those
-# count clean FORGE_CONTINUE handoffs within a single loop process; these count
+# count clean FORGEMASTER_CONTINUE handoffs within a single loop process; these count
 # CRASH respawns across loop processes (each crash exits the loop; launchd
 # respawns it; the counter persists to see the cycle).
 DEFAULT_CRASH_MAX_RESPINS=5
@@ -428,7 +428,7 @@ main() {
     # Fresh context window every call: plain `claude -p --output-format json`.
     # The SessionStart hook (slice 4c) injects the continuation `latest` for us.
     #
-    # FORGE_LOOP_MANAGED=1 is the explicit "this is a loop-managed generation"
+    # FORGEMASTER_LOOP_MANAGED=1 is the explicit "this is a loop-managed generation"
     # marker. The P2 hooks key off it: SessionStart stamps the genbaseline only
     # when it is set, the Stop hook enforces the handoff only when it is set.
     # Interactive `claude` sessions a developer opens by hand never carry it, so
@@ -439,7 +439,7 @@ main() {
     # temp file so existing JSON parsing (.result / .usage) is unchanged.
     local tmp_out claude_pid
     tmp_out="$(mktemp -t forge-claude-out.XXXXXX)" || die "could not create temp file"
-    FORGE_LOOP_MANAGED=1 "$claude_bin" -p --output-format json \
+    FORGEMASTER_LOOP_MANAGED=1 "$claude_bin" -p --output-format json \
         >"$tmp_out" 2>/dev/null &
     claude_pid=$!
     printf '%s\n' "$claude_pid" > "$PID_FILE"
@@ -473,7 +473,7 @@ main() {
 
     # Work-complete sentinel → nothing left to do. Break, exit 0.
     if [[ "$result" == *"$SENTINEL_COMPLETE"* ]]; then
-      log "FORGE_COMPLETE — work done, loop exiting 0"
+      log "FORGEMASTER_COMPLETE — work done, loop exiting 0"
       exit "$EXIT_COMPLETE"
     fi
 
@@ -516,7 +516,7 @@ main() {
     # ── Exit 0 but no recognised sentinel — a fault, not a handoff ────────────
     # The session ran out of turns / ended without emitting either sentinel.
     # Do not spin — exit non-zero so the fault surfaces.
-    log "claude exited 0 with no FORGE_CONTINUE/FORGE_COMPLETE sentinel — treating as a fault"
+    log "claude exited 0 with no FORGEMASTER_CONTINUE/FORGEMASTER_COMPLETE sentinel — treating as a fault"
     exit "$EXIT_NO_SENTINEL"
   done
 }

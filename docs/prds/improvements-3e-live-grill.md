@@ -1,5 +1,8 @@
 # PRD — Live Grill Artifacts + ADRs (stub)
 
+> **Naming context (after sub-phase 4b, 2026-05-17):** in the body below, "/forge" refers to the orchestrator role now named `/forgemaster`, and "/temper" refers to the builder role now named `/forge`. See [ADR-0005](../adr/0005-pipeline-role-split.md) for the rename rationale.
+
+
 > Sub-phase **3e** (Phase **P3 — Improvements**) · Status: 🔥 stub-prd — fill in at `/ponder` time · Filed 2026-05-15
 >
 > Umbrella context: [`docs/design/improvements-overview.md`](../design/improvements-overview.md).

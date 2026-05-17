@@ -1,5 +1,8 @@
 # PRD — Context-loading hardening
 
+> **Naming context (after sub-phase 4b, 2026-05-17):** in the body below, "/forge" refers to the orchestrator role now named `/forgemaster`, and "/temper" refers to the builder role now named `/forge`. See [ADR-0005](../adr/0005-pipeline-role-split.md) for the rename rationale.
+
+
 > Sub-phase **3g** (Phase **P3 — Improvements**) · Status: 📝 prd-ready · Filed 2026-05-16
 >
 > **Why this size?** Three coordinated mechanisms (deny+hook enforcement, paths: migration, InstructionsLoaded observability) with shared log-file infrastructure and one ADR — too coordinated for single-slice but small enough to ship as one batch.

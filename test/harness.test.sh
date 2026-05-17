@@ -31,11 +31,11 @@ test_assert_eq_fails_on_unequal() {
 }
 
 test_assert_contains_matches_substring() {
-  assert_contains "the FORGE_CONTINUE sentinel" "FORGE_CONTINUE"
+  assert_contains "the FORGEMASTER_CONTINUE sentinel" "FORGEMASTER_CONTINUE"
 }
 
 test_assert_not_contains_rejects_substring() {
-  if assert_not_contains "has FORGE_COMPLETE here" "FORGE_COMPLETE" 2>/dev/null; then
+  if assert_not_contains "has FORGEMASTER_COMPLETE here" "FORGEMASTER_COMPLETE" 2>/dev/null; then
     fail "assert_not_contains should have failed when substring present"
   fi
 }
@@ -85,16 +85,16 @@ test_stub_default_usage_is_zeroed() {
 
 test_stub_result_carries_forge_continue_sentinel() {
   local out result
-  out="$(CLAUDE_STUB_RESULT="handed off cleanly FORGE_CONTINUE" "$CLAUDE_STUB")"
+  out="$(CLAUDE_STUB_RESULT="handed off cleanly FORGEMASTER_CONTINUE" "$CLAUDE_STUB")"
   result="$(jq -r '.result' <<<"$out")"
-  assert_contains "$result" "FORGE_CONTINUE"
+  assert_contains "$result" "FORGEMASTER_CONTINUE"
 }
 
 test_stub_result_carries_forge_complete_sentinel() {
   local out result
-  out="$(CLAUDE_STUB_RESULT="work done FORGE_COMPLETE" "$CLAUDE_STUB")"
+  out="$(CLAUDE_STUB_RESULT="work done FORGEMASTER_COMPLETE" "$CLAUDE_STUB")"
   result="$(jq -r '.result' <<<"$out")"
-  assert_contains "$result" "FORGE_COMPLETE"
+  assert_contains "$result" "FORGEMASTER_COMPLETE"
 }
 
 # ── claude stub: configurable exit code ──────────────────────────────────────
@@ -154,13 +154,13 @@ test_stub_loads_fixture_file() {
   local fixture out
   fixture="$(mktemp)"
   cat > "$fixture" <<'EOF'
-CLAUDE_STUB_RESULT="from fixture FORGE_CONTINUE"
+CLAUDE_STUB_RESULT="from fixture FORGEMASTER_CONTINUE"
 CLAUDE_STUB_USAGE='{"input_tokens":150000,"output_tokens":2000,"cache_creation_input_tokens":0,"cache_read_input_tokens":0}'
 CLAUDE_STUB_EXIT=0
 EOF
   out="$(CLAUDE_STUB_FIXTURE="$fixture" "$CLAUDE_STUB")"
   rm -f "$fixture"
-  assert_contains "$(jq -r '.result' <<<"$out")" "FORGE_CONTINUE"
+  assert_contains "$(jq -r '.result' <<<"$out")" "FORGEMASTER_CONTINUE"
   assert_eq "150000" "$(jq -r '.usage.input_tokens' <<<"$out")"
 }
 
