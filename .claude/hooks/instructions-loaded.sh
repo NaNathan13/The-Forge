@@ -12,8 +12,7 @@ set -uo pipefail
 # (ISO 8601 UTC with `Z` suffix) and `bytes` (`wc -c` on the loaded file), and
 # appends exactly one JSONL line to `.claude/instructions-loaded.jsonl`. The
 # log is the observability surface a future token-waste audit will read
-# (originally scoped as sub-phase 3h, deferred 2026-05-16 pending real-session
-# data — see docs/design/improvements-overview.md §"Extension batch").
+# (deferred pending real-session data).
 #
 # ── Schema (sentinel-protocol shape, `v:1` + `type` discriminator) ───────────
 # {

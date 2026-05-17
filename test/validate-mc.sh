@@ -42,9 +42,8 @@ set -uo pipefail
 #
 # ── GITHUB-SEAM ──────────────────────────────────────────────────────────────
 # The `gh issue view <N>` call below is the only GitHub-specific operation in
-# this validator. A future VCS-abstraction phase (P4-era WHJ v2 work, per
-# `docs/prds/improvements-3a-validation.md` non-goals) will replace this call
-# with an abstraction layer. Until then, this is the seam.
+# this validator. A future VCS-abstraction layer will replace this call.
+# Until then, this is the seam.
 #
 # Search for `# GITHUB-SEAM` to find the call site.
 # ────────────────────────────────────────────────────────────────────────────

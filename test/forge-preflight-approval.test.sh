@@ -2,8 +2,7 @@
 # forge-preflight-approval.test.sh — pre-flight approval persistence (issue #183, slice 1c-3).
 #
 # Pre-flight build-queue approval is the single required human touch-point. It must
-# happen in *generation 1 only* — every resumed generation skips it. The mechanism
-# (PRD docs/prds/forge-relaunch-loop-integration.md, decision Q3):
+# happen in *generation 1 only* — every resumed generation skips it. The mechanism:
 #
 #   1. On approval, generation 1 writes gen-001.md IMMEDIATELY — before dispatching
 #      any temper. The verbatim hard-constraints section carries `approved-queue:
