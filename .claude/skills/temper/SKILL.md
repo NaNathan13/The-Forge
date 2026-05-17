@@ -85,11 +85,13 @@ Read `.claude/agents/reviewer.md` and include its content as system context in t
 
 ```
 Agent({
-  subagent_type: "reviewer",
+  subagent_type: "general-purpose",
   description: "review PR #<PR>",
   prompt: "<reviewer.md contents>\n\nReview this diff for PR #<PR> (issue #<N>):\n\n<gh pr diff <PR> output>\n\nReport HIGH-confidence findings only in the documented output format."
 })
 ```
+
+(`subagent_type: "general-purpose"` is the project convention — see `.claude/skills/forgemaster/SKILL.md` for the matching `/forge` and `/temper` dispatches and `.claude/skills/forge/SKILL.md` §Rules for the canonical support-agent dispatch protocol. The `reviewer.md` file is an **agent definition** loaded into the prompt, not a `subagent_type` value.)
 
 **Slice-conditional addendum.** For `slice:ui` or `slice:mixed`, append one line to the
 prompt pointing the reviewer at the screenshots:
