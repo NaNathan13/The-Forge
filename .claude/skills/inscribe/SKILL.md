@@ -21,6 +21,7 @@ Or auto-invoked by `/ponder` after the grill, which passes:
 - **Dev mode:** `fast`, `balanced`, or `tdd` (resolved during ponder's size check)
 - **Size reason:** a one-sentence rationale for the size call, captured during ponder's size check. Inscribe renders this verbatim into PRD frontmatter as `**Why this size?** <rationale>` (see A1 / B0).
 - **ADR candidates:** `adr_candidates` — a (possibly empty) list of picked ADRs from the grill's ADR-offer step. Each entry carries the title framing, Context / Decision / Rationale / Rejected-alternatives synthesized from the grill, and an optional Revisit precondition. Inscribe physically writes one `docs/adr/NNNN-<slug>.md` per entry in step A0 (Path A) or B-1 (Path B) **before** the PRD or any issue artifacts. When the list is empty, the ADR-emission step is skipped entirely (see "No-op behavior" under A0 / B-1).
+- **`terms_used`:** the resolved list of `(term, body)` pairs ponder's pre-flight grilled out for the PRD's `## Terms used` section. Each entry is one declared term — `term` is the bare term name (the bold label rendered as `**<term>**:`); `body` is the one-line description ponder captured (an anchor link into CONTEXT.md for canon terms, a `non-canon — <reason>` line for non-canon terms). Inscribe renders the section verbatim into the PRD in A1 (Path A) or B0 (Path B) and runs the hard-gate check in A1.5 (Path A) or B0.5 (Path B). When `terms_used` is empty, the PRD's `## Terms used` section is rendered as `(none used in this PRD body)` and the hard-gate check passes trivially. Pre-4e PRDs are exempt — this parameter is required only for PRDs filed after ADR-0008 lands.
 
 ## Inputs
 
@@ -61,6 +62,16 @@ If called standalone:
    - No TODO placeholders. If the user gives an empty answer, re-ask once; on a second empty answer, accept it and emit one prose line `size-reason: empty (user declined)` — the `**Why this size?**` line is then omitted from the PRD frontmatter for that run. Do not fabricate.
    - When no PRD will be written (Path B with `mode=fast` or `balanced` — single-slice, no PRD), skip this step entirely. The reason is only consumed by PRD scaffolding.
 
+5. **Resolve the `terms_used` list** (the canonical list of project terms the PRD body uses, rendered into the PRD's `## Terms used` section and validated by the A1.5 / B0.5 hard gate):
+
+   - If invoked from `/ponder`, ponder has already grilled out the list during its pre-flight — use it verbatim and skip this step.
+   - If invoked standalone **and** a PRD will be written (Path A always, Path B0 when `mode=tdd`), ask **once** via AskUserQuestion:
+
+     > "Project terms used in this PRD body — paste a list, one per line, of the shape `Term: <anchor-link-into-CONTEXT.md or 'non-canon — reason'>`. The A1.5 / B0.5 hard gate will halt on any canon term not found in CONTEXT.md. Empty list ok if the PRD body uses no project terms."
+
+   - Parse each non-empty line into a `(term, body)` pair. The resolved list is passed forward as `terms_used`. Empty input resolves to an empty list — the hard gate then passes trivially.
+   - When no PRD will be written (Path B with `mode=fast` or `balanced` — single-slice, no PRD), skip this step entirely. The list is only consumed by PRD scaffolding and the gate runs only when a PRD exists.
+
 ## Issue title format
 
 All issues use this format:
@@ -87,6 +98,7 @@ Used when scope spans multiple shippable slices, introduces new vocabulary, or m
 | --- | --- | --- | --- |
 | A0 | Write picked ADRs (skip when `adr_candidates` is empty) | No | One `docs/adr/NNNN-<slug>.md` per candidate; path list carried to A4 |
 | A1 | Write PRD | No | `docs/prds/<feature>.md` |
+| A1.5 | **Hard gate** — validate PRD's `## Terms used` section against CONTEXT.md | **Yes — halts on undefined term** | Section validates; PRD edited inline if non-canon entries are added |
 | A2 | File issues | No | N issues filed with `{sub-phase-id}/{slice-type}: ...` titles |
 | A3 | Triage all issues | No | All issues labeled `ready-for-agent` + `slice:*`; kanban → **Ready** |
 | A4 | Update MC + print handoff | No | `MISSION-CONTROL.md` updated; next command printed |
@@ -129,6 +141,55 @@ Rules:
 See `docs/prds/improvements-3b-contracts.md` for the canonical example.
 
 **ADR cross-references.** When `adr_candidates` was non-empty (A0 wrote one or more ADRs), the PRD body **may** reference the new ADR numbers — either via a `## Related` section near the end (parallel to ADR-0001's `## Related`) or via inline citations like `(see ADR-NNNN)` at the decision points the ADR records. The convention is *available, not mandatory*: judgment call per PRD on which shape reads best. When `adr_candidates` is empty, no reference is required.
+
+**`## Terms used` section (mandatory).** Every PRD body ends with a `## Terms used` section, written from the `terms_used` input. Place the section near the end of the PRD — after the body and any `## Acceptance` block, before `## Related` (if any). Render the section verbatim from the input list, one bullet per entry:
+
+```markdown
+## Terms used
+
+> Validated against [`CONTEXT.md`](../../CONTEXT.md) by `/inscribe`'s hard gate per [ADR-0008](../adr/0008-naming-discipline.md) §Decision §2. Canon terms anchor-link into the glossary; non-canon entries carry a one-line reason.
+
+- **<term>**: <body verbatim from terms_used>
+- **<term>**: <body verbatim from terms_used>
+...
+```
+
+When `terms_used` is empty, render the section as:
+
+```markdown
+## Terms used
+
+(none used in this PRD body)
+```
+
+The section is **mandatory** — never omit it. An empty list is a valid resolution; a missing section is not. The hard gate in A1.5 reads this section to validate.
+
+#### A1.5. Hard gate — validate `## Terms used` against CONTEXT.md
+
+Between writing the PRD (A1) and filing issues (A2), validate the freshly-written `## Terms used` section. Run the same check the helper script (`scripts/validate-prd-terms.sh`) runs inline:
+
+1. **Parse the section.** Read every `- **<term>**: <body>` list item from `## Terms used` in the PRD just written.
+2. **Classify each term.** A term whose `<body>` contains `non-canon` (case-insensitive) is non-canon — skip it (the section's own one-line reason is the operator's accountability). Every other term is canon and must be validated.
+3. **Look up each canon term in CONTEXT.md.** Use the fixed-string check:
+
+   ```bash
+   grep -F -- "**${term}**:" CONTEXT.md
+   ```
+
+   (The `**Term**:` header is the canonical glossary-entry marker — every CONTEXT.md entry uses this shape.)
+
+4. **On the first undefined canon term, halt.** Issue an `AskUserQuestion` to the operator with exactly two paths (no third option, no skip flag):
+
+   - **Add entry inline** — operator dictates the one-paragraph definition; inscribe writes a new `**<term>**: <definition>` block into the appropriate section of CONTEXT.md (typically `## Language`), commits nothing yet (the inscribe run does not commit — the operator decides on the final PR). Re-run the check from step 1.
+   - **Confirm non-canon** — operator gives a one-line reason; inscribe edits the PRD's `## Terms used` entry for that term to append ` — non-canon: <reason>` to its body. Re-run the check from step 1.
+
+5. **Re-check after every operator action** until the section validates clean. The hard gate is **mandatory** — no soft-warn, no `--skip-terms-check` flag, no quiet bypass. The cost of an undefined term slipping through is paid by every future reader; the cost of one operator interaction is bounded and proportional.
+
+6. **On a clean pass, proceed to A2.** No prose line is required on the success path — the absence of a halt is the signal.
+
+When `terms_used` was empty (the section reads `(none used in this PRD body)`), the gate passes trivially — no terms to check. Proceed straight to A2.
+
+The helper script `scripts/validate-prd-terms.sh <prd-path>` runs the same check (parse → classify → grep) and is callable standalone for `/temper`-time spot-checks. It is **not** a CI gate (per ADR-0008 §Rejected alternatives) — the helper exists so reviewers and operators can re-run the check on demand, but the canonical gate is this inline step.
 
 #### A2. File issues
 
@@ -178,6 +239,7 @@ Determine the **recommended build order**: logic slices first, then mixed, then 
 | --- | --- | --- | --- |
 | B-1 | Write picked ADRs (skip when `adr_candidates` is empty) | No | One `docs/adr/NNNN-<slug>.md` per candidate; path list carried to B3 |
 | B0 | Write PRD (**tdd mode only**; skip for `fast` / `balanced`) | No | `docs/prds/<feature>.md` |
+| B0.5 | **Hard gate** — validate PRD's `## Terms used` section against CONTEXT.md (tdd mode only; skip when B0 was skipped) | **Yes — halts on undefined term** | Section validates; PRD edited inline if non-canon entries are added |
 | B1 | `gh issue create` | No | One issue filed |
 | B2 | Invoke `/triage` on that issue | No | Issue labeled + agent brief + kanban → **Ready** |
 | B3 | Update MC + print handoff | No | `MISSION-CONTROL.md` updated; next command printed |
@@ -203,6 +265,14 @@ Synthesise the conversation into `docs/prds/<feature>.md` using the same shape a
 When mode is `fast` or `balanced`, skip this step entirely and go straight to B1 — single-slice behavior is unchanged from today.
 
 **ADR cross-references.** When a PRD is written in B0 **and** `adr_candidates` was non-empty (B-1 wrote one or more ADRs), the PRD body **may** reference the new ADR numbers — same convention as A1: a `## Related` section near the end or inline citations like `(see ADR-NNNN)`. Available, not mandatory. When `adr_candidates` is empty (B-1 was skipped), no reference is required. The B1 issue body **may** likewise reference a freshly-emitted ADR in `## What to build` when the slice's design space is constrained by it — same shape as the A2 convention.
+
+**`## Terms used` section (mandatory in B0).** The same rule as A1 applies — every B0 PRD ends with a `## Terms used` section rendered verbatim from the `terms_used` input. Empty list renders as `(none used in this PRD body)`. The section is mandatory; B0.5 validates it.
+
+#### B0.5. Hard gate — validate `## Terms used` against CONTEXT.md (tdd-mode single-slice only)
+
+When B0 wrote a PRD (mode=`tdd`), run the same hard gate as A1.5 between writing the PRD and filing the issue (B1). The parse / classify / grep / halt-on-undefined / re-check-until-clean loop is identical to A1.5 — see §A1.5 for the full procedure. Two paths only: add CONTEXT.md entry inline, or confirm non-canon with a one-line reason. No soft-warn, no skip flag.
+
+When B0 was skipped (mode=`fast` or `balanced`), skip B0.5 entirely — there is no PRD to validate. The single-slice issue body in `fast` / `balanced` mode does not carry a `## Terms used` section; the gate only runs on PRDs.
 
 ## Handoff (both paths)
 
@@ -289,3 +359,5 @@ All slices triaged. Run `/forge-overseer` to begin building.
 - **Don't run `/forge` from inside inscribe.** Phases are session-scoped. End the session, hand off.
 - **Don't guess the sub-phase ID.** Read it from MISSION-CONTROL.md, or ask the user once.
 - **Don't fabricate `size_reason` or leave a TODO placeholder.** If ponder didn't pass it and the user declines twice on the standalone ask, omit the `**Why this size?**` line entirely. A TODO defeats the rec's purpose (future re-readers *see* the reasoning, or see nothing).
+- **Don't skip the A1.5 / B0.5 hard gate.** The check is mandatory per ADR-0008 §Decision §2 — no soft-warn, no `--skip-terms-check` flag, no quiet bypass. If you find yourself reaching for a way around it, you have either an undefined term that needs a CONTEXT.md entry or a non-canon term that needs its one-line reason. Both paths are cheap; the bypass is not.
+- **Don't write a PRD without a `## Terms used` section.** An empty list rendered as `(none used in this PRD body)` is a valid resolution; a missing section is not. The gate halts on a missing section the same way it halts on an undefined term.

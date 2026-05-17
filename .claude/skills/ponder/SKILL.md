@@ -94,6 +94,28 @@ Where `<reason>` is one of `missing line`, `malformed line`, or `unrecognized va
 
 Pass the resolved mode to `/inscribe` alongside the size decision. When mode=`tdd` and size=`single-slice`, inscribe will write a PRD before filing the issue (the tdd discipline tier requires a written spec even for one-issue work). When mode=`fast` or `balanced`, single-slice behavior is unchanged from today.
 
+**Also grill for the `terms_used` list** during the size check (sibling to the size + dev-mode reads — same pre-flight beat). The list seeds the PRD's `## Terms used` section that `/inscribe`'s hard gate (A1.5 / B0.5) validates per [ADR-0008](../../../docs/adr/0008-naming-discipline.md) §Decision §2.
+
+The grill step:
+
+1. **Skip when no PRD will be written.** If `size=single-slice` and `mode=fast|balanced`, /inscribe won't write a PRD and there's nothing for the gate to check — skip the terms-used grill entirely and pass `terms_used` as an empty list. Otherwise (sub-phase always, or single-slice + `mode=tdd`), continue.
+
+2. **Surface the project-likely terms.** Render a short prompt listing the terms most PRDs touch — `/forge-overseer`, `/temper-overseer`, `/forge`, `/temper`, `/seal`, `Ponder`, `Forge phase`, `Sentinel`, `Slice`, `Friction`, `Ready-for-agent`, `Ready-for-seal`, `Needs-rework`, `Needs-human`, `Sub-phase`, `Dev mode`, `PRD`, `ADR`. Ask the operator (one `AskUserQuestion`, multi-select):
+
+   > "Which of these project terms appear in this PRD's body? Pick all that apply. (Inscribe will validate each pick against CONTEXT.md and halt if any is undefined.)"
+
+3. **Capture extras.** After the multi-select, ask **once** via a follow-up `AskUserQuestion`:
+
+   > "Any other project-specific terms in the PRD body that aren't in the list above? Paste one per line, or leave empty if none."
+
+   For each pasted line, classify on the spot: if the term has a `**<term>**:` entry in CONTEXT.md, mark canon; otherwise ask the operator (per term) whether to mark it canon (the operator will define it inline at the /inscribe gate) or non-canon (operator gives a one-line reason now — captured into `body` as `non-canon — <reason>`).
+
+4. **Resolve to `(term, body)` pairs.** For each canon term, set `body` to a CONTEXT.md anchor link (e.g. `see [`CONTEXT.md#term`](../../CONTEXT.md#term)`). For each non-canon term, set `body` to `non-canon — <reason>`. The pairs become the `terms_used` parameter passed to /inscribe.
+
+5. **Empty list is fine.** If the operator answers "none of the above" to both the multi-select and the extras prompt, pass `terms_used` as an empty list. /inscribe's A1.5 / B0.5 gate then passes trivially — the PRD's `## Terms used` section renders as `(none used in this PRD body)` and no validation halt occurs.
+
+The terms-used pairs flow to /inscribe via the same input mechanism as `size_decision`, `size_reason`, `dev_mode`, and `adr_candidates`. See `/inscribe` §Inputs.
+
 ### 3. Summarise resolved decisions
 
 Output a short bulleted summary of everything the grill resolved.
@@ -126,6 +148,7 @@ Invoke the `/inscribe` sub-skill, passing:
 - **Dev mode:** `fast`, `balanced`, or `tdd` (resolved in step 2)
 - **Size reason:** the one-sentence rationale captured during the size check (step 2). Inscribe renders this into the PRD frontmatter `>` block as `**Why this size?** <rationale>`.
 - **`adr_candidates`:** the ordered list of one-sentence ADR-candidate framings the operator picked in step 3 (empty list when "None — skip all" was selected or no candidates were logged). Inscribe emits one ADR per framing under `docs/adr/`.
+- **`terms_used`:** the resolved list of `(term, body)` pairs captured during the size check (step 2). Inscribe renders the list into the PRD's `## Terms used` section in A1 / B0 and runs the hard gate against CONTEXT.md in A1.5 / B0.5. Empty list when no PRD will be written, or when the operator declined all terms.
 
 Inscribe handles everything from here: PRD writing (sub-phase always; single-slice only when mode=`tdd`), issue filing, triaging all slices, updating MISSION-CONTROL.md, and printing the handoff.
 

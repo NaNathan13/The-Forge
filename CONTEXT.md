@@ -85,6 +85,10 @@ A seventh transient — **`⏳ scope-TBD`** — marks stub-phase placeholders wh
 
 **Dev mode**: One of `fast` / `balanced` / `tdd`, declared as a single line in `CLAUDE.md`. Gates three things: whether tests are written, whether the check command is a hard PR gate, and whether the pre-PR reviewer agent runs. See `docs/prds/developer-modes.md`. _Avoid_: "discipline tier" (used in the PRD body but not as a label).
 
+### Process: Terms used (the /inscribe hard gate)
+
+Every PRD written after sub-phase 4e ships carries a `## Terms used` section listing every project term in its body. `/inscribe`'s hard gate (steps A1.5 / B0.5 — see `.claude/skills/inscribe/SKILL.md`) parses that section between writing the PRD and filing the issues, then greps each declared canon term against this file. On the first undefined canon term, `/inscribe` halts with an operator prompt offering exactly two paths: **add an entry inline** (operator dictates the definition; /inscribe writes a new `**<term>**: <definition>` block into this file) or **mark non-canon** (operator gives a one-line reason; /inscribe edits the PRD entry to append `non-canon — <reason>`). No issues are filed until the section validates clean. The check is mandatory and hard-gating per [ADR-0008](docs/adr/0008-naming-discipline.md) §Decision §2 — no soft-warn, no skip flag. `scripts/validate-prd-terms.sh <prd-path>` runs the same check as a callable helper (e.g. for `/temper`-time spot-checks); it is **not** a CI gate.
+
 ### Worker mechanics
 
 **Subagent**: A short-lived Claude session dispatched by another session via the `Agent` tool. Workers (`/forge`, `/temper`) are dispatched as subagents by their overseer (`/forge-overseer`, `/temper-overseer`); workers themselves may dispatch up to 2 **support agents** of their own.
