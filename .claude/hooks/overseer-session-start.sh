@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
-# forgemaster-session-start.sh — P2 SessionStart hook: continuation re-injection.
+# overseer-session-start.sh — P2 SessionStart hook: continuation re-injection.
 #
 # Design doc §3b / §4c. Registered on the `SessionStart` event in
 # .claude/settings.json. A deterministic bash script — no Claude Code runtime.
@@ -20,7 +20,7 @@ set -uo pipefail
 #      else .forge/charter.md, else a minimal built-in note.
 #   5. Stamp the generation baseline the Stop hook reads — see below.
 #
-# ── The generation baseline (pairs with forgemaster-stop-handoff.sh) ───────────────
+# ── The generation baseline (pairs with overseer-stop-handoff.sh) ───────────────
 # The Stop hook needs to know whether *this* generation wrote a new continuation
 # file. It cannot track generation numbers itself. So this hook, on a
 # loop-managed launch, writes the continuation generation number that exists
@@ -28,8 +28,8 @@ set -uo pipefail
 # the latest generation number against that baseline: greater → a handoff
 # happened this generation; equal → it did not, block the stop.
 #
-# Stamping is gated on the FORGEMASTER_LOOP_MANAGED marker (issue #181). The relaunch
-# loop exports FORGEMASTER_LOOP_MANAGED=1 into every `claude -p` generation it
+# Stamping is gated on the OVERSEER_LOOP_MANAGED marker (issue #181). The relaunch
+# loop exports OVERSEER_LOOP_MANAGED=1 into every `claude -p` generation it
 # launches; an interactive session a developer opens by hand never carries it.
 # This hook is registered unconditionally in .claude/settings.json, so it runs
 # for interactive sessions too — but it must only stamp the baseline for
@@ -122,12 +122,12 @@ main() {
   # .forge/heartbeat/<slug>.genbaseline. The Stop hook reads this to decide
   # whether this generation wrote a new continuation file. 000 if none exist.
   #
-  # Gated on FORGEMASTER_LOOP_MANAGED (issue #181): only the relaunch loop's
+  # Gated on OVERSEER_LOOP_MANAGED (issue #181): only the relaunch loop's
   # `claude -p` generations carry the marker. An interactive session must NOT be
   # stamped — a stamped baseline is exactly the signal that makes the Stop hook
   # enforce the handoff, and enforcing it on an interactive turn-end is the
   # confirmed double-block this gate fixes.
-  if [[ -n "${FORGEMASTER_LOOP_MANAGED:-}" ]]; then
+  if [[ -n "${OVERSEER_LOOP_MANAGED:-}" ]]; then
     local latest_num hb_dir baseline_file
     if [[ -f "$CONTINUATION_SH" ]]; then
       latest_num="$(bash "$CONTINUATION_SH" latest-num --slug "$slug" 2>/dev/null || echo "")"

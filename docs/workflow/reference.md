@@ -1,16 +1,23 @@
 # Workflow Reference
 
-Detailed reference for The Forge development workflow. For the overview, see [README.md](./README.md).
+Detailed reference for The Forge development workflow. For the overview, see [README.md](./README.md). For the canonical glossary of every project term used below, see [`CONTEXT.md`](../../CONTEXT.md).
 
 ## Pipeline
 
+Four phases (`Ponder → Forge → Temper → Seal`), with one operator command per phase. The Forge and Temper phases each run an orchestrator inside them, per [ADR-0007](../adr/0007-pipeline-orchestrator-structure.md):
+
 ```
-/ponder (interactive) → /forgemaster (autonomous dispatch loop) → /forge <N> (subagent workers, max 2 concurrent)
+/ponder (interactive)
+   → /forge-overseer (Forge-phase orchestrator — autonomous dispatch loop)
+        → /forge <N>    (subagent worker, 1 concurrent, max 2 support agents)
+   → /temper-overseer (Temper-phase orchestrator — autonomous dispatch loop)
+        → /temper <PR>  (subagent worker, 1 concurrent, max 2 support agents typical 1)
+   → /seal             (closer phase — no internal orchestrator per ADR-0007 §Decision)
 ```
 
-Each phase runs in its own Claude session. No session-memory continuity between phases — handoff is via on-disk artifacts (issues, PRDs, PR bodies, kanban state).
+Each phase runs in its own Claude session. No session-memory continuity between phases — handoff is via on-disk artifacts (issues, PRDs, PR bodies, labels, kanban state). No auto-chain — the operator runs each phase explicitly.
 
-## Temper lifecycle
+## /forge worker lifecycle
 
 Each `/forge <N>` handles a single issue from branch to **CI-green PR** (not merge — `/seal` does that as a batch step):
 
@@ -20,23 +27,24 @@ Each `/forge <N>` handles a single issue from branch to **CI-green PR** (not mer
 4. **Visual review** (UI/mixed only) — by default dispatch a Playwright-driven subagent (or use the Playwright MCP) to drive the running app and capture screenshots to `screenshots/issue-<N>/`. Verify whatever theme variants the project ships. Non-web projects swap Playwright for an equivalent harness and document that in `CLAUDE.md`.
 5. **Open PR** — commit, push, `gh pr create` with `closes #<N>`, move kanban to In Review
 6. **Wait for CI** — Monitor tool watches `gh pr checks <PR> --watch` (zero token cost), fix failures (max 2 cycles)
-7. **Stop at green CI** — emit `FORGE:RESULT` with `"status":"success"` and exit. The PR stays open for `/seal` to merge later, alongside the rest of the batch.
+7. **Stop at green CI** — emit `FORGE:RESULT` with `"status":"success"` and exit. The PR stays open for `/temper-overseer` to review, then `/seal` to merge later.
 
 ### Context discipline
 
-Temper subagents are the biggest token cost. Guard context aggressively:
+`/forge` and `/temper` workers are the biggest token cost in the pipeline. Guard context aggressively:
 
 - **Start lean.** Load only the issue and auto-loaded path-scoped rules. Do NOT bulk-load lessons.md, MISSION-CONTROL.md, or WORKFLOW.md at startup. Consult them reactively when needed.
-- **40% context = warning.** Finish the current phase, then evaluate whether to continue or write a continuation file and hand off.
-- **50% context = hard stop.** Write `.claude/forge-continue-<N>.md` (issue number, branch, PR number, what's done, what's left) and emit `FORGE:RESULT` with `"status":"continue"` and `continuation_file` pointing at the file. Forge reads the file and dispatches a fresh session.
-- **CI failure fixes.** If CI fails after the PR is opened, forgemaster dispatches a fresh subagent with just the branch name, PR number, and failure log — not the full build context.
+- **40% context = warning.** Finish the current phase, then evaluate whether to continue or write a [continuation file](../../CONTEXT.md#continuation-file) and hand off.
+- **50% context = hard stop.** Write `.claude/forge-continue-<N>.md` (or `.claude/temper-continue-<N>.md`) with the hardened five-section format, and emit `*:RESULT` with `"status":"continue"` and `continuation_file` pointing at the file. The matching overseer reads the file and dispatches a fresh session.
+- **CI failure fixes.** If CI fails after the PR is opened, `/forge` dispatches a fresh subagent with just the branch name, PR number, and failure log — not the full build context.
 
 ### Sentinel
 
-Temper emits exactly one structured sentinel at the end of every run:
+Each worker emits exactly one structured sentinel at the end of every run:
 
 ```
-FORGE:RESULT <json-object>
+FORGE:RESULT  <json-object>   # /forge worker
+TEMPER:RESULT <json-object>   # /temper worker
 ```
 
 The object's `status` field is one of `success`, `continue`, `needs_human`, or `fail`.
@@ -48,39 +56,47 @@ Full schema, dispatch table, and examples live in
 The legacy prose sentinels (`TEMPER:SUCCESS`, `TEMPER:CONTINUE:<N>`,
 `TEMPER:NEEDS_HUMAN:<reason>`, `TEMPER:FAIL:<reason>`) are no longer emitted.
 
-## Forge dispatch loop
+## Forge-overseer dispatch loop
 
-Forge is an **autonomous dispatch loop**. After the user approves the build queue, it runs end-to-end through merged PRs and updated MC without intervention.
+The Forge-phase orchestrator. After the user approves the build queue, it runs end-to-end until the queue is drained.
 
-1. Query `ready-for-agent` issues (optionally filtered by `--phase <id>`).
-2. **Parse `Blocked by:` from each issue body**; topo-sort the queue; within each unblocked tier, sort logic → mixed → ui then by issue number. Flag cycles.
-3. Present build queue table for user approval (showing the dependency edges).
+1. Query `needs-rework` issues, then `ready-for-agent` issues (optionally filtered by `--phase <id>`).
+2. **Parse `Blocked by:` from each issue body**; topo-sort the queue; within each unblocked tier, put `needs-rework` first, then sort logic → mixed → ui then by issue number. Flag cycles.
+3. Present build queue table for user approval (showing the dependency edges and rework annotations).
 4. On approval, begin the autonomous loop:
-   a. Dispatch /forge workers as subagents with `isolation: "worktree"`
-   b. Max 2 concurrent workers — wait for one to finish before starting a third
-   c. Respect the dependency graph: don't dispatch a temper whose blockers haven't shipped (or aren't currently in flight with green CI)
-   d. Handle sentinels: log tokens on success, retry once on failure, spawn continuations
-   e. Loop to next slice (no user confirmation between slices)
-5. After all slices: review friction-labelled PRs, update `lessons.md` (index) and write detail files to `knowledge/<slug>.md` for new patterns.
-6. **Auto-invoke `/seal --auto`** to merge all shippable PRs, reconcile MC, clean up runtime artifacts. The user's pre-flight approval covered this.
-7. Print MC's "Recommended next prompt" as the suggested next step.
+   a. Dispatch `/forge <N>` workers as subagents with `isolation: "worktree"` — **one worker per generation** under the relaunch loop (see [`/forge-overseer` SKILL.md](../../.claude/skills/forge-overseer/SKILL.md))
+   b. Respect the dependency graph: don't dispatch a `/forge` whose blockers haven't built (passed CI)
+   c. Handle sentinels: log tokens on success, retry once on failure, spawn continuations
+   d. Loop to next slice (no user confirmation between slices)
+5. **End-of-phase handoff:** print summary, list open PRs awaiting `/temper-overseer`, update MC's "Recommended next prompt" to `/temper-overseer`, emit `OVERSEER_COMPLETE`. No seal dispatch — the operator runs `/temper-overseer` next, then `/seal`.
 
-### Forge context overflow
-At **40% context usage**, forgemaster writes `.claude/forgemaster-continue.md` (queue state, in-flight workers, token log entries, resume invocation) and starts a fresh session.
+### Forge-overseer context overflow
+The relaunch loop is the context manager — `/forge-overseer` exits per generation (structural, not measured) and the loop relaunches `claude` fresh. The loop's `budget_gate` is the real-token safety net.
 
-### Forge session rate-limit
-Forgemaster polls ccusage between dispatches. At **90% session usage**, finish in-flight tempers without dispatching new ones. At **95%**, write `forge-continue.md` and use `ScheduleWakeup` to resume in ~30 minutes (when the 5-hour window rotates).
+For interactive runs outside the loop, `/forge-overseer` may write `.claude/forge-overseer-continue.md` as a batch-level handoff file.
+
+### Forge-overseer session rate-limit
+`/forge-overseer` polls [ccusage](../../CONTEXT.md#ccusage) between dispatches. At **90% session usage**, finish the in-flight worker without dispatching new ones. At **95%**, write the next continuation generation and use [`ScheduleWakeup`](../../CONTEXT.md#schedulewakeup) to resume in ~30 minutes (when the 5-hour window rotates).
+
+## Temper-overseer dispatch loop
+
+Symmetric with `/forge-overseer`. Runs after the operator finishes inspecting the Forge phase's open PRs and types `/temper-overseer`.
+
+1. Query open `feat/#*-*` PRs with green CI and no `ready-for-seal`/`friction`/`needs-human` labels (optionally filtered by `--phase <id>`).
+2. Present review queue for user approval.
+3. On approval, autonomous loop — dispatch one `/temper <PR>` per generation, parse `TEMPER:RESULT`, apply `needs-rework` to the originating issue when the PR is marked `friction`.
+4. **End-of-phase handoff:** print summary, list shippable PRs vs friction PRs, update MC's "Recommended next prompt" to `/seal`, emit `OVERSEER_COMPLETE`.
 
 ## CI
 
-GitHub Actions on whichever runner you configure (`ubuntu-latest`, self-hosted, etc.). Document the choice in `CLAUDE.md` so temper knows what to target. Both `gh pr checks --watch` and `Monitor` work the same regardless of runner.
+GitHub Actions on whichever runner you configure (`ubuntu-latest`, self-hosted, etc.). Document the choice in `CLAUDE.md`. Both `gh pr checks --watch` and `Monitor` work the same regardless of runner.
 
 ## Token tracking
 
-Forgemaster logs per-temper correlation data to `.claude/token-usage.jsonl`:
+The active overseer logs per-worker correlation data to `.claude/token-usage.jsonl`:
 
 ```json
-{"ts":"<end>","issue":198,"pr":207,"branch":"feat/#198-...","start":"<start>","end":"<end>","num_turns":14}
+{"ts":"<end>","issue":198,"pr":207,"branch":"feat/#198-...","worker":"forge|temper","start":"<start>","end":"<end>","num_turns":14}
 ```
 
 Full token breakdown via `npx ccusage@latest session --json` filtered by the time window.
@@ -95,12 +111,12 @@ GitHub Projects board (one per repo — fill in the IDs in `.claude/scripts/kanb
 | `/inscribe` triages → `ready-for-agent` | **Ready** | `.claude/scripts/kanban-move.sh <N> ready` |
 | `/forge <N>` starts | **In Progress** | `.claude/scripts/kanban-move.sh <N> in-progress` |
 | `/forge <N>` opens PR | **In Review** | `.claude/scripts/kanban-move.sh <N> in-review` |
-| `/forge <N>` merges | **Done** | Auto (issue close automation) |
+| `/seal` merges the PR | **Done** | Auto (issue close automation) |
 
 ## Branching
 
 - Branch per issue: `feat/#<N>-short-description`
-- Commit messages: `feat(scope): description (#<N>)`
+- Commit messages: `feat(scope): description (#<N>)` — `feat(forge-overseer):` / `feat(temper-overseer):` for orchestrator changes; `feat(forge):` / `feat(temper):` for worker changes (per ADR-0007 §Consequences)
 - PR body includes `closes #<N>`
 - Push branches with plain `git push -u origin <branch>`
 
@@ -109,29 +125,31 @@ GitHub Projects board (one per repo — fill in the IDs in `.claude/scripts/kanb
 - Save to `screenshots/issue-<N>/`
 - Naming: `<short-state>.png` (e.g. `empty.png`, `dark-mode.png`)
 - Before/after for modifications: `before-<screen>.png`, `after-<screen>.png`
-- Tracked in git — temper posts PR comments with embedded image refs
+- Tracked in git — `/forge` posts PR comments with embedded image refs
 
 ## Friction flagging
 
-When temper hits unexpected friction:
+See [`CONTEXT.md#friction`](../../CONTEXT.md#friction).
+
+When `/forge` or `/temper` hits unexpected friction:
 
 1. Add `friction` label to the PR
-2. Post PR comment with details (what happened, what was tried, outcome)
+2. Post `## Friction` PR comment with details (what happened, what was tried, outcome)
 3. If resolved, note how — feeds the self-healing loop
-4. If unresolved: emit `FORGE:RESULT` with `"status":"needs_human"` and `"reason":"friction"` (friction text in the `friction` field)
+4. If unresolved: emit `*:RESULT` with `"status":"needs_human"` and `"reason":"friction"` (friction text in the `friction` field)
 
-Forgemaster reviews friction-labelled PRs at end of batch. Recurring patterns get added to `.claude/lessons.md`.
+`/temper-overseer` additionally applies `needs-rework` to the originating issue on every `friction` PR, so the next `/forge-overseer` run picks it up first.
 
 ## Troubleshooting
 
-### Stuck slice (`FORGE:RESULT` with `status:"needs_human"`)
-Forgemaster logs the reason and skips to the next slice. Check the PR for the friction comment. Fix manually, then re-run `/forge <N>` standalone.
+### Stuck slice (`*:RESULT` with `status:"needs_human"`)
+The matching overseer logs the reason and skips to the next slice / PR. Check the PR for the friction comment. Fix manually, then re-run `/forge <N>` (or `/temper <N>`) standalone.
 
 ### CI failures
-Temper auto-fixes up to 2 cycles. If still failing, it emits `FORGE:RESULT` with `"status":"needs_human"` and `"reason":"ci-stuck"`. Read the CI logs, fix locally, push.
+`/forge` auto-fixes up to 2 cycles. If still failing, it emits `FORGE:RESULT` with `"status":"needs_human"` and `"reason":"ci-stuck"`. Read the CI logs, fix locally, push.
 
-### Context overflow (`FORGE:RESULT` with `status:"continue"`)
-Temper writes `.claude/forge-continue-<N>.md` with state. Forge reads the `continuation_file` field and spawns a fresh session with continuation context. No manual intervention needed.
+### Worker context overflow (`*:RESULT` with `status:"continue"`)
+The worker writes `.claude/forge-continue-<N>.md` (or `.claude/temper-continue-<N>.md`) with state. The matching overseer reads the `continuation_file` field and spawns a fresh session with continuation context. No manual intervention needed.
 
-### Forge context overflow
-At 40% context usage, forgemaster writes `.claude/forgemaster-continue.md` and starts fresh. Resume with the same `/forgemaster` invocation.
+### Overseer batch overflow
+Each overseer exits per generation under the relaunch loop (structural). For interactive runs outside the loop, the overseer may write `.claude/forge-overseer-continue.md` or `.claude/temper-overseer-continue.md`; resume by re-invoking the same overseer.

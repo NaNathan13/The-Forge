@@ -1,6 +1,8 @@
 # worktree-absolute-path-pinning
 
 > **Naming context (after sub-phase 4b, 2026-05-17):** in the body below, "/forge" refers to the orchestrator role now named `/forgemaster`, and "/temper" refers to the builder role now named `/forge`. See [ADR-0005](../docs/adr/0005-pipeline-role-split.md) for the rename rationale.
+>
+> **Naming context amended (after sub-phase 4e, 2026-05-17):** `/forgemaster` (the post-4b orchestrator name) was further retired and split into `/forge-overseer` + `/temper-overseer` per [ADR-0007](../docs/adr/0007-pipeline-orchestrator-structure.md) and [ADR-0008](../docs/adr/0008-naming-discipline.md). The builder/review worker names carry over unchanged.
 
 
 **Indexed from:** `.claude/lessons.md`

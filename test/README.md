@@ -80,7 +80,7 @@ teardown() {
 }
 
 test_relaunches_on_clean_handoff_sentinel() {
-  # Drive the loop with a stub that emits FORGEMASTER_CONTINUE, assert it relaunched.
+  # Drive the loop with a stub that emits OVERSEER_CONTINUE, assert it relaunched.
   CLAUDE_STUB_FIXTURE="$TEST_DIR/fixtures/clean-handoff-under-budget.sh" \
     bash "$REPO_ROOT/scripts/relaunch-loop.sh" --once
   assert_file_exists "$WORKDIR/.forge/continuation/.../gen-001.md"
@@ -113,7 +113,7 @@ knobs, each an environment variable (or a fixture file that sets them).
 
 | Knob | Controls | Default |
 |---|---|---|
-| `CLAUDE_STUB_RESULT` | the `.result` string — **put sentinel strings here** (`FORGEMASTER_CONTINUE` / `FORGEMASTER_COMPLETE`) | `"stub result"` |
+| `CLAUDE_STUB_RESULT` | the `.result` string — **put sentinel strings here** (`OVERSEER_CONTINUE` / `OVERSEER_COMPLETE`) | `"stub result"` |
 | `CLAUDE_STUB_USAGE` | the `.usage` object (must be valid JSON) | zeroed token block |
 | `CLAUDE_STUB_EXIT` | the process exit code (`0` clean, non-zero crash) | `0` |
 
@@ -134,7 +134,7 @@ Put `test/stubs` first on `PATH` so the code under test resolves `claude` to the
 
 ```bash
 export PATH="$TEST_DIR/stubs:$PATH"
-CLAUDE_STUB_RESULT="...FORGEMASTER_COMPLETE" bash "$REPO_ROOT/scripts/relaunch-loop.sh"
+CLAUDE_STUB_RESULT="...OVERSEER_COMPLETE" bash "$REPO_ROOT/scripts/relaunch-loop.sh"
 ```
 
 ### Fixture files
@@ -153,9 +153,9 @@ Ready-made fixtures in `fixtures/`, covering the design doc's relaunch-loop case
 
 | Fixture | Scenario |
 |---|---|
-| `clean-handoff-under-budget.sh` | `FORGEMASTER_CONTINUE`, usage under the warn line → relaunch normally |
-| `clean-handoff-over-hard.sh` | `FORGEMASTER_CONTINUE`, usage past the hard line → loop must not start another generation past hard without a handoff |
-| `work-complete.sh` | `FORGEMASTER_COMPLETE`, exit 0 → loop breaks |
+| `clean-handoff-under-budget.sh` | `OVERSEER_CONTINUE`, usage under the warn line → relaunch normally |
+| `clean-handoff-over-hard.sh` | `OVERSEER_CONTINUE`, usage past the hard line → loop must not start another generation past hard without a handoff |
+| `work-complete.sh` | `OVERSEER_COMPLETE`, exit 0 → loop breaks |
 | `crash-nonzero-exit.sh` | non-zero exit → loop propagates to launchd |
 | `exit-zero-no-sentinel.sh` | exit 0, no recognised sentinel → loop treats as a fault |
 

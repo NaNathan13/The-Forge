@@ -2,8 +2,8 @@
 # relaunch-loop.test.sh — tests for scripts/relaunch-loop.sh (P2 slice 1b, issue #139).
 #
 # Covers every branch of the relaunch loop's per-generation decision (design doc §1):
-#   - work-complete sentinel (FORGEMASTER_COMPLETE)        → loop exits 0
-#   - clean-handoff sentinel (FORGEMASTER_CONTINUE)        → generation recorded, relaunch
+#   - work-complete sentinel (OVERSEER_COMPLETE)        → loop exits 0
+#   - clean-handoff sentinel (OVERSEER_CONTINUE)        → generation recorded, relaunch
 #   - non-zero claude exit (crash)                   → exit code propagated, not masked
 #   - exit 0 with no recognised sentinel             → treated as a fault, exit non-zero
 #   - budget gate: under warn / over hard            → relaunch normally / stop
@@ -62,14 +62,14 @@ test_loop_passes_bash_syntax_check() {
 
 test_work_complete_sentinel_exits_zero() {
   run_loop "$FIXTURES/work-complete.sh" --slug demo
-  assert_exit_code 0 "$RUN_RC" "FORGEMASTER_COMPLETE should make the loop exit 0"
-  assert_contains "$RUN_OUT" "FORGEMASTER_COMPLETE"
+  assert_exit_code 0 "$RUN_RC" "OVERSEER_COMPLETE should make the loop exit 0"
+  assert_contains "$RUN_OUT" "OVERSEER_COMPLETE"
 }
 
 # ── Clean-handoff sentinel → generation recorded, loop relaunches ────────────
 
 test_clean_handoff_records_generation_and_relaunches() {
-  # The stub always emits FORGEMASTER_CONTINUE, so the loop would relaunch forever —
+  # The stub always emits OVERSEER_CONTINUE, so the loop would relaunch forever —
   # FORGE_MAX_GENERATIONS=1 is the test/CI safety net: do exactly one handoff
   # decision, then stop. Reaching the cap is a clean (exit 0) stop.
   FORGE_MAX_GENERATIONS=1 run_loop "$FIXTURES/clean-handoff-under-budget.sh" --slug demo
@@ -113,7 +113,7 @@ test_budget_gate_warn_band_writes_handoff_signal() {
   # hard (50%) lines. The loop relaunches but writes the "hand off promptly"
   # signal the SessionStart hook reads.
   FORGE_MAX_GENERATIONS=1 \
-    CLAUDE_STUB_RESULT="phase done FORGEMASTER_CONTINUE" \
+    CLAUDE_STUB_RESULT="phase done OVERSEER_CONTINUE" \
     CLAUDE_STUB_USAGE='{"input_tokens":90000,"output_tokens":3000,"cache_creation_input_tokens":0,"cache_read_input_tokens":0}' \
     run_loop "$FIXTURES/clean-handoff-under-budget.sh" --slug demo
   assert_exit_code 0 "$RUN_RC"
@@ -126,7 +126,7 @@ test_budget_gate_resolves_worker_role_thresholds() {
   # 55% input usage. For an orchestrator (50% hard) that is over hard → stop.
   # For a worker (60% hard) the same usage is in the warn band → relaunch.
   FORGE_MAX_GENERATIONS=1 \
-    CLAUDE_STUB_RESULT="handoff FORGEMASTER_CONTINUE" \
+    CLAUDE_STUB_RESULT="handoff OVERSEER_CONTINUE" \
     CLAUDE_STUB_USAGE='{"input_tokens":110000,"output_tokens":2000,"cache_creation_input_tokens":0,"cache_read_input_tokens":0}' \
     run_loop "$FIXTURES/clean-handoff-under-budget.sh" --role worker --slug demo
   assert_exit_code 0 "$RUN_RC" "55% usage is within the worker 60% hard line — loop should relaunch"
@@ -163,7 +163,7 @@ test_exit_zero_no_sentinel_is_a_fault() {
   # the loop treats this as a fault and exits non-zero rather than spinning.
   run_loop "$FIXTURES/exit-zero-no-sentinel.sh" --slug demo
   assert_exit_code 1 "$RUN_RC" "exit 0 with no sentinel must be a fault, not a handoff"
-  assert_contains "$RUN_OUT" "no FORGEMASTER_CONTINUE/FORGEMASTER_COMPLETE sentinel"
+  assert_contains "$RUN_OUT" "no OVERSEER_CONTINUE/OVERSEER_COMPLETE sentinel"
 }
 
 test_exit_zero_no_sentinel_does_not_relaunch() {
@@ -176,7 +176,7 @@ test_exit_zero_no_sentinel_does_not_relaunch() {
 
 test_thrash_circuit_breaker_trips() {
   # Drive a tight thrash window: max 2 handoffs in a 300s window. The stub always
-  # emits FORGEMASTER_CONTINUE, so the 3rd handoff inside the window trips the breaker.
+  # emits OVERSEER_CONTINUE, so the 3rd handoff inside the window trips the breaker.
   # FORGE_MAX_GENERATIONS is high enough that the breaker — not the cap — stops it.
   echo 'FORGE_THRASH_MAX_GENERATIONS=2' >> "$FORGE_DIR/resilience.config"
   echo 'FORGE_THRASH_WINDOW_SECONDS=300' >> "$FORGE_DIR/resilience.config"
@@ -195,10 +195,10 @@ test_thrash_breaker_does_not_trip_under_the_limit() {
   assert_not_contains "$RUN_OUT" "circuit breaker tripped"
 }
 
-# ── FORGEMASTER_LOOP_MANAGED marker exported into each generation (issue #181) ─────
+# ── OVERSEER_LOOP_MANAGED marker exported into each generation (issue #181) ─────
 
 test_loop_exports_forge_loop_managed_marker() {
-  # The loop must export FORGEMASTER_LOOP_MANAGED=1 into the env of every `claude -p`
+  # The loop must export OVERSEER_LOOP_MANAGED=1 into the env of every `claude -p`
   # generation it launches — that is the marker the P2 hooks key off to tell a
   # loop-managed session from an interactive one. The claude stub's env probe
   # records what reached the child; assert it saw the marker set to 1.
@@ -208,8 +208,8 @@ test_loop_exports_forge_loop_managed_marker() {
     run_loop "$FIXTURES/clean-handoff-under-budget.sh" --slug demo
   assert_exit_code 0 "$RUN_RC"
   assert_file_exists "$probe" "the claude stub should have recorded its environment"
-  assert_contains "$(cat "$probe")" "FORGEMASTER_LOOP_MANAGED=1" \
-    "the loop must export FORGEMASTER_LOOP_MANAGED=1 into each generation"
+  assert_contains "$(cat "$probe")" "OVERSEER_LOOP_MANAGED=1" \
+    "the loop must export OVERSEER_LOOP_MANAGED=1 into each generation"
 }
 
 test_loop_exports_marker_on_every_generation() {
@@ -221,7 +221,7 @@ test_loop_exports_marker_on_every_generation() {
     run_loop "$FIXTURES/clean-handoff-under-budget.sh" --slug demo
   assert_exit_code 0 "$RUN_RC"
   local count
-  count="$(grep -c "FORGEMASTER_LOOP_MANAGED=1" "$probe")"
+  count="$(grep -c "OVERSEER_LOOP_MANAGED=1" "$probe")"
   assert_eq "3" "$count" \
     "the loop must export the marker into every generation, not just the first"
 }

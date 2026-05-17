@@ -1,5 +1,7 @@
 # ADR 0006 — Temper review boundary: LLM judgment vs CI structural gating
 
+> **Naming context (after sub-phase 4e, 2026-05-17):** the body below uses the 4b/4c-era role names. In sub-phase 4e Temper grew a phase-scoped orchestrator (`/temper-overseer`) per [ADR-0007](./0007-pipeline-orchestrator-structure.md); `/temper` named below is now the per-PR worker the overseer dispatches. The review-vs-CI boundary this ADR locks is unaffected — the strict friction rule and the LLM-judgment-only scope still live on the worker. See [ADR-0008](./0008-naming-discipline.md) for the canonical-glossary discipline.
+
 **Status:** Accepted
 **Date:** 2026-05-17
 **Phase:** P4 — Pipeline naming + permissions · sub-phase 4c (/temper real review behavior)

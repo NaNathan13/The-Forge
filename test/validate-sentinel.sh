@@ -9,7 +9,7 @@ set -uo pipefail
 #     FORGE:RESULT <json-object>   — emitted by /forge (the builder)
 #     TEMPER:RESULT <json-object>  — emitted by /temper (the review skill)
 #
-# Forgemaster parses the matching line to decide what to do next. Today the
+# the overseer parses the matching line to decide what to do next. Today the
 # schema is enforced only by prose in `.claude/skills/forge/SKILL.md`,
 # `.claude/skills/temper/SKILL.md`, and `docs/shared/pipeline.md`.
 # This validator is the code-level check those documents asked for — a thin
@@ -68,7 +68,7 @@ set -uo pipefail
 #   TEMPER:RESULT — emitted by /temper (the review skill), review outcome.
 # Both carry an identical JSON object shape; this validator accepts either
 # prefix. The build sentinel (FORGE:RESULT) is checked first because it is the
-# load-bearing one Forgemaster parses for every shipped slice.
+# load-bearing one the overseer parses for every shipped slice.
 PREFIX_FORGE="FORGE:RESULT "
 PREFIX_TEMPER="TEMPER:RESULT "
 

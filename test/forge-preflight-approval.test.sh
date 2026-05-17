@@ -17,7 +17,7 @@
 #      SessionStart hook finds gen-001.md and re-injects it instead of falling back
 #      to the charter (which would re-prompt the human).
 #
-# forgemaster/SKILL.md is a markdown skill, not a shell script — it has no direct unit
+# forge-overseer/SKILL.md is a markdown skill, not a shell script — it has no direct unit
 # surface. What IS deterministically testable:
 #   - the *contract* the rewritten skill documents (the `approved-queue: true`
 #     flag, the "write gen-001.md immediately after approval" step, the
@@ -37,9 +37,9 @@
 # shellcheck source=lib/assert.sh
 source "$TEST_DIR/lib/assert.sh"
 
-SKILL="$REPO_ROOT/.claude/skills/forgemaster/SKILL.md"
+SKILL="$REPO_ROOT/.claude/skills/forge-overseer/SKILL.md"
 CONT="$REPO_ROOT/scripts/continuation.sh"
-START_HOOK="$REPO_ROOT/.claude/hooks/forgemaster-session-start.sh"
+START_HOOK="$REPO_ROOT/.claude/hooks/overseer-session-start.sh"
 
 # Each test gets its own temp .forge dir so continuation chains never leak. SLUG
 # is fixed so the hook (which derives the slug from `cwd`) and the test agree.
@@ -52,13 +52,13 @@ setup() {
   SLUG="the-forge"
   # The continuation substrate is loop-managed under forge; default every test to
   # the loop-managed marker so the SessionStart hook behaves as it does in prod.
-  export FORGEMASTER_LOOP_MANAGED=1
+  export OVERSEER_LOOP_MANAGED=1
   unset FORGE_RETENTION_CAP
 }
 
 teardown() {
   rm -rf "$WORKDIR"
-  unset FORGE_DIR FORGEMASTER_LOOP_MANAGED FORGE_RETENTION_CAP
+  unset FORGE_DIR OVERSEER_LOOP_MANAGED FORGE_RETENTION_CAP
 }
 
 # Build a SessionStart-hook input JSON object for SLUG's cwd.
@@ -82,7 +82,7 @@ write_approved_gen001() {
 ## Hard constraints (RESTATED VERBATIM — do not summarize)
 
 - approved-queue: true
-- One temper per generation; forgemaster does not self-measure context.
+- One temper per generation; the overseer does not self-measure context.
 - Forge does not merge (seal does); forge does not resolve conflicts inline.
 
 ## Execution frontier
@@ -124,7 +124,7 @@ injected_context() {
 
 test_skill_documents_approved_queue_flag() {
   assert_contains "$(cat "$SKILL")" "approved-queue: true" \
-    "forgemaster/SKILL.md must document the approved-queue: true continuation flag"
+    "forge-overseer/SKILL.md must document the approved-queue: true continuation flag"
 }
 
 test_skill_places_approved_queue_flag_in_verbatim_hard_constraints() {
@@ -134,7 +134,7 @@ test_skill_places_approved_queue_flag_in_verbatim_hard_constraints() {
   local body
   body="$(cat "$SKILL")"
   assert_contains "$body" "RESTATED VERBATIM" \
-    "forgemaster/SKILL.md must describe the hard-constraints section as restated verbatim"
+    "forge-overseer/SKILL.md must describe the hard-constraints section as restated verbatim"
   # The flag and the verbatim-section language must co-occur in the hard-constraints
   # description: extract the "Hard constraints" section and assert the flag is in it.
   local hard_section
@@ -149,16 +149,16 @@ test_skill_places_approved_queue_table_in_dispatch_queue_field() {
   local frontier_section
   frontier_section="$(awk '/^### 2\. Execution frontier/{f=1} /^### 3\. Conversation summary/{f=0} f' "$SKILL")"
   assert_contains "$frontier_section" "Dispatch queue" \
-    "forgemaster/SKILL.md's Execution-frontier section must define the Dispatch queue field"
+    "forge-overseer/SKILL.md's Execution-frontier section must define the Dispatch queue field"
 }
 
 test_skill_has_explicit_write_gen001_after_approval_step() {
-  # AC: forgemaster/SKILL.md must have an explicit step — generation 1 writes gen-001.md
+  # AC: forge-overseer/SKILL.md must have an explicit step — generation 1 writes gen-001.md
   # immediately after pre-flight approval, before dispatching any temper.
   local body
   body="$(cat "$SKILL")"
   assert_contains "$body" "gen-001.md" \
-    "forgemaster/SKILL.md must name gen-001.md as the file generation 1 writes after approval"
+    "forge-overseer/SKILL.md must name gen-001.md as the file generation 1 writes after approval"
   # The pre-flight section must instruct the write before any dispatch.
   local preflight_section
   preflight_section="$(awk '/^## Pre-flight/{f=1} /^## Dispatch Loop/{f=0} f' "$SKILL")"
@@ -173,7 +173,7 @@ test_skill_documents_resume_skips_preflight() {
   local body
   body="$(cat "$SKILL")"
   assert_contains "$body" "skip pre-flight" \
-    "forgemaster/SKILL.md must state resumed generations skip pre-flight"
+    "forge-overseer/SKILL.md must state resumed generations skip pre-flight"
   # The skip must be tied to reading the approved-queue flag, not an unconditional
   # "generation > 1 skips" — the flag is the signal.
   local skip_section
