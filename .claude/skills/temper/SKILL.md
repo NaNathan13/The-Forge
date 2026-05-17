@@ -71,8 +71,9 @@ before doing any review work.
    `friction` label semantics are unified at the `/seal` consumer (see ADR-0004); a
    pre-labeled PR is `/seal`'s problem to skip, not `/temper`'s problem to re-judge.
 
-These checks are deliberately preserved verbatim from the 4b stub — the pre-gate is the
-same shape, label-before-emit invariant included.
+The pre-gate is intentionally cheap and label-before-emit: any failed check applies the
+matching label first, then emits the sentinel — so `/seal` can classify by labels alone
+without re-reading the sentinel stream.
 
 ### 3. Read the diff
 

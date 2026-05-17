@@ -210,8 +210,9 @@ When forge hands off (context hard-stop or rate-limit), it writes
 chain: that chain belongs to loop-managed sessions (forge), keyed by session slug.
 Forge is a subagent — it has no session slug, writes no `gen-NNN.md`, and does not
 call `scripts/continuation.sh`. What forge *does* share with `gen-NNN.md` is the
-**format**: the same hardened five-section structure (the P2 §2 schema —
-`templates/continuation-gen.md`), so a resuming forge inherits a known shape.
+**format**: the same hardened five-section structure (the continuation-gen
+schema — `templates/continuation-gen.md`), so a resuming forge inherits a
+known shape.
 
 Write the file with these five sections, in this order, all mandatory:
 
@@ -254,7 +255,7 @@ Write the file with these five sections, in this order, all mandatory:
      only section safe to lose. -->
 ```
 
-The five sections are the hardened §2 schema (hard constraints restated verbatim,
+The five sections are the hardened continuation-gen schema (hard constraints restated verbatim,
 structured execution frontier, carried-forward conversation summary, exactly one
 next concrete action, lossy-safe notes) — identical in shape to what forge writes
 into `gen-NNN.md`, with forge's content. This is a format alignment only: forge's

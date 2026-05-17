@@ -91,18 +91,18 @@ FORGE:RESULT {"v":1,"status":"fail","issue":21,"pr":null,"branch":"feat/#21-sent
 
 ### Protocol version (`v`)
 
-`v` is the schema version field. It was added in sub-phase 3a (audit rec #29)
-after the protocol's first migration — the flag-day swap from four prose
-sentinels (`TEMPER:SUCCESS` et al.) to the structured `FORGE:RESULT` JSON —
-so that the *next* schema change can be non-breaking: the overseer's parser can
-branch on `v` and support two schemas during a transition instead of requiring
-every worker and overseer to update atomically.
+`v` is the schema version field. It was added after the protocol's first
+migration — the flag-day swap from four prose sentinels (`TEMPER:SUCCESS` et
+al.) to the structured `FORGE:RESULT` JSON — so that the *next* schema change
+can be non-breaking: the overseer's parser can branch on `v` and support two
+schemas during a transition instead of requiring every worker and overseer to
+update atomically.
 
 - **Currently defined values:** `1`.
 - **Absent `v`:** treated as legacy (pre-version-field). Accepted for one
   back-compat release so a worker that has not been updated yet does not
-  break the overseer run. A future sub-phase will make `v` required and pin a
-  richer set of accepted values once a v2 transition ships.
+  break the overseer run. A future schema change will make `v` required and
+  pin a richer set of accepted values once a v2 transition ships.
 - **Unknown `v` (e.g. `2`):** rejected by `test/validate-sentinel.sh`. The
   validator only accepts versions it has been taught. New versions ship by
   bumping the validator first, then the emitters.

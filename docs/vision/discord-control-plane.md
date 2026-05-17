@@ -2,9 +2,8 @@
 
 > **Audience:** humans only — Claude should not load this file. See `CLAUDE.md` § Context loading.
 
-**Status:** pre-build helper doc · **For:** level 3 of the autonomy spectrum (Discord-driven Tier-1 orchestration) · **Sequence:** built after P4 (Dev Mode), if at all
-**Created:** 2026-05-14 · **Updated:** 2026-05-15 (Agent View landscape shift folded inline)
-**See also:** [`the-forge.md`](the-forge.md) — autonomy-spectrum overview · [`autonomous-forge.md`](autonomous-forge.md) — original 3-tier model (historical) · [`../research/2026-05-15-cc-session-managers.md`](../research/2026-05-15-cc-session-managers.md) — session-manager landscape
+**Status:** pre-build helper doc · **For:** level 3 of the autonomy spectrum (Discord-driven Tier-1 orchestration) · **Sequence:** built after the dev-mode redesign, if at all
+**See also:** [`the-forge.md`](the-forge.md) — autonomy-spectrum overview · [`autonomous-forge.md`](autonomous-forge.md) — original 3-tier model (historical)
 
 > This doc front-loads everything known about Discord ↔ Claude Code integration so
 > the eventual build phase starts from research, not a blank page. It is **notes,
@@ -18,11 +17,10 @@ The Forge's autonomy spectrum ends with you driving project orchestrators from
 how that integration actually works so the future design doesn't have to
 re-derive it.
 
-The original `autonomous-forge.md` framed this as "P5 of the Autonomous Forge
-initiative." That phasing has been superseded by the P3 Improvements + P4 Dev Mode
-structure; Discord re-enters the roadmap only **after P4 ships**, as the
-optional **level 3** layer of the autonomy spectrum described in
-[`the-forge.md`](the-forge.md).
+The original `autonomous-forge.md` framed this as one phase in a multi-phase
+initiative. That phasing has been superseded; Discord re-enters the roadmap as
+the optional **level 3** layer of the autonomy spectrum described in
+[`the-forge.md`](the-forge.md), built after the dev-mode redesign settles.
 
 ## The mechanism — Claude Code Channels
 
@@ -48,9 +46,9 @@ session.
 
 **Critical: the official Discord plugin is *not* a session manager.** Channels
 is a single-session-per-pairing chat transport. If `claude` is not running,
-events drop. Always-on still requires the relaunch-loop + `launchd` substrate
-shipped under P1.1b/1c. The plugin solves the transport question and nothing
-else; lifecycle and multi-codebase routing remain a Forge-side build.
+events drop. Always-on still requires the shipped relaunch-loop + `launchd`
+substrate. The plugin solves the transport question and nothing else; lifecycle
+and multi-codebase routing remain a Forge-side build.
 
 ## The Agent View substrate (shipped May 2026)
 
@@ -106,7 +104,7 @@ restrictive in practice.
 
 1. **The channel does NOT keep the session alive.** Events only arrive while
    the session is open. For an always-on setup, the session must run as a
-   background / persistent process. → The P1.1b/1c session-management substrate
+   background / persistent process. → The shipped session-management substrate
    (`claude -p` + tmux-per-project + relaunch loop + `launchd`) provides
    exactly this. The Discord build depends on it being in place.
 
@@ -136,17 +134,17 @@ restrictive in practice.
 
 ## What this depends on
 
-- **P3 Improvements** (✅ shipped) — install-manifest, `"v":1` sentinel
+- **The shipped improvements layer** — install-manifest, `"v":1` sentinel
   versioning, crash-path circuit breaker, PID-file kill target. Cheap-now /
   expensive-later-if-skipped pieces that keep Discord-readiness as a
   constraint without committing to the build. The validation contracts and
   install-manifest should point at Agent View's `roster.json` as the
   hand-off surface when the Discord work begins.
-- **P4 Dev Mode** — must ship first. The Discord work re-enters the roadmap
-  only after P4 settles and the first product project teaches us what
-  long-lived chat-driven sessions actually need.
-- **The P1.1b/1c session substrate** (✅ shipped) — relaunch-loop + `launchd`
-  keep the session alive; the channel rides on top.
+- **The dev-mode redesign** — must settle first. The Discord work re-enters
+  the roadmap only after the dev-mode redesign and the first product project
+  teaches us what long-lived chat-driven sessions actually need.
+- **The shipped session substrate** — relaunch-loop + `launchd` keep the
+  session alive; the channel rides on top.
 
 The clean mental model: **the session substrate makes the session immortal;
 the Discord channel gives it a mouth and ears.**
@@ -166,29 +164,29 @@ the Discord channel gives it a mouth and ears.**
   studying for the per-channel isolation model, but explicitly *not* the
   build target (see Verdict above).
 
-Mine these for *shapes*, not necessarily to adopt — same discipline as the
-amux / Overstory call during P1.1b research.
+Mine these for *shapes*, not necessarily to adopt — same discipline applied
+to the amux / Overstory call during earlier session-substrate research.
 
 ## Long-lived-session context discipline
 
 A Discord-driven session fills its context from *two* sides: the dispatch
-loop *and* accumulated chat history. The P3 context-discipline work (40/50
-warn/hard-stop, statusline-tied checkpoints, continuation-file handoff)
-budgets the dispatch loop side. The Discord design has to budget the
-chat-history side too, or the orchestrator bloats from chat even with a
-clean dispatch loop.
+loop *and* accumulated chat history. The shipped context-discipline work
+(40/50 warn/hard-stop, statusline-tied checkpoints, continuation-file
+handoff) budgets the dispatch loop side. The Discord design has to budget
+the chat-history side too, or the orchestrator bloats from chat even with
+a clean dispatch loop.
 
-This is the single biggest open question that didn't have a clean answer
-in the 2026-05-15 landscape research: **how does a long-lived chat-driven
-orchestrator handle its accumulated chat history without re-loading it on
-every continuation?** Likely answer: the chat history is in Discord, not
-in the session — the session reads only what's needed via channel events,
-and the continuation file carries the *decisions made*, not the messages
-exchanged. To be confirmed in the `/ponder` of the Discord build phase.
+This is the single biggest open question the landscape research did not
+have a clean answer for: **how does a long-lived chat-driven orchestrator
+handle its accumulated chat history without re-loading it on every
+continuation?** Likely answer: the chat history is in Discord, not in the
+session — the session reads only what's needed via channel events, and
+the continuation file carries the *decisions made*, not the messages
+exchanged. To be confirmed in the `/ponder` of the Discord build round.
 
 ## Open questions for the design phase
 
-(To resolve when the Discord build is `/ponder`-ed — not now.)
+(To resolve when the Discord build is `/ponder`-ed.)
 
 - Native Channels Discord plugin (customized for multi-channel routing) vs.
   one of the community bridges vs. Claude Agent SDK + custom Discord bot?

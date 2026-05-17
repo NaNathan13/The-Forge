@@ -70,7 +70,7 @@ Immediately after the size decision lands (same turn — do not ask a second tim
 
 > "Size: **<sub-phase | single-slice>** — because <one-sentence rationale synthesised from the grill>. Sound right?"
 
-The rationale is the *why* of the size call — the same shape as the `**Why this size?**` line that inscribe will render into the PRD frontmatter (see `docs/prds/improvements-3b-contracts.md` §Slice 4 for the contract, and this PRD's own header for an example). One sentence. Keep it specific to the work, not generic.
+The rationale is the *why* of the size call — the same shape as the `**Why this size?**` line that inscribe will render into the PRD frontmatter (see inscribe's "A1. Write PRD" section for the rendering contract). One sentence. Keep it specific to the work, not generic.
 
 If the user pushes back on the rationale, edit it inline; do not re-open the size decision. Store the resolved sentence as `size_reason` and pass it to inscribe alongside `size_decision`.
 

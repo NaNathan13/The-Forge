@@ -27,14 +27,13 @@ until the queue is drained. It does **not** dispatch `/temper` workers
 `/seal` (the operator runs `/seal` explicitly).
 
 `/forge-overseer` runs as a **loop-managed session** under
-`scripts/relaunch-loop.sh` (P2's external relaunch loop). Each `claude -p`
+`scripts/relaunch-loop.sh` (the external relaunch loop). Each `claude -p`
 generation the loop launches dispatches **exactly one worker** (one `/forge
 <N>`), writes the next continuation generation, and exits. The loop then
 relaunches `claude` fresh so every generation starts with an empty context
-window. This is **Option B — one worker per generation** (PRD
-`docs/prds/forge-relaunch-loop-integration.md`, decision Q2): the handoff
-trigger is **structural ("a worker finished"), not measured**.
-`/forge-overseer` never self-estimates context %.
+window. This is **one worker per generation**: the handoff trigger is
+**structural ("a worker finished"), not measured**. `/forge-overseer` never
+self-estimates context %.
 
 Ponder plans the work; `/forge-overseer` executes the build. Each slice
 flows through `/forge` (branch → implement → test → PR → green CI). When
@@ -136,11 +135,11 @@ scans the injected charter for a line matching `phase: <id>`
 generation 1. Minimal example:
 
 ```markdown
-# Forge-overseer charter — phase 2a
+# Forge-overseer charter — phase <id>
 
-phase: 2a
+phase: <id>
 
-Run /forge-overseer scoped to sub-phase 2a. Approve the queue, then go autonomous.
+Run /forge-overseer scoped to the named sub-phase. Approve the queue, then go autonomous.
 ```
 
 If no `phase:` line is present, the run is unscoped — same as no charter at
@@ -491,15 +490,16 @@ on every loop iteration.
 
 ## Continuation generations (`.forge/continuation/<slug>/gen-NNN.md`)
 
-`/forge-overseer`'s continuation state lives in the P2 continuation
-substrate. Each handoff generation writes one immutable `gen-NNN.md` via:
+`/forge-overseer`'s continuation state lives in the relaunch-loop
+continuation substrate. Each handoff generation writes one immutable
+`gen-NNN.md` via:
 
 ```bash
 scripts/continuation.sh write
 ```
 
 `/forge-overseer` then fills the **five mandatory sections** of that file
-(the hardened P2 template):
+(the hardened continuation template):
 
 ### 1. Hard constraints (RESTATED VERBATIM — do not summarize)
 

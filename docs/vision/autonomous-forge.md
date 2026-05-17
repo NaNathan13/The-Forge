@@ -2,20 +2,17 @@
 
 > **Audience:** humans only — Claude should not load this file. See `CLAUDE.md` § Context loading.
 
-**Status:** 📝 sub-phase 1a shipped (#129–#131); **roadmap superseded** 2026-05-15 — see [`the-forge.md`](the-forge.md) for the current vision
-**Created:** 2026-05-14
-**Phase:** P1 — Autonomous Forge · sub-phase 1a (research + design) — see [`MISSION-CONTROL.md`](../../MISSION-CONTROL.md)
+**Status:** historical — roadmap superseded; see [`the-forge.md`](the-forge.md) for the current vision.
 
-> ⚠️ **Read first:** [`the-forge.md`](the-forge.md) is now the authoritative top-level
+> ⚠️ **Read first:** [`the-forge.md`](the-forge.md) is the authoritative top-level
 > vision. This doc retains the 3-tier model, the optional-by-layers principle, the
 > R1/R2/R3 research findings, and the architectural constraints — all still correct
-> and still inputs to future phase design. **Only the P2–P6 phasing table below is
-> stale.** Today's roadmap lives in `MISSION-CONTROL.md` as P3 — Improvements +
-> P4 — Dev Mode + future levels.
+> and still inputs to future design. **Only the phasing table below is stale.**
+> Today's roadmap lives in `MISSION-CONTROL.md`.
 
 > This is the thinking / plans / notes / research-findings doc for the initiative.
-> Every phase and slice under this initiative must serve the goal below. If a piece
-> of work doesn't move us toward this north star, it doesn't belong here.
+> Every piece of follow-on work must serve the goal below; if a piece of work doesn't
+> move us toward this north star, it doesn't belong here.
 
 ## TL;DR — read this first
 
@@ -24,15 +21,15 @@ The Forge becomes a system you can run **unattended** and eventually drive from
 
 - **The base pipeline** (ponder → forge → temper → seal) stays a clean drop-in for
   anyone — today's Forge, unchanged.
-- **P2–P3** harden that base for *everyone*: sessions that survive their own context
-  limits and crashes, plus tighter manager/worker discipline.
-- **P4–P6** are **opt-in power-user layers** — a multi-project fleet, a Discord
+- **Base hardening** rounds harden that base for *everyone*: sessions that survive
+  their own context limits and crashes, plus tighter manager/worker discipline.
+- **Opt-in power-user layers** sit on top — a multi-project fleet, a Discord
   control plane, and a top-level "sudo orchestrator" for cross-project status. A
   solo user who just wants the workflow never touches these.
 
-**Phase 1 (now) is research + design only — no code.** For the full picture read:
-this TL;DR, *The goal*, *Design principle*, *Phasing*. Everything below *Phasing*
-is research reference.
+The earliest stage of this initiative is research + design only — no code. For
+the full picture read: this TL;DR, *The goal*, *Design principle*, *Phasing*.
+Everything below *Phasing* is research reference.
 
 ## The goal
 
@@ -86,44 +83,36 @@ initiative is **additive, never a rewrite**:
 
 - **Base** — ponder → forge → temper → seal. Works standalone: no fleet, no Discord,
   no Tier 0. This is what ships to every Forge user.
-- **Base hardening (P2–P3)** — context discipline + manager/worker rigor. Improves
-  the base for *everyone*; on by default, drop-in safe.
-- **Optional layers (P4–P6)** — fleet substrate, Discord control plane, Tier-0 sudo
+- **Base hardening** — context discipline + manager/worker rigor. Improves the
+  base for *everyone*; on by default, drop-in safe.
+- **Optional layers** — fleet substrate, Discord control plane, Tier-0 sudo
   orchestrator. Power-user opt-ins. The fleet and the orchestrator-of-orchestrators
   must be **entirely optional** — a single-project solo user never sees them.
 
-If a phase can't be skipped by a solo drop-in user without breaking the base
-pipeline, it's mis-scoped.
+If an optional layer can't be skipped by a solo drop-in user without breaking the
+base pipeline, it's mis-scoped.
 
 **Every optional layer ships with operator setup** — not just prose docs, but ideally
 a setup skill / structured prompt (a `light-the-forge`-style bootstrap for the
-orchestration layers). Written as each layer ships (P4–P6), not in Phase 1.
+orchestration layers). Written as each layer ships, not up front.
 
-## Phasing (draft)
+## Phasing (historical roadmap — superseded)
 
-| Phase | Scope | Status |
-|---|---|---|
-| P1 | **Research + this north-star doc + initiative design.** No build. | 🔥 in progress |
-| P2 | **Single-session resilience** — context-window discipline (external relaunch loop, hardened handoff incl. chat-history budgeting, budget-check hook) **+ crash recovery** (`launchd`-above-the-loop keep-alive + liveness watchdog). One session survives indefinitely, clean exits *and* crashes. | ⏳ planned |
-| P3 | Manager/worker orchestration hardening — formalize the pure-manager (Tier-1) pattern, worker return shapes, verification-without-rebloat | ⏳ planned |
-| P4 | **Session-management substrate (the fleet)** — `claude -p` + tmux-per-project, the three-layer supervisor stack, two-channel observability (`standup.json` + hook telemetry), resource + rate-limit guardrails | ⏳ planned |
-| P5 | Discord control plane — one channel ↔ one Tier-1 session (Claude Code Channels), status streaming, remote commands | ⏳ planned |
-| P6 | Sudo orchestrator (Tier 0) — orchestrator-of-orchestrators, cross-project status rollups / daily standup | ⏳ planned |
+> The original phasing table that lived here is stale. Today's roadmap
+> lives in `MISSION-CONTROL.md`. The shape it expressed — base hardening first,
+> then opt-in fleet + Discord + Tier-0 layers — still holds as the directional
+> sketch; the specific phase numbering does not.
 
-Phases may merge or reorder — TBD by the design. The hierarchy (Tier 0) is built
-**last, and only if** a flat fleet of Tier-1 orchestrators proves unmanageable —
-but it lives in the vision from day one so every earlier decision stays compatible
-with it. Discord (P5) plugs in late, but **every earlier decision must be
-Discord-aware** so it plugs in cleanly. Crash recovery moved *into* P2 (a
-clean-exit relaunch loop with no crash story is incomplete); the fleet substrate
-became its own phase (P4) — it carries real crash-recovery, observability, and
-rate-limit concerns and is too big for a sub-bullet. **P2–P3 harden the base
-pipeline and ship to every Forge user; P4–P6 are opt-in layers a solo
-single-project user never needs.**
-
-**MISSION-CONTROL mapping:** this initiative is tracked under one MC phase —
-**P1 — Autonomous Forge**. This doc's *Phase 1* = MC sub-phase **1a** (research +
-design); later phases become sub-phases 1b, 1c, … as each is `/ponder`-ed.
+The base hardening rounds harden the base pipeline and ship to every Forge user;
+the opt-in layers are power-user features a solo single-project user never needs.
+The hierarchy (Tier 0) is built **last, and only if** a flat fleet of Tier-1
+orchestrators proves unmanageable — but it lives in the vision from day one so
+every earlier decision stays compatible with it. Discord plugs in late, but
+**every earlier decision must be Discord-aware** so it plugs in cleanly. Crash
+recovery sits with the relaunch loop (a clean-exit relaunch loop with no crash
+story is incomplete); the fleet substrate is its own round — it carries real
+crash-recovery, observability, and rate-limit concerns and is too big for a
+sub-bullet.
 
 ## Decisions so far (from the grill)
 
@@ -132,15 +121,16 @@ design); later phases become sub-phases 1b, 1c, … as each is `/ponder`-ed.
 - ✅ **Optional by layers** — The Forge stays a drop-in for anyone; the fleet,
   Discord, and Tier-0 are entirely optional power-user layers. Additive, never a
   rewrite. (See *Design principle* above.)
-- Phase 1 = research + design only. No code shipped this phase. Phase 1 produces
-  **filed design-doc work items**, not an in-grill design — the vision doc + R1–R3
-  are the input a design worker gets.
-- Fleet control plane (P4): **study amux + Overstory hands-on in the P4 design**,
+- Research + design only at the front — no code shipped during the initial design
+  round. That round produces **filed design-doc work items**, not an in-grill
+  design — the vision doc + R1–R3 are the input a design worker gets.
+- Fleet control plane: **study amux + Overstory hands-on in the fleet design**,
   then recommend adopt-vs-build with evidence — no blind commitment now.
-- ✅ **Phase 1 task list approved** — file three work items: an **initiative ADR**
-  (tier model + optional-by-layers) + a **P2 design doc** + a **P3 design doc**.
-  P4–P6 design docs are written just-in-time (each its own `/ponder`).
-- Every optional layer (P4–P6) must ship with **operator setup** — a runbook and,
+- ✅ **Initial task list approved** — file three work items: an **initiative ADR**
+  (tier model + optional-by-layers) + a **session-resilience design doc** + a
+  **manager/worker orchestration design doc**. The fleet, Discord, and Tier-0
+  design docs are written just-in-time (each its own `/ponder`).
+- Every optional layer must ship with **operator setup** — a runbook and,
   ideally, a `light-the-forge`-style setup skill / structured prompt.
 - Auto-resume = **external relaunch loop** (Huntley's original Ralph), *not* the
   installed `ralph-loop` plugin (which loops in-session and never clears context).
@@ -165,16 +155,16 @@ design); later phases become sub-phases 1b, 1c, … as each is `/ponder`-ed.
   orchestrators) for cross-project status + fleet management — but it is **built
   last** (R2: hierarchy earns its keep only at scale; delegation stays one hop per
   tier).
-- The chat-history side of a long-lived orchestrator's context is **in scope for the
-  Phase-1 design** — part of capability A, not deferred.
+- The chat-history side of a long-lived orchestrator's context is **in scope for
+  the initial design round** — part of capability A, not deferred.
 - **Substrate decided:** Tier-1 = `claude -p` headless + tmux-per-project + Ralph
   relaunch loop + `launchd` keep-alive above the loop. Three nested layers.
 - Tier-0 ↔ Tier-1 comms = **shared status files + `--resume <session-id>`** — no
   message bus until async command push is actually needed.
 - Observability = **two channels** — agent-authored `standup.json` + mechanical
   hook telemetry. Never trust the self-report alone (a dead session is silent).
-- Crash recovery (launchd + watchdog) ships in **P2** with the relaunch loop; the
-  fleet substrate is its own phase (**P4**).
+- Crash recovery (launchd + watchdog) ships **with the relaunch loop**; the
+  fleet substrate is a later, independent round.
 - **Architectural constraints surfaced now:** Tier-1s are **event-driven, not
   timer-polling**; concurrency is **capped** (documented ~4-session rate-limit
   cliff); `claude -p` billing splits into a separate bucket from 2026-06-15;
@@ -182,21 +172,22 @@ design); later phases become sub-phases 1b, 1c, … as each is `/ponder`-ed.
 - **Prior art to mine, not reinvent:** Overstory (3-tier hierarchy + tiered health
   monitoring) and amux (headless-fleet supervision + JSONL cost tracking + kanban).
 
-## Open questions — deferred to the design phase
+## Open questions — deferred to design
 
-Phase 1 files design-doc work items; these are **inputs to those issues**, not grill
-blockers. Each decision goes in the relevant design doc, recorded with its rationale:
+The initial round files design-doc work items; the open questions below are
+**inputs to those issues**, not grill blockers. Each decision goes in the
+relevant design doc, recorded with its rationale:
 
 - Context threshold: one global value vs. orchestrator / worker split (R1 leans
-  split — orchestrator 40/50, worker 50/60). → P2 design doc.
+  split — orchestrator 40/50, worker 50/60). → session-resilience design doc.
 - Where the budget check lives: statusline script, Stop hook, or wrapper-script gate
-  (R1 leans: a hook reading statusline JSON / transcript JSONL). → P2 design doc.
+  (R1 leans: a hook reading statusline JSON / transcript JSONL). → session-resilience design doc.
 - Continuation files: append-only single file vs. chained / versioned (R1 leans:
-  never blind-overwrite). → P2 design doc.
+  never blind-overwrite). → session-resilience design doc.
 - Chat-side context mechanism: continuation "conversation summary" section, periodic
-  chat compaction, or both. → P2 design doc.
+  chat compaction, or both. → session-resilience design doc.
 - Fleet control plane: adopt **amux** vs. build Forge-native — study both hands-on,
-  recommend with evidence. → P4 design doc.
+  recommend with evidence. → fleet design doc.
 
 ## Research findings
 

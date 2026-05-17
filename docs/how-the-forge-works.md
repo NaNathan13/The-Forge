@@ -13,10 +13,10 @@
 > Those are correct and scoped to their jobs; this is the "here is the whole
 > machine, part by part" narrative that none of them is.
 >
-> This walkthrough has been reconciled against all eleven `docs/audit/` facet
-> docs and the **P3 — Improvements** outputs (sub-phases 3a–3f, shipped
-> 2026-05-15 → 2026-05-16). Every part description below reflects the
-> system as it stands post-P3.
+> This walkthrough describes the system as it stands today — the current-tense
+> shape of every part of The Forge. The eleven `docs/audit/` facet docs sit
+> alongside it for the comparative "how this choice ranks against the wider
+> field" lens.
 
 ---
 
@@ -53,10 +53,14 @@ hand-off-via-disk pattern is audited in
 [`docs/audit/phased-pipeline.md`](audit/phased-pipeline.md).
 
 ```
-/ponder  →  /forge  →  /temper <N>  →  /seal
- plan       dispatch    build one      merge the
- the work   workers     slice          batch
+/ponder  →  /forge-overseer  →  /temper-overseer  →  /seal
+ plan       Forge phase           Temper phase         merge the
+ the work   (dispatches /forge)   (dispatches /temper) batch
 ```
+
+One operator command per phase (see [ADR-0005](adr/0005-pipeline-orchestrator-structure.md)).
+The Forge and Temper phases each run an **overseer** internally that dispatches
+per-slice / per-PR workers; the operator does not hand-spin those workers.
 
 ### Ponder — the planning phase
 
@@ -87,75 +91,94 @@ the artifacts ponder produced. It orchestrates two sub-skills:
 
 Ponder leans on **triage** (below) to drive issues to `ready-for-agent`.
 
-### Forge — the orchestrator
+### Forge — the build phase
 
-`/forge` (`.claude/skills/forge/SKILL.md`) is the **autonomous dispatch loop**.
-It queries open `ready-for-agent` issues, parses their `## Blocked by` sections
-into a dependency graph, topo-sorts the queue (with a `slice:logic` →
-`slice:mixed` → `slice:ui` secondary sort), presents the build queue for
-approval, then dispatches **one temper worker per slice** as a fresh subagent
-in an isolated worktree. It watches each worker's `TEMPER:RESULT` sentinel,
-handles the result (advance / retry / escalate), and moves to the next slice
-until the queue drains.
+The Forge phase has two pieces: an **overseer** that orchestrates and a **worker** that builds.
 
-Forge itself does **almost nothing inline** — it dispatches and handles
-sentinels. It does not implement code and does not merge PRs. It runs at most
-one temper worker at a time; each worker may itself spawn up to 2 support
-agents, for a cap of 3 concurrent subagents. The single-worker cap is a
-deliberate trade recorded in [`docs/adr/0002-concurrency-cap.md`](adr/0002-concurrency-cap.md);
+`/forge-overseer` (`.claude/skills/forge-overseer/SKILL.md`) is the
+**autonomous dispatch loop**. It queries open `ready-for-agent` issues,
+parses their `## Blocked by` sections into a dependency graph, topo-sorts
+the queue (with a `slice:logic` → `slice:mixed` → `slice:ui` secondary
+sort), presents the build queue for approval, then dispatches **one
+`/forge <N>` worker per slice** as a fresh subagent in an isolated
+worktree. It watches each worker's `FORGE:RESULT` sentinel, handles the
+result (advance / retry / escalate), and moves to the next slice until
+the queue drains.
+
+The overseer itself does **almost nothing inline** — it dispatches and
+handles sentinels. It does not implement code and does not merge PRs. It
+runs at most one worker at a time; each worker may itself spawn up to 2
+support agents, for a cap of 3 concurrent subagents. The single-worker cap
+is a deliberate trade recorded in [`docs/adr/0002-concurrency-cap.md`](adr/0002-concurrency-cap.md);
 the disk-only phase-isolation rule that makes it safe is recorded in
-[`docs/adr/0001-phase-isolation.md`](adr/0001-phase-isolation.md). Forge's
+[`docs/adr/0001-phase-isolation.md`](adr/0001-phase-isolation.md). The
 dispatch model and worktree isolation are audited in
 [`docs/audit/subagent-orchestration.md`](audit/subagent-orchestration.md).
 
-The **friction-review** step that runs after a batch drains is now scoped
-to **cross-PR-only** patterns — single-PR friction is captured per-temper
-in its run notes; forge only escalates a pattern when it shows up across
-multiple tempers in the same batch.
+`/forge <N>` (`.claude/skills/forge/SKILL.md`) is the **per-slice worker**.
+It builds a single slice end-to-end: create the branch
+(`feat/#<N>-short-description`), implement per the issue spec, run the
+project's check command, open a PR with `closes #<N>`, and wait for CI.
+**The worker stops at green CI — it does not merge.** It ends every run by
+emitting exactly one `FORGE:RESULT` JSON line that `/forge-overseer`
+parses.
 
-### Temper — the worker
-
-`/temper <N>` (`.claude/skills/temper/SKILL.md`) builds a single slice
-end-to-end: create the branch (`feat/#<N>-short-description`), implement per the
-issue spec, run the project's check command, open a PR with `closes #<N>`, and
-wait for CI. **Temper stops at green CI — it does not merge.** It ends every run
-by emitting exactly one `TEMPER:RESULT` JSON line that forge parses.
-
-Temper's behavior is gated by the project's **dev mode** (`fast` / `balanced` /
-`tdd`, declared as one line in `CLAUDE.md`): the mode decides whether tests are
-written, whether the check command is a hard PR gate, and whether a pre-PR
-reviewer agent runs. Temper is context-disciplined — it reads its **statusline
-as the source of truth** for context % and hands off to a fresh session via a
-continuation file rather than degrading. The orchestrator's 40/50 warn/hard-stop
-thresholds are absolute; a **near-done override** lets temper push slightly
-past 50% when the PR is one tool-call away from green, but the 60% hard stop
-remains inviolable. The sentinel is structured JSON carrying a `"v":1` version
-field — the protocol is audited in [`docs/audit/sentinel-protocol.md`](audit/sentinel-protocol.md);
-context thresholds and handoff discipline in
+The worker's behavior is gated by the project's **dev mode** (`fast` /
+`balanced` / `tdd`, declared as one line in `CLAUDE.md`): the mode decides
+whether tests are written, whether the check command is a hard PR gate,
+and whether a pre-PR reviewer agent runs. The worker is
+context-disciplined — it reads its **statusline as the source of truth**
+for context % and hands off to a fresh session via a continuation file
+rather than degrading. The 40/50 warn/hard-stop thresholds are absolute;
+a **near-done override** lets the worker push slightly past 50% when the
+PR is one tool-call away from green, but the 60% hard stop remains
+inviolable. The sentinel is structured JSON carrying a `"v":1` version
+field — the protocol is audited in
+[`docs/audit/sentinel-protocol.md`](audit/sentinel-protocol.md); context
+thresholds and handoff discipline in
 [`docs/audit/context-discipline.md`](audit/context-discipline.md).
 
-Temper also writes back to the **knowledge loop**: when a slice overcomes a
-real wall (not just transient noise), temper appends a `lessons.md` index
-entry pointing at a new `knowledge/<slug>.md` with the diagnosis-and-fix
-detail. The `diagnose` skill carries the same write-back as its Phase 6
-step. A human-curation fallback is documented for the cases where the
-auto-write isn't right — see `.claude/lessons.md`.
+### Temper — the review-and-harden phase
 
-### Seal — the closer
+`/temper-overseer` (`.claude/skills/temper-overseer/SKILL.md`) is the
+Temper-phase orchestrator, symmetric in shape to `/forge-overseer`. It
+queries open `feat/#*-*` PRs with green CI awaiting review, presents a
+queue, and dispatches one `/temper <PR>` worker per PR.
 
-`/seal` (`.claude/skills/seal/SKILL.md`) runs after a whole batch of tempers
-have parked at green CI. It approves and squash-merges every *shippable* PR
-(skipping any labelled `friction` or `needs-human`, or with non-green CI),
-reconciles `MISSION-CONTROL.md` against actual GitHub state by calling the
-standalone **`scripts/reconcile-mc.sh`** (extracted from what was previously
-seal's inline step 5, so a human-closed issue or out-of-band merge can be
-reconciled on demand without running the whole seal), then cleans up runtime
-artifacts (worktrees, continuation files, temper-summary files). Seal's final
-step is a **re-planning prompt** — a one-line "is the roadmap still right?"
-check that surfaces a question to the operator without ever auto-rewriting MC.
-Temper opening-but-not-merging keeps the queue uniform — every slice ends in
-the same state (PR open, CI green) so seal can act on the batch in one pass.
-Seal's classification of merge-vs-skip is driven purely by PR labels.
+`/temper <PR>` (`.claude/skills/temper/SKILL.md`) is the **per-PR
+reviewer**. It dispatches a `reviewer` support agent on the diff, runs an
+inline **intent-match** against the issue body, and applies a strict
+friction rule: any reviewer HIGH finding **or** an intent-match failure
+flips the PR to `friction`; otherwise it marks the PR `ready-for-seal`.
+The strict friction rule and the LLM-judgment-only review boundary are
+recorded in [`ADR-0004`](adr/0004-temper-review-boundary.md).
+
+Each worker (forge or temper) writes back to the **knowledge loop** when
+a slice or review overcomes a real wall (not just transient noise),
+appending a `lessons.md` index entry pointing at a new
+`knowledge/<slug>.md` with the diagnosis-and-fix detail. The `diagnose`
+skill carries the same write-back as its Phase 6 step. A human-curation
+fallback is documented for the cases where the auto-write isn't right —
+see `.claude/lessons.md`.
+
+### Seal — the closer phase
+
+`/seal` (`.claude/skills/seal/SKILL.md`) runs after the Temper phase
+has parked every PR at either `ready-for-seal` or `friction`. It approves
+and squash-merges every *shippable* PR (skipping any labelled `friction`
+or `needs-human`, or with non-green CI), reconciles `MISSION-CONTROL.md`
+against actual GitHub state by calling the standalone
+**`scripts/reconcile-mc.sh`** so a human-closed issue or out-of-band
+merge can be reconciled on demand without running the whole seal, then
+cleans up runtime artifacts (worktrees, continuation files,
+forge-summary / temper-summary files). Seal's final step is a
+**re-planning prompt** — a one-line "is the roadmap still right?" check
+that surfaces a question to the operator without ever auto-rewriting MC.
+Stopping the worker at green CI (rather than merging) keeps the queue
+uniform — every slice ends in the same state (PR open, CI green) so seal
+can act on the batch in one pass. Seal has no internal orchestrator
+(per [ADR-0005](adr/0005-pipeline-orchestrator-structure.md) §Decision);
+its classification of merge-vs-skip is driven purely by PR labels.
 
 ---
 
@@ -168,8 +191,9 @@ both lean on triage; it is also callable standalone to groom incoming bugs and
 feature requests, or to prepare issues for an AFK agent run.
 
 The `slice:*` label triage assigns (`slice:logic` / `slice:ui` /
-`slice:mixed`) is **load-bearing** — it drives whether temper writes unit
-tests, opens a visual-review subagent, and which path-scoped rules apply.
+`slice:mixed`) is **load-bearing** — it drives whether the `/forge` worker
+writes unit tests, opens a visual-review subagent, and which path-scoped
+rules apply.
 GitHub issues plus these labels plus the kanban board *are* The Forge's queue
 and handoff medium; that "GitHub-as-state" choice is audited in
 [`docs/audit/github-as-state.md`](audit/github-as-state.md).
@@ -202,35 +226,37 @@ deliberately outside the normal flow.
 Hooks live in `.claude/hooks/` and are **deterministic bash** — no Claude
 runtime, no token cost. The Claude Code harness fires them on lifecycle events
 (registered in `.claude/settings.json`). The Forge ships six (three resilience /
-drift hooks, two context-discipline hooks added in P3 sub-phase 3g, plus one
-disabled template).
+drift hooks, two context-discipline hooks for banner enforcement and load
+observability, plus one disabled template).
 
 | Hook | Event | What it does · why it exists |
 |---|---|---|
 | **forge-session-start.sh** | `SessionStart` | Resolves the session slug, reads `.forge/continuation/<slug>/latest`, and injects that continuation file's full contents as the session's opening context (`additionalContext`). On a genuine first launch it injects the session charter instead. It also stamps the generation baseline the Stop hook reads. This is the piece that makes the relaunch loop *continuous* rather than *amnesiac* — the loop provides a fresh process, this hook provides the memory. |
 | **forge-stop-handoff.sh** | `Stop` | Two jobs. (1) **Heartbeat** — touches `.forge/heartbeat/<slug>` with a fresh timestamp on every fire, the liveness signal the watchdog reads. (2) **Handoff enforcement** — blocks a stop if the current generation is exiting *without* having written its continuation file, so a handoff is never silently skipped. A Stop hook can only `block`/allow — it cannot inject messages or read context percentages — so it does the one thing it can. |
 | **mission-control-drift.sh** | `SessionStart` | Detects drift between GitHub issue state and `MISSION-CONTROL.md`. Beyond the original open-vs-closed check, the widened version catches three additional drift cases: (a) a `🚧 in-progress` sub-phase with no open PR, (b) a "Recommended next prompt" pointing at an already-shipped phase, (c) a phase progress bar that disagrees with the rows below it (re-derived via `scripts/derive-progress.sh`). Silent otherwise; always exits 0 so it never blocks session start. Keeps the project ledger honest without manual auditing. |
-| **instructions-loaded.sh** | `InstructionsLoaded` | Emits one JSONL record to `.claude/instructions-loaded.jsonl` for every load of `CLAUDE.md` or `.claude/rules/*.md` — capturing `load_reason` (e.g. `path_glob_match`), matched file, and timestamp. The same log file also receives `read_denied` records from the banner-scan hook below. Gitignored runtime substrate; the observability surface a future token-waste audit (3h — deferred) will read. **Known gap:** does NOT fire for `SKILL.md` loads — skill-load accounting carries forward to whichever phase revives the audit. Shipped in P3 sub-phase 3g. |
-| **read-human-only-guard.sh** | `PreToolUse` (Read) | Defense-in-depth banner enforcement. Scans line 1 of the file the Read tool is about to open; if it matches the `> **Audience:** humans only` banner, denies the Read with the reason string `"Denied — file is human-only (banner on line 1). See CLAUDE.md § Context loading for what to load instead."` Complements the static `permissions.deny` block in `.claude/settings.json` — the static block covers three known paths (`docs/how-the-forge-works.md`, `docs/audit/**`, `docs/vision/**`); this hook covers any banner-bearing file regardless of path. **Banner must be on line 1** — buried banners are silently unprotected (deliberate fail-loud on banner-authorship). Trade-off recorded in [ADR-0003](adr/0003-context-loading-defense-in-depth.md). Shipped in P3 sub-phase 3g. |
+| **instructions-loaded.sh** | `InstructionsLoaded` | Emits one JSONL record to `.claude/instructions-loaded.jsonl` for every load of `CLAUDE.md` or `.claude/rules/*.md` — capturing `load_reason` (e.g. `path_glob_match`), matched file, and timestamp. The same log file also receives `read_ask_prompted` records from the banner-scan hook below. Gitignored runtime substrate; the observability surface a token-waste audit will read once enough real-session data accumulates. **Known gap:** does NOT fire for `SKILL.md` loads — skill-load accounting is a follow-up. |
+| **read-human-only-guard.sh** | `PreToolUse` (Read) | Defense-in-depth banner enforcement. Scans line 1 of the file the Read tool is about to open; if it matches the `> **Audience:** humans only` banner, returns `permissionDecision: "ask"` so the operator gets a one-click approve/decline prompt with the reason string `"This file is marked Audience: humans only (banner on line 1). Approve only if you specifically need Claude to read it; otherwise decline. See CLAUDE.md § Context loading."` Complements the static `permissions.ask` block in `.claude/settings.json` — the static block covers three known paths (`docs/how-the-forge-works.md`, `docs/audit/**`, `docs/vision/**`); this hook covers any banner-bearing file regardless of path. **Banner must be on line 1** — buried banners are silently unprotected (deliberate fail-loud on banner-authorship). Trade-off recorded in [ADR-0003](adr/0003-context-loading-defense-in-depth.md). |
 | **example-block-bad-command.sh** | `PreToolUse` (Bash) | A **template**, not an active hook. A worked example of a project-specific Bash guardrail — copy it, rename it, edit the regex to block a command that bypasses your conventions (e.g. `npx tsc`, `git commit --no-verify`). Ships disabled so every project has the pattern on hand. |
 
 The continuation/heartbeat-related hooks are part of the crash-resilience
 layer — audited in [`docs/audit/crash-resilience.md`](audit/crash-resilience.md)
-and [`docs/audit/context-discipline.md`](audit/context-discipline.md). The two
-3g hooks (`instructions-loaded.sh` + `read-human-only-guard.sh`) are the
-context-loading enforcement and observability surface; their cross-section
-counterpart in CLAUDE.md is §12 below.
+and [`docs/audit/context-discipline.md`](audit/context-discipline.md). The
+two context-loading hooks (`instructions-loaded.sh` +
+`read-human-only-guard.sh`) are the enforcement and observability surface
+for the human-only banner discipline; their cross-section counterpart in
+`CLAUDE.md` is §12 below.
 
 ---
 
 ## 6. The support agents
 
-Agent role definitions live in `.claude/agents/`. A temper worker (Worker A)
-can dispatch up to **2 of these concurrently** as subagents — it reads the
-agent definition, includes it as system context, and adds a specific task.
-They exist so the worker can offload exploration, review, or independent
-sub-tasks without burning its own context window. The 2-agent cap and this
-dispatch model are part of [`docs/audit/subagent-orchestration.md`](audit/subagent-orchestration.md).
+Agent role definitions live in `.claude/agents/`. A `/forge` or `/temper`
+worker can dispatch up to **2 of these concurrently** as subagents — it
+reads the agent definition, includes it as system context, and adds a
+specific task. They exist so the worker can offload exploration, review,
+or independent sub-tasks without burning its own context window. The
+2-agent cap and this dispatch model are part of
+[`docs/audit/subagent-orchestration.md`](audit/subagent-orchestration.md).
 
 | Agent | File | Role |
 |---|---|---|
@@ -248,8 +274,9 @@ helpers under `.claude/scripts/`.
 
 ### Top-level resilience scripts (`scripts/`)
 
-These three implement P2 single-session resilience — the layer that keeps a
-long-lived session alive across context limits, crashes, and hangs.
+These implement the **single-session resilience layer** — the machinery
+that keeps a long-lived session alive across context limits, crashes, and
+hangs.
 
 - **`scripts/continuation.sh`** — the on-disk continuation-file substrate. Owns
   the `gen-NNN.md` chaining logic: each handoff generation is an immutable,
@@ -310,11 +337,11 @@ long-lived session alive across context limits, crashes, and hangs.
 
 ## 8. The `.forge/` resilience substrate
 
-`.forge/` is the on-disk substrate for **P2 single-session resilience** — the
-machinery that lets one logical session survive context limits, process death,
-reboots, and silent hangs. See [`.forge/README.md`](../.forge/README.md) for
-the full reference; audited in
-[`docs/audit/crash-resilience.md`](audit/crash-resilience.md).
+`.forge/` is the on-disk substrate for the **single-session resilience
+layer** — the machinery that lets one logical session survive context
+limits, process death, reboots, and silent hangs. See
+[`.forge/README.md`](../.forge/README.md) for the full reference; audited
+in [`docs/audit/crash-resilience.md`](audit/crash-resilience.md).
 
 ```
 .forge/
@@ -357,14 +384,14 @@ the full reference; audited in
   `FORGE_CRASH_WINDOW_SECONDS`. Because the loop exits zero when tripped
   (deliberate) and `launchd` only respawns on non-zero exit
   (`SuccessfulExit=false`), the sentinel halts the respawn cycle. Operator
-  recovery is documented in [`docs/workflow/p2-resilience-operations.md`](workflow/p2-resilience-operations.md).
+  recovery is documented in [`docs/workflow/relaunch-loop-operations.md`](workflow/relaunch-loop-operations.md).
 - **Install manifest** — `light-the-forge.sh` writes `.forge/install-manifest.json`
   on bootstrap, recording version + install time + the kit-file inventory.
   This is the hand-off surface a future Tier-0 / Agent View integration will
   read; per-project Discord-readiness depends on it.
 
 The operator guide for installing and recovering this layer is
-[`docs/workflow/p2-resilience-operations.md`](workflow/p2-resilience-operations.md).
+[`docs/workflow/relaunch-loop-operations.md`](workflow/relaunch-loop-operations.md).
 
 ---
 
@@ -406,23 +433,25 @@ The Forge got there through this script.
 
 ## 11. CI and the test harness
 
-The Forge has **no application tests** — there is no application. The pipeline
-itself is exercised by **dogfooding**: real `/temper` runs on real issues are
-how skill and script changes get validated. Layered on top of that, the P3
-**validation contracts** add a thin code-level enforcement layer the audit
-consistently called out as missing — the prose-not-code gap.
+The Forge has **no application tests** — there is no application. The
+pipeline itself is exercised by **dogfooding**: real `/forge` and
+`/temper` runs on real issues are how skill and script changes get
+validated. Layered on top of that, the **validation-contracts family**
+adds a thin code-level enforcement layer for the structural invariants
+the skill files describe in prose — closing the prose-not-code gap.
 
 Three layers of checking exist:
 
 - **The test harness** (`test/run-tests.sh`) — a bash test runner that
-  discovers `*.test.sh` files, runs them, and exits non-zero on any failure. It
-  exists because **P2's resilience machinery is unusually testable**: the
-  relaunch loop, the two hooks, the liveness watchdog, and the statusline are
-  all deterministic shell with no Claude runtime in the loop, and P2 is
-  on-by-default base hardening where a bug breaks every Forge user. The harness
-  ships a `claude` stub (`test/stubs/claude`) and assertion helpers
-  (`test/lib/assert.sh`) so those components can be exercised without a real
-  session. See [`test/README.md`](../test/README.md).
+  discovers `*.test.sh` files, runs them, and exits non-zero on any
+  failure. It exists because **the resilience machinery is unusually
+  testable**: the relaunch loop, the two hooks, the liveness watchdog,
+  and the statusline are all deterministic shell with no Claude runtime
+  in the loop, and the resilience layer is on-by-default base hardening
+  where a bug breaks every Forge user. The harness ships a `claude` stub
+  (`test/stubs/claude`) and assertion helpers (`test/lib/assert.sh`) so
+  those components can be exercised without a real session. See
+  [`test/README.md`](../test/README.md).
 - **The validation-contracts family** (under `test/`) — small, focused
   bash scripts that enforce structural invariants the skill files describe
   in prose. Each has a paired `.test.sh` that exercises it against golden
@@ -430,10 +459,10 @@ Three layers of checking exist:
 
   | Validator | Asserts |
   |---|---|
-  | `validate-sentinel.sh` | `TEMPER:RESULT` JSON is well-formed, status is one of the 4-status set, and `"v":1` is present (sentinel protocol version) |
+  | `validate-sentinel.sh` | `FORGE:RESULT` / `TEMPER:RESULT` JSON is well-formed, status is one of the 4-status set, and `"v":1` is present (sentinel protocol version) |
   | `validate-skills.sh` | Skill + agent files carry valid frontmatter (name, description, type) |
   | `validate-continuation.sh` | `gen-NNN.md` continuation files carry the five hardened sections, in order, each with a non-empty body |
-  | `validate-mc.sh` | MC row markers (`mc:open=…` / `mc:done=…` / `mc:none`) are well-formed, every issue ref exists on GitHub, no issue is in two rows, and every sub-phase table has the expected column shape |
+  | `validate-mc.sh` | MC row markers (`mc:open=…` / `mc:done=…` / `mc:none`) are well-formed, every issue ref exists on GitHub, and no issue is in two rows |
   | `validate-blocked-by.sh` | Issue bodies' `## Blocked by` sections reference real issues — enforced at *write time* by `triage` / `inscribe` so a malformed dep never lands |
 
   The sentinel `"v":1` version field exists so the protocol can evolve
@@ -442,18 +471,18 @@ Three layers of checking exist:
 
 - **The check command** — per `CLAUDE.md`, `bash -n` on changed shell scripts
   followed by `test/run-tests.sh` for behavioural coverage of anything under
-  `test/`. This is the gate temper runs before opening a PR (a hard gate in
+  `test/`. This is the gate `/forge` runs before opening a PR (a hard gate in
   `balanced` and `tdd` dev modes). The validators above run as part of the
   test suite.
 
 The validation-contracts family is wired into **GitHub Actions CI** on
 `ubuntu-latest` (`.github/workflows/`) so silent drift in MC, sentinels,
 skill frontmatter, or continuation-file shape becomes a failed check on
-every PR and every push to `main`. **Forge dispatch is gated by a
-pre-flight artifact-validation step** — before the queue starts, forge
-runs the relevant validators and refuses to dispatch if any artifact is
-malformed, so a temper never inherits a broken handoff. How CI fits the
-broader GitHub-as-state model is touched on in
+every PR and every push to `main`. **Forge-overseer dispatch is gated by
+a pre-flight artifact-validation step** — before the queue starts, the
+overseer runs the relevant validators and refuses to dispatch if any
+artifact is malformed, so a worker never inherits a broken handoff. How
+CI fits the broader GitHub-as-state model is touched on in
 [`docs/audit/github-as-state.md`](audit/github-as-state.md).
 
 ---
@@ -471,10 +500,10 @@ The Forge keeps several doc surfaces that the pipeline reads — most of them
   allowed to load: a layer table (always / session-state / glossary /
   path-scoped / skill / knowledge / task-relevant), an explicit
   human-only list, an **Enforcement** paragraph documenting the
-  defense-in-depth pair shipped in P3 sub-phase 3g (the static
-  `permissions.deny` block plus the `read-human-only-guard.sh`
-  `PreToolUse` hook — see [ADR-0003](adr/0003-context-loading-defense-in-depth.md)),
-  and an **Observability** paragraph documenting the
+  defense-in-depth pair (the static `permissions.ask` block plus the
+  `read-human-only-guard.sh` `PreToolUse` hook — see
+  [ADR-0003](adr/0003-context-loading-defense-in-depth.md)), and an
+  **Observability** paragraph documenting the
   `instructions-loaded.sh` `InstructionsLoaded` hook + its JSONL log
   at `.claude/instructions-loaded.jsonl`. The JSONL is treated as a
   prose footnote (an *output* of the path-scoped layer, not an *input*
@@ -519,9 +548,9 @@ The Forge keeps several doc surfaces that the pipeline reads — most of them
   [`0005`](adr/0005-pipeline-orchestrator-structure.md) (four-phase
   pipeline with per-phase orchestrators inside Forge and Temper),
   [`0006`](adr/0006-naming-discipline.md) (canonical-glossary SSOT +
-  `<phase>-overseer` pattern + `/forgemaster` reservation), and
-  [`0007`](adr/0007-v1-cleanup-ratchet.md) (the v1 cleanup that produced
-  this contiguous set). The `0000-template.md` fixture is what
+  `<phase>-overseer` orchestrator-naming pattern), and
+  [`0007`](adr/0007-v1-cleanup-ratchet.md) (the v1 cleanup ratchet that
+  produced this contiguous set). The `0000-template.md` fixture is what
   `inscribe` writes from when grill-me marks a decision ADR-worthy.
 - **`docs/vision/`** — the forward-direction shelf:
   [`the-forge.md`](vision/the-forge.md) (autonomy-spectrum overview),
@@ -556,4 +585,6 @@ four-checkbox status header and a one-line verdict.
 | 10 | Ubiquitous language / glossary discipline — the `CONTEXT.md` pattern | [`docs/audit/ubiquitous-language.md`](audit/ubiquitous-language.md) |
 | 11 | Mission Control & full project planning — `MISSION-CONTROL.md` as the project-state ledger | [`docs/audit/mission-control.md`](audit/mission-control.md) |
 
-(3h — token-waste audit — is deferred. When it ships, its outputs land here.)
+(A token-waste audit is deferred until enough real-session
+`.claude/instructions-loaded.jsonl` data has accumulated. When it ships,
+its outputs land here as a 12th facet.)
