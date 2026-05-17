@@ -5,15 +5,17 @@
 
 ## 🛰️ Telemetry — right now
 
-**Phase:** P5 — Dev Mode ░ 0/1
-**In flight:** —
+**Phase:** P4 — Pipeline naming + permissions ▓▓▓▓░ 4/5 (4d in flight)
+**In flight:** 4d — v1 cleanup ratchet (6 slices)
 **Workflow:** Ponder → Forge → Temper → Seal pipeline. See [`docs/workflow/`](docs/workflow/) for details. The Forge and Temper phases each run an orchestrator inside them — `/forge-overseer` and `/temper-overseer` — per [ADR-0007](docs/adr/0007-pipeline-orchestrator-structure.md). One operator command per phase; no auto-chain.
 
 **Recommended next prompt:**
 
 ```
-/ponder 4d
+/forge-overseer --phase 4d
 ```
+
+> Build all 4d slices
 
 ## ☄️ In flight
 
@@ -95,7 +97,7 @@
 | 4b | Forge ↔ Temper rename + role re-split | ✅ shipped | — | [`docs/prds/improvements-4b-rename.md`](docs/prds/improvements-4b-rename.md) | #259 <!-- mc:done=259 --> |
 | 4c | /temper real review behavior (reviewer-agent dispatch + inline intent-match + strict friction rule) | ✅ shipped | — | — | #262 <!-- mc:done=262 --> |
 | 4e | Orchestrator rename (`/forgemaster` → `/forge-overseer`) + naming discipline (CONTEXT.md SSOT + `/inscribe` hard gate) | ✅ shipped | — | [`docs/prds/improvements-4e-orchestrator-rename.md`](docs/prds/improvements-4e-orchestrator-rename.md) | #264, #265, #266 <!-- mc:done=264,265,266 --> |
-| 4d | Naming-annotation cleanup (rewrite historical bodies; remove annotation scaffolding) | ⏳ queued | 4b, 4e | — | <!-- mc:none --> |
+| 4d | v1 cleanup ratchet (scrub phase IDs from living docs + flat-ledger MC restructure + delete historical PRDs/audit/design/research + ADR rewrite & renumber + templates mirror) | 📝 prd-ready | — | [`docs/prds/improvements-4d-v1-cleanup.md`](docs/prds/improvements-4d-v1-cleanup.md) | #270, #271, #272, #273, #274, #275 <!-- mc:open=270,271,272,273,274,275 --> |
 
 ### P5 — Dev Mode ░ 0/1
 
@@ -124,6 +126,7 @@
 - [`0006-temper-review-boundary.md`](docs/adr/0006-temper-review-boundary.md) — `/temper`'s responsibility is LLM judgment (reviewer-agent on diff + inline intent-match against issue body); deterministic structural-integrity gating lives in CI; strict friction rule (any reviewer HIGH or intent-match failure → friction; else ready-for-seal) keeps the gate audit-stable (P4 / sub-phase 4c).
 - [`0007-pipeline-orchestrator-structure.md`](docs/adr/0007-pipeline-orchestrator-structure.md) — Pipeline is four phases (`Ponder → Forge → Temper → Seal`); the orchestrator runs inside a phase, not as a phase; Forge and Temper carry symmetric `<phase>-overseer` orchestrators; one operator command per phase (no auto-chain); rework loops via `friction` / `needs-rework` labels + operator re-runs Forge; Seal stays flat (P4 / sub-phase 4e).
 - [`0008-naming-discipline.md`](docs/adr/0008-naming-discipline.md) — CONTEXT.md is the canonical glossary single-source-of-truth; living docs anchor-link to `CONTEXT.md#term`; `/inscribe` hard-gates PRD filing on a `Terms used` section; `<phase>-overseer` is the orchestrator naming pattern; `/forgemaster` is reserved for a future cross-project Claude session manager (P4 / sub-phase 4e).
+- [`0009-v1-cleanup-ratchet.md`](docs/adr/0009-v1-cleanup-ratchet.md) — No phase IDs in living-doc prose; MISSION-CONTROL.md restructured to flat state-buckets (`🛰️ Telemetry`, `🚧 In flight`, `⏳ Queued`, `⏸ Deferred`, `📡 ADRs`, `🌑 Out of scope`) with three MC-coupled scripts rewritten or deleted in lockstep; historical PRDs + ADR-0001 + ADR-0005 + docs/audit/design/research all deleted; surviving ADRs renumbered 0001–0006 (this ADR renumbers to 0007 in slice 3 of 4d) (P4 / sub-phase 4d).
 
 ## 🌑 Out of scope
 
