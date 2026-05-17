@@ -9,7 +9,7 @@ The planning phase of the four-phase pipeline (`Ponder → Forge → Temper →
 Seal`; the Forge and Temper phases each run an orchestrator inside them —
 [`/forge-overseer`](../../../CONTEXT.md#forge-overseer) and
 [`/temper-overseer`](../../../CONTEXT.md#temper-overseer) — per
-[ADR-0007](../../../docs/adr/0007-pipeline-orchestrator-structure.md)). You
+[ADR-0005](../../../docs/adr/0005-pipeline-orchestrator-structure.md)). You
 leave Ponder with **all slices triaged
 [`ready-for-agent`](../../../CONTEXT.md#ready-for-agent)** and kanban cards
 in **Ready**. `/forge-overseer` then dispatches `/forge <N>` per slice;
@@ -24,7 +24,7 @@ review them, then `/seal` to merge.
              per slice)           per PR)
 ```
 
-Each phase runs in its own Claude session and hands off via on-disk artifacts (issues, PRD, screenshots, PR body, labels). No session-memory continuity between phases — see [ADR-0002](../../../docs/adr/0002-phase-isolation.md). No auto-chain between phases — the operator runs each phase explicitly per ADR-0007.
+Each phase runs in its own Claude session and hands off via on-disk artifacts (issues, PRD, screenshots, PR body, labels). No session-memory continuity between phases — see [ADR-0001](../../../docs/adr/0001-phase-isolation.md). No auto-chain between phases — the operator runs each phase explicitly per ADR-0005.
 
 ## Invocation
 
@@ -94,7 +94,7 @@ Where `<reason>` is one of `missing line`, `malformed line`, or `unrecognized va
 
 Pass the resolved mode to `/inscribe` alongside the size decision. When mode=`tdd` and size=`single-slice`, inscribe will write a PRD before filing the issue (the tdd discipline tier requires a written spec even for one-issue work). When mode=`fast` or `balanced`, single-slice behavior is unchanged from today.
 
-**Also grill for the `terms_used` list** during the size check (sibling to the size + dev-mode reads — same pre-flight beat). The list seeds the PRD's `## Terms used` section that `/inscribe`'s hard gate (A1.5 / B0.5) validates per [ADR-0008](../../../docs/adr/0008-naming-discipline.md) §Decision §2.
+**Also grill for the `terms_used` list** during the size check (sibling to the size + dev-mode reads — same pre-flight beat). The list seeds the PRD's `## Terms used` section that `/inscribe`'s hard gate (A1.5 / B0.5) validates per [ADR-0006](../../../docs/adr/0006-naming-discipline.md) §Decision §2.
 
 The grill step:
 

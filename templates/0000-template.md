@@ -2,7 +2,6 @@
 
 **Status:** Accepted
 **Date:** YYYY-MM-DD
-**Phase:** P<n> — <phase-name> · sub-phase <id> (<sub-phase-name>)
 
 <!--
 Optional source-of-truth pointer. Include when this ADR distills a decision
@@ -32,7 +31,7 @@ the long-form material to the source-of-truth pointer and link to it.
 <!--
 The call, stated as plainly as possible. One or two sentences for a single-axis
 decision; a short headed sub-list for a decision that bundles several
-load-bearing sub-calls (see ADR-0001 for the multi-part shape).
+load-bearing sub-calls (see ADR-0006 for the multi-part shape).
 
 Prefer the imperative voice — "Phases MUST hand off only via on-disk
 artifacts" — over the descriptive — "phases tend to hand off via disk". The
@@ -46,7 +45,7 @@ Why is this the right trade-off? Cite hard evidence where available
 (measurements, prior-art research findings, the cost of the alternative
 realized in the codebase). When the decision is bundled (multiple sub-calls
 in §Decision), the rationale can either ride inline under each sub-call (as
-ADR-0001 does) or be aggregated here (as ADR-0003 does). Pick whichever
+ADR-0006 does) or be aggregated here (as ADR-0002 does). Pick whichever
 shape reads more clearly for the specific decision; both are sanctioned.
 -->
 
@@ -71,7 +70,7 @@ OPTIONAL — include this section only when the decision has identifiable
 change-conditions; otherwise omit the heading entirely.
 
 When present, state the *conjunction of conditions* under which the decision
-should be revisited. The pattern ADR-0003 introduced: a numbered list of
+should be revisited. The pattern ADR-0002 introduced: a numbered list of
 conditions, each falsifiable, with an explicit "until <all/both/etc.> hold,
 the decision stays" sentence at the end. A single triggering condition is
 usually not enough — name what else has to change.
@@ -79,7 +78,7 @@ usually not enough — name what else has to change.
 Use this section when the decision is bound to a measurable constraint
 (e.g. token budgets, throughput, hardware) that could plausibly shift.
 Don't use it for decisions that are architectural commitments rather than
-trade-offs (ADR-0001 and ADR-0002 deliberately omit it).
+trade-offs (ADR-0001 and ADR-0003 deliberately omit it).
 -->
 
 ## Consequences

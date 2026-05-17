@@ -102,9 +102,9 @@ Forge itself does **almost nothing inline** — it dispatches and handles
 sentinels. It does not implement code and does not merge PRs. It runs at most
 one temper worker at a time; each worker may itself spawn up to 2 support
 agents, for a cap of 3 concurrent subagents. The single-worker cap is a
-deliberate trade recorded in [`docs/adr/0003-concurrency-cap.md`](adr/0003-concurrency-cap.md);
+deliberate trade recorded in [`docs/adr/0002-concurrency-cap.md`](adr/0002-concurrency-cap.md);
 the disk-only phase-isolation rule that makes it safe is recorded in
-[`docs/adr/0002-phase-isolation.md`](adr/0002-phase-isolation.md). Forge's
+[`docs/adr/0001-phase-isolation.md`](adr/0001-phase-isolation.md). Forge's
 dispatch model and worktree isolation are audited in
 [`docs/audit/subagent-orchestration.md`](audit/subagent-orchestration.md).
 
@@ -211,7 +211,7 @@ disabled template).
 | **forge-stop-handoff.sh** | `Stop` | Two jobs. (1) **Heartbeat** — touches `.forge/heartbeat/<slug>` with a fresh timestamp on every fire, the liveness signal the watchdog reads. (2) **Handoff enforcement** — blocks a stop if the current generation is exiting *without* having written its continuation file, so a handoff is never silently skipped. A Stop hook can only `block`/allow — it cannot inject messages or read context percentages — so it does the one thing it can. |
 | **mission-control-drift.sh** | `SessionStart` | Detects drift between GitHub issue state and `MISSION-CONTROL.md`. Beyond the original open-vs-closed check, the widened version catches three additional drift cases: (a) a `🚧 in-progress` sub-phase with no open PR, (b) a "Recommended next prompt" pointing at an already-shipped phase, (c) a phase progress bar that disagrees with the rows below it (re-derived via `scripts/derive-progress.sh`). Silent otherwise; always exits 0 so it never blocks session start. Keeps the project ledger honest without manual auditing. |
 | **instructions-loaded.sh** | `InstructionsLoaded` | Emits one JSONL record to `.claude/instructions-loaded.jsonl` for every load of `CLAUDE.md` or `.claude/rules/*.md` — capturing `load_reason` (e.g. `path_glob_match`), matched file, and timestamp. The same log file also receives `read_denied` records from the banner-scan hook below. Gitignored runtime substrate; the observability surface a future token-waste audit (3h — deferred) will read. **Known gap:** does NOT fire for `SKILL.md` loads — skill-load accounting carries forward to whichever phase revives the audit. Shipped in P3 sub-phase 3g. |
-| **read-human-only-guard.sh** | `PreToolUse` (Read) | Defense-in-depth banner enforcement. Scans line 1 of the file the Read tool is about to open; if it matches the `> **Audience:** humans only` banner, denies the Read with the reason string `"Denied — file is human-only (banner on line 1). See CLAUDE.md § Context loading for what to load instead."` Complements the static `permissions.deny` block in `.claude/settings.json` — the static block covers three known paths (`docs/how-the-forge-works.md`, `docs/audit/**`, `docs/vision/**`); this hook covers any banner-bearing file regardless of path. **Banner must be on line 1** — buried banners are silently unprotected (deliberate fail-loud on banner-authorship). Trade-off recorded in [ADR-0004](adr/0004-context-loading-defense-in-depth.md). Shipped in P3 sub-phase 3g. |
+| **read-human-only-guard.sh** | `PreToolUse` (Read) | Defense-in-depth banner enforcement. Scans line 1 of the file the Read tool is about to open; if it matches the `> **Audience:** humans only` banner, denies the Read with the reason string `"Denied — file is human-only (banner on line 1). See CLAUDE.md § Context loading for what to load instead."` Complements the static `permissions.deny` block in `.claude/settings.json` — the static block covers three known paths (`docs/how-the-forge-works.md`, `docs/audit/**`, `docs/vision/**`); this hook covers any banner-bearing file regardless of path. **Banner must be on line 1** — buried banners are silently unprotected (deliberate fail-loud on banner-authorship). Trade-off recorded in [ADR-0003](adr/0003-context-loading-defense-in-depth.md). Shipped in P3 sub-phase 3g. |
 | **example-block-bad-command.sh** | `PreToolUse` (Bash) | A **template**, not an active hook. A worked example of a project-specific Bash guardrail — copy it, rename it, edit the regex to block a command that bypasses your conventions (e.g. `npx tsc`, `git commit --no-verify`). Ships disabled so every project has the pattern on hand. |
 
 The continuation/heartbeat-related hooks are part of the crash-resilience
@@ -473,7 +473,7 @@ The Forge keeps several doc surfaces that the pipeline reads — most of them
   human-only list, an **Enforcement** paragraph documenting the
   defense-in-depth pair shipped in P3 sub-phase 3g (the static
   `permissions.deny` block plus the `read-human-only-guard.sh`
-  `PreToolUse` hook — see [ADR-0004](adr/0004-context-loading-defense-in-depth.md)),
+  `PreToolUse` hook — see [ADR-0003](adr/0003-context-loading-defense-in-depth.md)),
   and an **Observability** paragraph documenting the
   `instructions-loaded.sh` `InstructionsLoaded` hook + its JSONL log
   at `.claude/instructions-loaded.jsonl`. The JSONL is treated as a
@@ -509,13 +509,20 @@ The Forge keeps several doc surfaces that the pipeline reads — most of them
   step. A **human-curation fallback** is documented for cases where the
   auto-write isn't right. Audited in
   [`docs/audit/knowledge-loop.md`](audit/knowledge-loop.md).
-- **`docs/adr/`** — Architectural Decision Records. Three ship today:
-  [`0001`](adr/0001-autonomous-forge-architecture.md) (3-tier model +
-  optional-by-layers, historical), [`0002`](adr/0002-phase-isolation.md)
-  (disk-only hand-offs between phases), [`0003`](adr/0003-concurrency-cap.md)
-  (single-worker dispatch as a deliberate trade with a recorded revisit
-  precondition). The `0000-template.md` fixture is what `inscribe` writes
-  from when grill-me marks a decision ADR-worthy.
+- **`docs/adr/`** — Architectural Decision Records. The surviving set:
+  [`0001`](adr/0001-phase-isolation.md) (disk-only hand-offs between
+  phases), [`0002`](adr/0002-concurrency-cap.md) (single-worker dispatch
+  as a deliberate trade with a recorded revisit precondition),
+  [`0003`](adr/0003-context-loading-defense-in-depth.md) (banner-enforced
+  human-only-doc loading guard), [`0004`](adr/0004-temper-review-boundary.md)
+  (LLM-judgment-only `/temper` with strict friction rule),
+  [`0005`](adr/0005-pipeline-orchestrator-structure.md) (four-phase
+  pipeline with per-phase orchestrators inside Forge and Temper),
+  [`0006`](adr/0006-naming-discipline.md) (canonical-glossary SSOT +
+  `<phase>-overseer` pattern + `/forgemaster` reservation), and
+  [`0007`](adr/0007-v1-cleanup-ratchet.md) (the v1 cleanup that produced
+  this contiguous set). The `0000-template.md` fixture is what
+  `inscribe` writes from when grill-me marks a decision ADR-worthy.
 - **`docs/vision/`** — the forward-direction shelf:
   [`the-forge.md`](vision/the-forge.md) (autonomy-spectrum overview),
   [`autonomous-forge.md`](vision/autonomous-forge.md) (original 3-tier

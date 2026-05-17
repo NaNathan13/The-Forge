@@ -1,6 +1,6 @@
 ---
 name: temper-overseer
-description: The Temper-phase orchestrator — dispatches /temper <PR> workers per batch PR awaiting review, watches TEMPER:RESULT sentinels, marks each PR ready-for-seal or friction (and matching issues needs-rework on friction). Invoked as /temper-overseer after /forge-overseer drains the build queue. Does no inline review, no seal chain — one operator command per phase per ADR-0007.
+description: The Temper-phase orchestrator — dispatches /temper <PR> workers per batch PR awaiting review, watches TEMPER:RESULT sentinels, marks each PR ready-for-seal or friction (and matching issues needs-rework on friction). Invoked as /temper-overseer after /forge-overseer drains the build queue. Does no inline review, no seal chain — one operator command per phase per ADR-0005.
 ---
 
 # Temper-overseer — Orchestrator of the Temper Phase
@@ -8,7 +8,7 @@ description: The Temper-phase orchestrator — dispatches /temper <PR> workers p
 `/temper-overseer` is the orchestrator that runs **inside the Temper phase**
 of the pipeline. It is not itself a phase. See
 [`CONTEXT.md#temper`](../../../CONTEXT.md#temper) and
-[ADR-0007](../../../docs/adr/0007-pipeline-orchestrator-structure.md) for
+[ADR-0005](../../../docs/adr/0005-pipeline-orchestrator-structure.md) for
 the four-phase shape:
 
 ```
@@ -24,7 +24,7 @@ then runs `/seal` next.
 
 `/temper-overseer` is symmetric with
 [`/forge-overseer`](../../../CONTEXT.md#forge-overseer) per
-ADR-0007 §Decision — both are autonomous, loop-managed dispatch loops, both
+ADR-0005 §Decision — both are autonomous, loop-managed dispatch loops, both
 dispatch exactly one worker per generation, both consume their worker's
 `*:RESULT` sentinel. The only differences are the queue source (open PRs
 awaiting review vs the `ready-for-agent`/`needs-rework` issue queue) and the
@@ -36,7 +36,7 @@ When `/temper <PR>` marks a PR `friction`, `/temper-overseer` **also marks
 the matching issue [`needs-rework`](../../../CONTEXT.md#needs-rework)**. The
 next `/forge-overseer` run prefers `needs-rework` issues over fresh
 `ready-for-agent` issues. The rework loop preserves the phase boundary per
-ADR-0007 §Decision — `/temper-overseer` does NOT dispatch a forge worker
+ADR-0005 §Decision — `/temper-overseer` does NOT dispatch a forge worker
 inline; the operator decides when to re-enter the Forge phase.
 
 ## Invocation
@@ -67,7 +67,7 @@ var is exported, the same `OVERSEER_CONTINUE` / `OVERSEER_COMPLETE`
 sentinels are emitted, the same SessionStart hook
 (`.claude/hooks/overseer-session-start.sh`) re-injects the latest
 continuation generation. The loop wraps **whichever overseer is currently
-running** per ADR-0007 §Consequences.
+running** per ADR-0005 §Consequences.
 
 See [`/forge-overseer` SKILL.md §Running under the relaunch loop](../forge-overseer/SKILL.md#running-under-the-relaunch-loop)
 for the full contract — the loop, the SessionStart hook, the charter format
@@ -134,7 +134,7 @@ entirely, going straight to the dispatch loop.
 A loop-managed generation dispatches **exactly one `/temper` worker** —
 never two. The "loop" here is the relaunch loop across generations — not an
 in-session `for` loop over the whole queue. This cap mirrors
-`/forge-overseer`'s per [ADR-0003](../../../docs/adr/0003-concurrency-cap.md).
+`/forge-overseer`'s per [ADR-0002](../../../docs/adr/0002-concurrency-cap.md).
 
 Per generation:
 
@@ -195,16 +195,16 @@ between PRs unless a `needs_human` sentinel fires.
 - **Dispatch `/forge` workers (the rework loop is operator-driven).** When
   `/temper` marks a PR `friction`, `/temper-overseer` applies the
   `needs-rework` label to the matching issue and stops there. The operator
-  decides when to re-run `/forge-overseer` per ADR-0007 §Decision.
+  decides when to re-run `/forge-overseer` per ADR-0005 §Decision.
 - **Dispatch `/seal` (inline or as a subagent).** The operator runs
   `/seal` explicitly after `/temper-overseer` drains the review queue. No
-  auto-chain per ADR-0007 §Decision.
+  auto-chain per ADR-0005 §Decision.
 - **Run review logic inline.** That's `/temper`'s job (reviewer agent +
   inline intent-match + strict friction rule). `/temper-overseer` reads
   the sentinel, applies labels, advances.
 - **Re-judge the worker's verdict.** The strict friction rule is
   deterministic — same diff + same issue body + same reviewer output +
-  same intent-match → same labels (see ADR-0006 §Rationale).
+  same intent-match → same labels (see ADR-0004 §Rationale).
   `/temper-overseer` does not override or second-guess the worker's
   decision.
 - **Self-estimate context %.** Handoff trigger is structural (one worker
@@ -338,7 +338,7 @@ No seal dispatch. No `/forge` dispatch. The operator runs the next phase.
   worker per generation, hand off, relaunch, drain. The generation-1
   pre-flight approval is the only required user touch-point.
 - **One operator command per phase.** No auto-chain into Seal — the
-  operator runs `/seal` explicitly per ADR-0007.
+  operator runs `/seal` explicitly per ADR-0005.
 - **The handoff trigger is structural, not measured.** A worker finished →
   write the next `gen-NNN.md` → emit `OVERSEER_CONTINUE` → exit 0.
 - (Generation 1 only) Always present the review queue before dispatching.

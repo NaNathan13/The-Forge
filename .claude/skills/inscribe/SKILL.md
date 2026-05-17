@@ -21,7 +21,7 @@ Or auto-invoked by `/ponder` after the grill, which passes:
 - **Dev mode:** `fast`, `balanced`, or `tdd` (resolved during ponder's size check)
 - **Size reason:** a one-sentence rationale for the size call, captured during ponder's size check. Inscribe renders this verbatim into PRD frontmatter as `**Why this size?** <rationale>` (see A1 / B0).
 - **ADR candidates:** `adr_candidates` — a (possibly empty) list of picked ADRs from the grill's ADR-offer step. Each entry carries the title framing, Context / Decision / Rationale / Rejected-alternatives synthesized from the grill, and an optional Revisit precondition. Inscribe physically writes one `docs/adr/NNNN-<slug>.md` per entry in step A0 (Path A) or B-1 (Path B) **before** the PRD or any issue artifacts. When the list is empty, the ADR-emission step is skipped entirely (see "No-op behavior" under A0 / B-1).
-- **`terms_used`:** the resolved list of `(term, body)` pairs ponder's pre-flight grilled out for the PRD's `## Terms used` section. Each entry is one declared term — `term` is the bare term name (the bold label rendered as `**<term>**:`); `body` is the one-line description ponder captured (an anchor link into CONTEXT.md for canon terms, a `non-canon — <reason>` line for non-canon terms). Inscribe renders the section verbatim into the PRD in A1 (Path A) or B0 (Path B) and runs the hard-gate check in A1.5 (Path A) or B0.5 (Path B). When `terms_used` is empty, the PRD's `## Terms used` section is rendered as `(none used in this PRD body)` and the hard-gate check passes trivially. Pre-4e PRDs are exempt — this parameter is required only for PRDs filed after ADR-0008 lands.
+- **`terms_used`:** the resolved list of `(term, body)` pairs ponder's pre-flight grilled out for the PRD's `## Terms used` section. Each entry is one declared term — `term` is the bare term name (the bold label rendered as `**<term>**:`); `body` is the one-line description ponder captured (an anchor link into CONTEXT.md for canon terms, a `non-canon — <reason>` line for non-canon terms). Inscribe renders the section verbatim into the PRD in A1 (Path A) or B0 (Path B) and runs the hard-gate check in A1.5 (Path A) or B0.5 (Path B). When `terms_used` is empty, the PRD's `## Terms used` section is rendered as `(none used in this PRD body)` and the hard-gate check passes trivially. Pre-4e PRDs are exempt — this parameter is required only for PRDs filed after ADR-0006 lands.
 
 ## Inputs
 
@@ -147,7 +147,7 @@ See `docs/prds/improvements-3b-contracts.md` for the canonical example.
 ```markdown
 ## Terms used
 
-> Validated against [`CONTEXT.md`](../../CONTEXT.md) by `/inscribe`'s hard gate per [ADR-0008](../adr/0008-naming-discipline.md) §Decision §2. Canon terms anchor-link into the glossary; non-canon entries carry a one-line reason.
+> Validated against [`CONTEXT.md`](../../CONTEXT.md) by `/inscribe`'s hard gate per [ADR-0006](../adr/0006-naming-discipline.md) §Decision §2. Canon terms anchor-link into the glossary; non-canon entries carry a one-line reason.
 
 - **<term>**: <body verbatim from terms_used>
 - **<term>**: <body verbatim from terms_used>
@@ -189,7 +189,7 @@ Between writing the PRD (A1) and filing issues (A2), validate the freshly-writte
 
 When `terms_used` was empty (the section reads `(none used in this PRD body)`), the gate passes trivially — no terms to check. Proceed straight to A2.
 
-The helper script `scripts/validate-prd-terms.sh <prd-path>` runs the same check (parse → classify → grep) and is callable standalone for `/temper`-time spot-checks. It is **not** a CI gate (per ADR-0008 §Rejected alternatives) — the helper exists so reviewers and operators can re-run the check on demand, but the canonical gate is this inline step.
+The helper script `scripts/validate-prd-terms.sh <prd-path>` runs the same check (parse → classify → grep) and is callable standalone for `/temper`-time spot-checks. It is **not** a CI gate (per ADR-0006 §Rejected alternatives) — the helper exists so reviewers and operators can re-run the check on demand, but the canonical gate is this inline step.
 
 #### A2. File issues
 
@@ -359,5 +359,5 @@ All slices triaged. Run `/forge-overseer` to begin building.
 - **Don't run `/forge` from inside inscribe.** Phases are session-scoped. End the session, hand off.
 - **Don't guess the sub-phase ID.** Read it from MISSION-CONTROL.md, or ask the user once.
 - **Don't fabricate `size_reason` or leave a TODO placeholder.** If ponder didn't pass it and the user declines twice on the standalone ask, omit the `**Why this size?**` line entirely. A TODO defeats the rec's purpose (future re-readers *see* the reasoning, or see nothing).
-- **Don't skip the A1.5 / B0.5 hard gate.** The check is mandatory per ADR-0008 §Decision §2 — no soft-warn, no `--skip-terms-check` flag, no quiet bypass. If you find yourself reaching for a way around it, you have either an undefined term that needs a CONTEXT.md entry or a non-canon term that needs its one-line reason. Both paths are cheap; the bypass is not.
+- **Don't skip the A1.5 / B0.5 hard gate.** The check is mandatory per ADR-0006 §Decision §2 — no soft-warn, no `--skip-terms-check` flag, no quiet bypass. If you find yourself reaching for a way around it, you have either an undefined term that needs a CONTEXT.md entry or a non-canon term that needs its one-line reason. Both paths are cheap; the bypass is not.
 - **Don't write a PRD without a `## Terms used` section.** An empty list rendered as `(none used in this PRD body)` is a valid resolution; a missing section is not. The gate halts on a missing section the same way it halts on an undefined term.

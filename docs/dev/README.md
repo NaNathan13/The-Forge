@@ -6,7 +6,7 @@ Dev mode is The Forge's build pipeline. You describe what to build; the pipeline
 
 ## How it works
 
-Four phases, one operator command each (no auto-chain) per [ADR-0007](../adr/0007-pipeline-orchestrator-structure.md):
+Four phases, one operator command each (no auto-chain) per [ADR-0005](../adr/0005-pipeline-orchestrator-structure.md):
 
 1. **Plan (Ponder phase)** — `/ponder` grills you on the feature, writes a PRD, files issues, triages them
 2. **Build (Forge phase)** — `/forge-overseer` shows the build queue (all slices, order, summaries). You approve. It runs an autonomous dispatch loop — one `/forge <N>` worker per slice — implement, test, PR, CI green.
@@ -55,11 +55,11 @@ Each phase runs in its own Claude session. No session-memory continuity between 
 
 `/forge-overseer` is an autonomous dispatch loop. After you approve the build queue, it runs without intervention:
 
-- Dispatches `/forge <N>` workers as subagents — **one worker per generation** under the relaunch loop (see [ADR-0003](../adr/0003-concurrency-cap.md))
+- Dispatches `/forge <N>` workers as subagents — **one worker per generation** under the relaunch loop (see [ADR-0002](../adr/0002-concurrency-cap.md))
 - Each worker may dispatch up to 2 support agents
 - Handles `FORGE:RESULT` sentinels: log tokens on success, retry once on failure, spawn continuations
 - Logs per-worker token usage via [ccusage](../../CONTEXT.md#ccusage)
-- Prefers `needs-rework` issues over fresh `ready-for-agent` issues (the rework loop per ADR-0007)
+- Prefers `needs-rework` issues over fresh `ready-for-agent` issues (the rework loop per ADR-0005)
 
 ### Forge dispatch loop
 
@@ -149,7 +149,7 @@ GitHub Projects board (one per repo -- fill in the IDs in `.claude/scripts/kanba
 ## Branching
 
 - Branch per issue: `feat/#<N>-short-description`
-- Commit messages: `feat(scope): description (#<N>)` — `feat(forge-overseer):` / `feat(temper-overseer):` for orchestrator changes; `feat(forge):` / `feat(temper):` for worker changes (per ADR-0007 §Consequences)
+- Commit messages: `feat(scope): description (#<N>)` — `feat(forge-overseer):` / `feat(temper-overseer):` for orchestrator changes; `feat(forge):` / `feat(temper):` for worker changes (per ADR-0005 §Consequences)
 - PR body includes `closes #<N>`
 - Push branches with plain `git push -u origin <branch>`
 

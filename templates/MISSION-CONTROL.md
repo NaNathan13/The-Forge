@@ -7,7 +7,7 @@
 
 **Phase:** P0 Foundations ⏳ (0/1)
 **In flight:** —
-**Workflow:** Ponder → Forge → Temper → Seal pipeline. See [`docs/workflow/`](docs/workflow/) for details. The Forge and Temper phases each run an orchestrator inside them (`/forge-overseer` and `/temper-overseer`) per [ADR-0007](docs/adr/0007-pipeline-orchestrator-structure.md).
+**Workflow:** Ponder → Forge → Temper → Seal pipeline. See [`docs/workflow/`](docs/workflow/) for details. The Forge and Temper phases each run an orchestrator inside them (`/forge-overseer` and `/temper-overseer`) per [ADR-0005](docs/adr/0005-pipeline-orchestrator-structure.md).
 
 **Recommended next prompt:**
 

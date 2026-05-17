@@ -409,7 +409,7 @@ test_round_trip_session_start_then_no_handoff_blocks_stop() {
 #   - Missing / unreadable file → silently allowed (let Read surface its own
 #     error).
 #   - Hook always exits 0; the decision rides in the structured JSON output.
-# The 4a swap is decision-value only — defense-in-depth from ADR-0004 is
+# The 4a swap is decision-value only — defense-in-depth from ADR-0003 is
 # unchanged (line-1-only scan, allow-by-default failure mode, JSONL log shape
 # except for the `type` field).
 
@@ -503,7 +503,7 @@ test_guard_allows_banner_buried_below_line_1() {
   local out
   out="$(read_input "$target" | bash "$SHADOW_HOOK" 2>/dev/null)"
   # Banner is on line 3, not line 1 → must allow (fail-loud on authorship
-  # discipline; ADR-0004 §Consequences).
+  # discipline; ADR-0003 §Consequences).
   assert_eq "" "$out" \
     "banner not on line 1 must be allowed (line-1-only scan strictness)"
   guard_teardown

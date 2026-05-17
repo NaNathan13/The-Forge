@@ -2,7 +2,7 @@
 
 A drop-in Claude Code workflow that takes a project from idea to shipped code. Plan with `/ponder`, build with `/forge-overseer` (dispatches `/forge <N>` per slice), review with `/temper-overseer` (dispatches `/temper <PR>` per PR), ship with `/seal`. Four phases, one operator command each — no auto-chain. 18 skills, zero project-specific code.
 
-**Pipeline:** `/ponder` (grill + PRD + triage) --> `/forge-overseer` (build queue + dispatch loop, one `/forge <N>` per slice) --> `/temper-overseer` (review queue + dispatch loop, one `/temper <PR>` per PR) --> `/seal` (merge + reconcile). Each phase runs in its own session; the operator inspects state between phases per [ADR-0007](./docs/adr/0007-pipeline-orchestrator-structure.md).
+**Pipeline:** `/ponder` (grill + PRD + triage) --> `/forge-overseer` (build queue + dispatch loop, one `/forge <N>` per slice) --> `/temper-overseer` (review queue + dispatch loop, one `/temper <PR>` per PR) --> `/seal` (merge + reconcile). Each phase runs in its own session; the operator inspects state between phases per [ADR-0005](./docs/adr/0005-pipeline-orchestrator-structure.md).
 
 ## Why this is different
 
