@@ -1,7 +1,7 @@
 # Workflow Reference
 
 ## Pipeline
-`/ponder` (interactive) → `/forgemaster` (autonomous dispatch loop) → per slice: `/forge <N>` (builder; 1 worker concurrent, up to 2 support agents — 3 total subagents max) then `/temper <N>` (review; 4b stub passthrough, no support agents) → `/seal` (batch close)
+`/ponder` (interactive) → `/forgemaster` (autonomous dispatch loop) → per slice: `/forge <N>` (builder; 1 worker concurrent, up to 2 support agents — 3 total subagents max) then `/temper <N>` (review; dispatches reviewer agent + inline intent-match, strict friction rule — up to 2 support agents, typical 1) → `/seal` (batch close)
 
 ## Planning phase (interactive)
 `/ponder` → grill → `/inscribe` (PRD → issues → triage) → all slices labelled `ready-for-agent`
@@ -12,7 +12,7 @@
 Per slice the dispatch loop runs two workers in sequence:
 
 - `/forge <N>`: setup → build → verify → PR → CI (Monitor, zero cost) → **stop at green CI** (no merge) → emit `FORGE:RESULT`.
-- `/temper <N>`: confirm shippable → apply `ready-for-seal` label → emit `TEMPER:RESULT`. (4b stub; 4c lands real review.)
+- `/temper <N>`: pre-gate (PR open + CI green + no pre-existing friction/needs-human) → dispatch `reviewer` agent on `gh pr diff <PR>` → inline intent-match between diff and issue body → strict friction rule (any HIGH OR intent-match fail → `friction`; else `ready-for-seal`) → emit `TEMPER:RESULT`. See [ADR-0006](./docs/adr/0006-temper-review-boundary.md) for the LLM-judgment-vs-CI boundary.
 
 ## Ship phase
 `/seal --auto` is invoked automatically by `/forgemaster` at end of run (the user's pre-flight approval covered the whole batch). Manual `/seal` is interactive.
