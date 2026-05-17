@@ -1,8 +1,13 @@
 # ADR 0004 — Context-loading enforcement: defense in depth
 
-**Status:** Accepted
+**Status:** Amended 2026-05-17 (sub-phase 4a)
 **Date:** 2026-05-16
 **Phase:** P3 — Improvements · sub-phase 3g (Context-loading hardening)
+
+<!-- Original record retained verbatim below. The 2026-05-17 amendment (§Amendment
+     2026-05-17 — Permissions semantics, appended after §Related) records what changed
+     and why; the original §Decision / §Rationale / §Consequences are NOT edited. -->
+
 
 **Source of truth:** [`docs/prds/improvements-3g-context-hardening.md`](../prds/improvements-3g-context-hardening.md) — the full sub-phase 3g PRD that this ADR distills the mechanism decision from.
 
@@ -130,3 +135,87 @@ is needed.
 - Settings: [`.claude/settings.json`](../../.claude/settings.json) — `permissions.deny` block + `PreToolUse` hook registration.
 - Hook: [`.claude/hooks/read-human-only-guard.sh`](../../.claude/hooks/read-human-only-guard.sh) — banner-scan implementation.
 - Authoritative source for Claude Code hook semantics: https://code.claude.com/docs/en/hooks (researched 2026-05-16).
+
+## Amendment 2026-05-17 — Permissions semantics
+
+In sub-phase 4a, the two enforcement layers swap from `deny` to `ask`
+semantics. The two-mechanism structure, the disjoint failure-mode
+rationale, and the line-1 banner scan strictness are unchanged. The
+original record above stands as the architectural decision; this
+amendment records the decision-value swap and the operational reason
+for it.
+
+### What changed
+
+- `.claude/settings.json` — `permissions.deny` block becomes
+  `permissions.ask`. Same three paths (`docs/how-the-forge-works.md`,
+  `docs/audit/**`, `docs/vision/**`). Same recursive `**` globs.
+- `.claude/hooks/read-human-only-guard.sh` — `permissionDecision: "deny"`
+  becomes `"ask"`. The reason string is reworded from a denial message
+  to a prompt-friendly framing.
+- JSONL log event type — `read_denied` is replaced by
+  `read_ask_prompted` for new emissions. Historical `read_denied`
+  records are not rewritten; downstream consumers (the deferred
+  sub-phase 3h audit) handle both event types.
+
+### Why
+
+The deny-semantics design protected against autonomous Claude
+misjudgment but also blocked **operator-authorized** reads. The
+incident that surfaced this: during the 3i wrap-up the operator
+explicitly asked Claude to read `docs/vision/discord-control-plane.md`
+and the harness still hard-denied the Read. The deny-only design has
+no override path — the very property that makes it fail-closed in
+autonomous mode is the property that makes it unusable in operator-
+present mode.
+
+`ask` semantics preserve the autonomous-protection guarantee through a
+different harness mechanism: in `dontAsk` permission mode (the
+autonomous default), `ask`-rules auto-deny without prompting. In
+interactive mode, the operator gets a permission prompt and can
+approve a single Read with one click. Defense-in-depth is preserved
+verbatim — the static block and the dynamic hook both still fire,
+both still fail-closed when no operator is present, both still cover
+their disjoint failure modes (known paths vs future banner-tagged
+files).
+
+### Known consequence
+
+In `auto` permission mode (the harness's classifier-driven default for
+interactive runs), `ask`-rules are routed through the trust classifier
+before the prompt surfaces. The classifier treats the working
+directory and its remote as trusted — so for a local Read of a file
+under `docs/vision/`, the classifier may silently approve without the
+operator ever seeing the prompt. The original safety guarantee
+(banner-tagged files cannot be read in autonomous mode) is
+unaffected — `dontAsk` mode still auto-denies — but operators relying
+on the prompt as a "stop and think" beat should set their mode to
+`default` (which prompts on every ask-rule) when they want the
+friction. CLAUDE.md § Context loading documents this; future
+maintainers can fold the classifier interaction into the design if it
+becomes load-bearing.
+
+### Amendment convention
+
+This is The Forge's first ADR amendment. The shape, established here:
+
+- Original `§Decision` / `§Rationale` / `§Rejected alternatives` /
+  `§Consequences` are kept **verbatim** — the original record is not
+  edited.
+- A new `## Amendment YYYY-MM-DD — <Topic>` section is appended below
+  `## Related`.
+- The top-of-doc `**Status:**` field is updated to
+  `Amended YYYY-MM-DD (sub-phase <id>)`.
+- A short HTML comment under the status field points future readers
+  at the amendment section.
+
+Future amendments append further dated sections in the same shape.
+Multiple amendments stack chronologically.
+
+### Related to the amendment
+
+- PRD — [`docs/prds/improvements-4a-permissions-ask.md`](../prds/improvements-4a-permissions-ask.md) — the full 4a sub-phase scope.
+- ADR-0005 — [`0005-pipeline-role-split.md`](./0005-pipeline-role-split.md) — sibling P4 ADR; orthogonal mechanism (role split, not permissions semantics) but filed alongside in the same phase.
+- Authoritative source for `permissions.ask` semantics: https://code.claude.com/docs/en/permissions.md (researched 2026-05-17).
+- Authoritative source for hook `permissionDecision: "ask"` semantics: https://code.claude.com/docs/en/hooks.md (researched 2026-05-17).
+- Authoritative source for `dontAsk` and `auto` permission-mode behavior: https://code.claude.com/docs/en/permission-modes.md (researched 2026-05-17).

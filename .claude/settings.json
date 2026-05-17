@@ -5,7 +5,7 @@
     "command": ".claude/statusline/budget-mirror.sh"
   },
   "permissions": {
-    "deny": [
+    "ask": [
       "Read(docs/how-the-forge-works.md)",
       "Read(docs/audit/**)",
       "Read(docs/vision/**)"

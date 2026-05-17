@@ -27,6 +27,7 @@ source "$TEST_DIR/lib/assert.sh"
 
 STOP_HOOK="$REPO_ROOT/.claude/hooks/forge-stop-handoff.sh"
 START_HOOK="$REPO_ROOT/.claude/hooks/forge-session-start.sh"
+GUARD_HOOK="$REPO_ROOT/.claude/hooks/read-human-only-guard.sh"
 CONT="$REPO_ROOT/scripts/continuation.sh"
 
 # Each test gets its own temp .forge dir. SLUG is fixed so the hooks (which derive
@@ -397,4 +398,133 @@ test_round_trip_session_start_then_no_handoff_blocks_stop() {
   out="$(stop_input | bash "$STOP_HOOK" 2>/dev/null)"
   assert_contains "$out" '"decision":"block"' \
     "skipping the handoff after SessionStart should block the stop"
+}
+
+# ── read-human-only-guard hook: ask-semantics (4a, #258) ─────────────────────
+# Covers .claude/hooks/read-human-only-guard.sh after the 4a deny→ask swap:
+#   - Banner-tagged file (line 1) → permissionDecision: "ask" + JSONL record
+#     with type:"read_ask_prompted".
+#   - Files without the banner (or with banner buried below line 1) → silently
+#     allowed; no JSONL record written.
+#   - Missing / unreadable file → silently allowed (let Read surface its own
+#     error).
+#   - Hook always exits 0; the decision rides in the structured JSON output.
+# The 4a swap is decision-value only — defense-in-depth from ADR-0004 is
+# unchanged (line-1-only scan, allow-by-default failure mode, JSONL log shape
+# except for the `type` field).
+
+# Build a PreToolUse-hook input JSON object for a Read of <path>.
+read_input() {
+  local path="$1"
+  jq -cn --arg path "$path" \
+    '{session_id:"test", transcript_path:"/dev/null", cwd:"/tmp",
+      hook_event_name:"PreToolUse", tool_name:"Read",
+      tool_input:{file_path:$path}}'
+}
+
+# Per-test workdir for guard tests + point the hook's LOG_FILE at it via the
+# REPO_ROOT/.claude path the hook computes. We use a fake repo root so the
+# hook's LOG_FILE lands inside the test's tempdir, not the real repo.
+guard_setup() {
+  GUARD_WORKDIR="$(mktemp -d)"
+  # The hook computes REPO_ROOT as $HOOK_DIR/../..  — so to redirect LOG_FILE
+  # we copy the hook (and its helper) into a shadow tree under GUARD_WORKDIR.
+  mkdir -p "$GUARD_WORKDIR/.claude/hooks" "$GUARD_WORKDIR/scripts/lib"
+  cp "$REPO_ROOT/.claude/hooks/read-human-only-guard.sh" \
+     "$GUARD_WORKDIR/.claude/hooks/read-human-only-guard.sh"
+  cp "$REPO_ROOT/scripts/lib/emit-jsonl.sh" \
+     "$GUARD_WORKDIR/scripts/lib/emit-jsonl.sh"
+  SHADOW_HOOK="$GUARD_WORKDIR/.claude/hooks/read-human-only-guard.sh"
+  GUARD_LOG="$GUARD_WORKDIR/.claude/instructions-loaded.jsonl"
+}
+
+guard_teardown() {
+  rm -rf "$GUARD_WORKDIR"
+  unset GUARD_WORKDIR SHADOW_HOOK GUARD_LOG
+}
+
+test_guard_returns_ask_on_banner_match() {
+  guard_setup
+  local target="$GUARD_WORKDIR/human-only.md"
+  printf '> **Audience:** humans only\n\nbody\n' > "$target"
+  local out
+  out="$(read_input "$target" | bash "$SHADOW_HOOK" 2>/dev/null)"
+  local decision
+  decision="$(jq -r '.hookSpecificOutput.permissionDecision' <<<"$out")"
+  assert_eq "ask" "$decision" \
+    "banner-tagged file must produce permissionDecision: ask (4a swap)"
+  guard_teardown
+}
+
+test_guard_emits_read_ask_prompted_jsonl_record() {
+  guard_setup
+  local target="$GUARD_WORKDIR/human-only.md"
+  printf '> **Audience:** humans only\n' > "$target"
+  read_input "$target" | bash "$SHADOW_HOOK" >/dev/null 2>&1
+  assert_file_exists "$GUARD_LOG" "guard must append a JSONL record on ask fire"
+  local last_type
+  last_type="$(tail -n 1 "$GUARD_LOG" | jq -r '.type')"
+  assert_eq "read_ask_prompted" "$last_type" \
+    "JSONL event type must be read_ask_prompted (was read_denied pre-4a)"
+}
+
+test_guard_reason_string_is_prompt_friendly() {
+  guard_setup
+  local target="$GUARD_WORKDIR/human-only.md"
+  printf '> **Audience:** humans only\n' > "$target"
+  local out reason
+  out="$(read_input "$target" | bash "$SHADOW_HOOK" 2>/dev/null)"
+  reason="$(jq -r '.hookSpecificOutput.permissionDecisionReason' <<<"$out")"
+  # Prompt-friendly framing: "Approve ... otherwise decline" — not "Denied".
+  assert_contains "$reason" "Approve" \
+    "ask reason should use approve-prompt framing, not a denial message"
+  assert_not_contains "$reason" "Denied" \
+    "ask reason must not carry the pre-4a denial wording"
+  guard_teardown
+}
+
+test_guard_allows_non_banner_file() {
+  guard_setup
+  local target="$GUARD_WORKDIR/normal.md"
+  printf '# A normal doc\n\nbody\n' > "$target"
+  local out
+  out="$(read_input "$target" | bash "$SHADOW_HOOK" 2>/dev/null)"
+  # No banner on line 1 → empty stdout (allow).
+  assert_eq "" "$out" "a non-banner file must be silently allowed"
+  assert_file_absent "$GUARD_LOG" \
+    "a non-banner file must not write any JSONL record"
+  guard_teardown
+}
+
+test_guard_allows_banner_buried_below_line_1() {
+  guard_setup
+  local target="$GUARD_WORKDIR/buried-banner.md"
+  printf '# Title\n\n> **Audience:** humans only\n\nbody\n' > "$target"
+  local out
+  out="$(read_input "$target" | bash "$SHADOW_HOOK" 2>/dev/null)"
+  # Banner is on line 3, not line 1 → must allow (fail-loud on authorship
+  # discipline; ADR-0004 §Consequences).
+  assert_eq "" "$out" \
+    "banner not on line 1 must be allowed (line-1-only scan strictness)"
+  guard_teardown
+}
+
+test_guard_allows_missing_file() {
+  guard_setup
+  local out
+  out="$(read_input "$GUARD_WORKDIR/does-not-exist.md" | bash "$SHADOW_HOOK" 2>/dev/null)"
+  # Missing file → allow; let Read surface its own missing-file error.
+  assert_eq "" "$out" "a missing file must be silently allowed"
+  guard_teardown
+}
+
+test_guard_always_exits_zero() {
+  guard_setup
+  local target="$GUARD_WORKDIR/human-only.md"
+  printf '> **Audience:** humans only\n' > "$target"
+  local rc=0
+  read_input "$target" | bash "$SHADOW_HOOK" >/dev/null 2>&1 || rc=$?
+  assert_exit_code 0 "$rc" \
+    "guard hook must exit 0 — the ask decision rides in the JSON output"
+  guard_teardown
 }
