@@ -12,8 +12,10 @@
 **Recommended next prompt:**
 
 ```
-/ponder 4e
+/forgemaster --phase 4e
 ```
+
+> Build all 4e slices
 
 ## ☄️ In flight
 
@@ -94,7 +96,7 @@
 | 4a | Permissions deny → ask | ✅ shipped | — | [`docs/prds/improvements-4a-permissions-ask.md`](docs/prds/improvements-4a-permissions-ask.md) | #258 <!-- mc:done=258 --> |
 | 4b | Forge ↔ Temper rename + role re-split | ✅ shipped | — | [`docs/prds/improvements-4b-rename.md`](docs/prds/improvements-4b-rename.md) | #259 <!-- mc:done=259 --> |
 | 4c | /temper real review behavior (reviewer-agent dispatch + inline intent-match + strict friction rule) | ✅ shipped | — | — | #262 <!-- mc:done=262 --> |
-| 4e | Orchestrator rename (`/forgemaster` → TBD) + "the Forge" / `/forge` disambiguation | ⏳ queued | — | [`docs/prds/improvements-4e-orchestrator-rename.md`](docs/prds/improvements-4e-orchestrator-rename.md) | <!-- mc:none --> |
+| 4e | Orchestrator rename (`/forgemaster` → `/forge-overseer`) + naming discipline (CONTEXT.md SSOT + `/inscribe` hard gate) | 📝 prd-ready | — | [`docs/prds/improvements-4e-orchestrator-rename.md`](docs/prds/improvements-4e-orchestrator-rename.md) | #264, #265, #266 <!-- mc:open=264,265,266 --> |
 | 4d | Naming-annotation cleanup (rewrite historical bodies; remove annotation scaffolding) | ⏳ queued | 4b, 4e | — | <!-- mc:none --> |
 
 ### P5 — Dev Mode ░ 0/1
@@ -122,6 +124,8 @@
 - [`0004-context-loading-defense-in-depth.md`](docs/adr/0004-context-loading-defense-in-depth.md) — Context-loading enforcement uses both a static permissions block AND a `PreToolUse` Read hook (dynamic, banner-scan); the two mechanisms cover disjoint failure modes and collapsing breaks one of them (P3 / sub-phase 3g). **Amended 2026-05-17 (sub-phase 4a)**: decision values swap from `deny` to `ask` so the operator can authorize reads via a permission prompt; defense-in-depth architecture unchanged.
 - [`0005-pipeline-role-split.md`](docs/adr/0005-pipeline-role-split.md) — Pipeline runs three named roles: `/forgemaster` (orchestrator), `/forgemaster` (builder), `/forge` (review + harden). Per-slice cut between green-CI PR and post-PR review. Sets project's amendment convention via ADR-0004 as the sibling decision-value-swap example (P4 / sub-phase 4b).
 - [`0006-temper-review-boundary.md`](docs/adr/0006-temper-review-boundary.md) — `/temper`'s responsibility is LLM judgment (reviewer-agent on diff + inline intent-match against issue body); deterministic structural-integrity gating lives in CI; strict friction rule (any reviewer HIGH or intent-match failure → friction; else ready-for-seal) keeps the gate audit-stable (P4 / sub-phase 4c).
+- [`0007-pipeline-orchestrator-structure.md`](docs/adr/0007-pipeline-orchestrator-structure.md) — Pipeline is four phases (`Ponder → Forge → Temper → Seal`); the orchestrator runs inside a phase, not as a phase; Forge and Temper carry symmetric `<phase>-overseer` orchestrators; one operator command per phase (no auto-chain); rework loops via `friction` / `needs-rework` labels + operator re-runs Forge; Seal stays flat (P4 / sub-phase 4e).
+- [`0008-naming-discipline.md`](docs/adr/0008-naming-discipline.md) — CONTEXT.md is the canonical glossary single-source-of-truth; living docs anchor-link to `CONTEXT.md#term`; `/inscribe` hard-gates PRD filing on a `Terms used` section; `<phase>-overseer` is the orchestrator naming pattern; `/forgemaster` is reserved for a future cross-project Claude session manager (P4 / sub-phase 4e).
 
 ## 🌑 Out of scope
 
