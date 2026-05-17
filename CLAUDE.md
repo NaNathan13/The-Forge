@@ -20,7 +20,7 @@ See [`CONTEXT.md`](./CONTEXT.md) for the full glossary. The load-bearing six:
 - **Ponder** — the planning phase: grill the idea, write the PRD, file + triage issues.
 - **Forgemaster** — the orchestrator: dispatches `/forge` and `/temper` workers per slice, watches sentinels, advances the queue. Does no inline work.
 - **Forge** — one worker that takes a triaged issue from branch → green-CI PR. Does not merge.
-- **Temper** — review-and-harden phase per slice: confirms `/forge`'s PR is shippable, marks it `ready-for-seal`. In sub-phase 4b this is a stub passthrough; real review behavior lands in 4c.
+- **Temper** — review-and-harden phase per slice: dispatches the `reviewer` agent on the PR diff, runs an inline intent-match against the issue body, and applies a strict friction rule (any reviewer HIGH or intent-match fail → `friction`; else `ready-for-seal`). Deterministic structural-integrity gating lives in CI, not `/temper` — see [ADR-0006](./docs/adr/0006-temper-review-boundary.md).
 - **Seal** — the closer: approves + squash-merges every `ready-for-seal` PR in the batch, then reconciles `MISSION-CONTROL.md`.
 - **Slice** — a single triaged issue. Slice labels (`slice:logic` / `slice:ui` / `slice:mixed`) drive how `/forge` builds it.
 

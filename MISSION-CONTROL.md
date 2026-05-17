@@ -12,8 +12,10 @@
 **Recommended next prompt:**
 
 ```
-/ponder 4c
+/forgemaster --phase 4c
 ```
+
+> Build all 4c slices
 
 ## ☄️ In flight
 
@@ -77,23 +79,25 @@
 | 3h | Token-waste audit | ⏸ deferred | — | [`docs/prds/improvements-3h-token-waste-audit.md`](docs/prds/improvements-3h-token-waste-audit.md) | <!-- mc:none --> |
 | 3i | Doc reconciliation | ✅ shipped | — | [`docs/prds/improvements-3i-doc-reconciliation.md`](docs/prds/improvements-3i-doc-reconciliation.md) | #254, #255 <!-- mc:done=254,255 --> |
 
-### P4 — Pipeline naming + permissions ▓▓░░ 2/4
+### P4 — Pipeline naming + permissions ▓▓░░░ 2/5
 
-> Two related reforms surfaced during the 3i wrap-up (2026-05-16), grilled + filed 2026-05-17, plus two follow-up stubs:
+> Two related reforms surfaced during the 3i wrap-up (2026-05-16), grilled + filed 2026-05-17, plus three follow-up stubs:
 >
 > 1. **4a — Permissions deny → ask** (#258). ADR-0004's defense-in-depth `permissions.deny` block hard-blocked Claude from reading human-only docs *even when the operator explicitly authorized a read*. The deny was designed to protect against autonomous misjudgment, not against in-the-loop authorization. Shift to `ask` semantics so the operator gets a permission prompt instead of a wall; autonomous mode (`dontAsk`) still auto-denies `ask` rules per Claude Code docs — original safety preserved. ADR-0004 amended append-only.
-> 2. **4b — Forge ↔ Temper rename + role re-split** (#259). Current naming is metallurgically inverted: `/forgemaster` is the dispatcher/orchestrator, `/forge` does the actual building + testing. Forge (verb) = shape by heat and hammer (build); Temper (verb) = harden by cycles after forging (review + durability). The rename: `/forgemaster` becomes the orchestrator, `/forgemaster` becomes the builder, `/forge` becomes the review-and-harden phase (stub passthrough in 4b; real review behavior in 4c). Atomic big-bang — no back-compat for sentinel names. ADR-0005 new.
-> 3. **4c — /forge review behavior** (stub). Promote when 4b ships green and operator has post-rename muscle memory.
-> 4. **4d — Naming-annotation cleanup** (stub). Rewrite historical-doc bodies to new terms verbatim; remove the annotation scaffolding 4b adds. Ships after the new vocabulary has been stable for at least one product cycle.
+> 2. **4b — Forge ↔ Temper rename + role re-split** (#259). Current naming is metallurgically inverted: `/forgemaster` is the dispatcher/orchestrator, `/forge` does the actual building + testing. Forge (verb) = shape by heat and hammer (build); Temper (verb) = harden by cycles after forging (review + durability). The rename: `/forgemaster` becomes the orchestrator, `/forge` becomes the builder, `/temper` becomes the review-and-harden phase (stub passthrough in 4b; real review behavior in 4c). Atomic big-bang — no back-compat for sentinel names. ADR-0005 new.
+> 3. **4c — /temper real review behavior**. Promote from stub passthrough to real reviewer-agent dispatch + inline intent-match + strict friction rule. ADR-0006 new.
+> 4. **4e — Orchestrator rename + "the Forge" disambiguation** (stub). 4b corrected the build/review naming but left the orchestrator named `/forgemaster`, which still reads like a pipeline step. The pipeline is **Ponder → Forge → Temper → Seal**; the orchestrator oversees it from *outside* the lineup and should be named accordingly (e.g. `/master`, `/overseer`, `/conductor` — final name resolved by 4e's grill). Also disambiguates "The Forge" (the project) from `/forge` (the build phase) — likely via a project-scoped `CONTEXT.md` entry that pins both terms. Ships after 4c so it doesn't churn the SKILL.md /temper rewrite is editing.
+> 5. **4d — Naming-annotation cleanup** (stub). Rewrite historical-doc bodies to new terms verbatim; remove the annotation scaffolding 4b adds. Now blocked by 4e too (the orchestrator rename is the second pass that historical bodies need to absorb). Ships after the new vocabulary has been stable for at least one product cycle.
 >
-> 4a ships first to lock the hook contract before 4b touches `.claude/hooks/`.
+> 4a ships first to lock the hook contract before 4b touches `.claude/hooks/`. 4c → 4e → 4d is the natural completion order.
 
 | # | Sub-phase | Status | Blocked by | PRD | Issues |
 | --- | --- | --- | --- | --- | --- |
 | 4a | Permissions deny → ask | ✅ shipped | — | [`docs/prds/improvements-4a-permissions-ask.md`](docs/prds/improvements-4a-permissions-ask.md) | #258 <!-- mc:done=258 --> |
 | 4b | Forge ↔ Temper rename + role re-split | ✅ shipped | — | [`docs/prds/improvements-4b-rename.md`](docs/prds/improvements-4b-rename.md) | #259 <!-- mc:done=259 --> |
-| 4c | /forge review behavior (reviewer-agent + durability checks + friction-label logic) | ⏳ queued | 4b | — | <!-- mc:none --> |
-| 4d | Naming-annotation cleanup (rewrite historical bodies; remove annotation scaffolding) | ⏳ queued | 4b | — | <!-- mc:none --> |
+| 4c | /temper real review behavior (reviewer-agent dispatch + inline intent-match + strict friction rule) | 🚧 in-progress | — | — | #262 <!-- mc:open=262 --> |
+| 4e | Orchestrator rename (`/forgemaster` → TBD) + "the Forge" / `/forge` disambiguation | ⏳ queued | 4c | — | <!-- mc:none --> |
+| 4d | Naming-annotation cleanup (rewrite historical bodies; remove annotation scaffolding) | ⏳ queued | 4b, 4e | — | <!-- mc:none --> |
 
 ### P5 — Dev Mode ░ 0/1
 
@@ -119,6 +123,7 @@
 - [`0003-concurrency-cap.md`](docs/adr/0003-concurrency-cap.md) — Single-worker concurrency cap as a deliberate trade: forgemaster dispatches exactly one temper per generation, with a recorded revisit precondition (P3 / sub-phase 3b).
 - [`0004-context-loading-defense-in-depth.md`](docs/adr/0004-context-loading-defense-in-depth.md) — Context-loading enforcement uses both a static permissions block AND a `PreToolUse` Read hook (dynamic, banner-scan); the two mechanisms cover disjoint failure modes and collapsing breaks one of them (P3 / sub-phase 3g). **Amended 2026-05-17 (sub-phase 4a)**: decision values swap from `deny` to `ask` so the operator can authorize reads via a permission prompt; defense-in-depth architecture unchanged.
 - [`0005-pipeline-role-split.md`](docs/adr/0005-pipeline-role-split.md) — Pipeline runs three named roles: `/forgemaster` (orchestrator), `/forgemaster` (builder), `/forge` (review + harden). Per-slice cut between green-CI PR and post-PR review. Sets project's amendment convention via ADR-0004 as the sibling decision-value-swap example (P4 / sub-phase 4b).
+- [`0006-temper-review-boundary.md`](docs/adr/0006-temper-review-boundary.md) — `/temper`'s responsibility is LLM judgment (reviewer-agent on diff + inline intent-match against issue body); deterministic structural-integrity gating lives in CI; strict friction rule (any reviewer HIGH or intent-match failure → friction; else ready-for-seal) keeps the gate audit-stable (P4 / sub-phase 4c).
 
 ## 🌑 Out of scope
 

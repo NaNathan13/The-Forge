@@ -23,9 +23,10 @@ empty context window. This is **Option B — one worker per generation** (PRD
 context %.
 
 Ponder plans the work; forgemaster executes it. Each slice flows through `/forge`
-(branch → implement → test → PR → green CI), then `/temper` (review-and-harden — a
-stub passthrough in 4b, real review in 4c), then advances to the next slice. Seal
-batch-merges shippable PRs at the end of the run.
+(branch → implement → test → PR → green CI), then `/temper` (review-and-harden —
+reviewer-agent dispatch + inline intent-match + strict friction rule, see
+[ADR-0006](../../../docs/adr/0006-temper-review-boundary.md)), then advances to the
+next slice. Seal batch-merges shippable PRs at the end of the run.
 
 ## Invocation
 
@@ -255,8 +256,8 @@ Per generation:
      isolation: "worktree"
    })
    ```
-   In 4b `/temper` is a stub passthrough — it does not spawn support agents. (4c will
-   change that.)
+   `/temper` typically spawns one support agent (the `reviewer` on the PR diff); its
+   support-agent cap is 2 concurrent, matching `/forge`'s.
 
 6. **On worker completion, handle the sentinel** (see "Sentinel Handling" below) and
    **log tokens** (see "Token Logging").
@@ -507,8 +508,8 @@ Lossy-safe.
   relays milestones to the user.
 - **Lean context loading.** Workers read only the issue and auto-loaded rules.
 - **Research via support agents.** `/forge` can dispatch researcher / reviewer /
-  builder agents (max 2 concurrent). `/temper` in 4b is a stub and does not spawn
-  support agents.
+  builder agents (max 2 concurrent). `/temper` shares the same 2-agent cap; typical
+  use is 1 — the `reviewer` agent on the PR diff.
 
 ## Token Logging
 
