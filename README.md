@@ -1,8 +1,8 @@
 # The Forge
 
-A drop-in Claude Code workflow that takes a project from idea to shipped code. Plan with `/ponder`, build with `/forge` + `/temper`, ship with `/seal`. 16 skills, zero project-specific code.
+A drop-in Claude Code workflow that takes a project from idea to shipped code. Plan with `/ponder`, run with `/forgemaster` (dispatches `/forge` + `/temper` per slice), ship with `/seal`. 17 skills, zero project-specific code.
 
-**Pipeline:** `/ponder` (grill + PRD + triage) --> `/forge` (build queue) --> `/temper <N>` (branch, implement, test, PR, CI) --> `/seal` (merge + reconcile). Runs end-to-end after you approve the build queue.
+**Pipeline:** `/ponder` (grill + PRD + triage) --> `/forgemaster` (build queue + dispatch loop) --> `/forge <N>` (branch, implement, test, PR, CI) --> `/temper <N>` (review + mark ready-for-seal) --> `/seal` (merge + reconcile). Runs end-to-end after you approve the build queue.
 
 ## Why this is different
 
@@ -40,8 +40,9 @@ For manual setup, see [`docs/dev/setup.md`](./docs/dev/setup.md). Full dev-mode 
 |-------|-------------|
 | `/ponder` | Grill the idea, write a PRD, file and triage issues |
 | `/prototype` | Fast-mode: skip grill/PRD, file issues directly |
-| `/forge` | Drain the build queue (auto-invokes `/seal` at end) |
-| `/temper <N>` | Build one slice: branch, implement, test, PR, CI |
+| `/forgemaster` | Drain the build queue (auto-invokes `/seal` at end) |
+| `/forge <N>` | Build one slice: branch, implement, test, PR, CI |
+| `/temper <N>` | Review one built slice and mark it ready-for-seal |
 | `/seal` | Merge open PRs, reconcile `MISSION-CONTROL.md`, clean up |
 
 **Sub-skills of `/ponder`:**

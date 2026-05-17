@@ -28,11 +28,11 @@ emitted at the end of every session. Forge reads it to decide what happens next
 The sentinel is **one line** of the form:
 
 ```
-TEMPER:RESULT <json-object>
+FORGE:RESULT <json-object>
 ```
 
 The `<json-object>` is a single-line JSON object — no pretty-printing, no trailing
-text, no code fences around the line. Forge locates the last `TEMPER:RESULT ` line in
+text, no code fences around the line. Forge locates the last `FORGE:RESULT ` line in
 temper's output, strips the prefix, and parses the JSON. The prose above the sentinel
 is human-readability only and is not parsed by Forge.
 
@@ -63,34 +63,34 @@ Status-specific extra fields:
 
 Success:
 ```
-TEMPER:RESULT {"v":1,"status":"success","issue":21,"pr":58,"branch":"feat/#21-temper-sentinel-json","tokens":null,"friction":null}
+FORGE:RESULT {"v":1,"status":"success","issue":21,"pr":58,"branch":"feat/#21-temper-sentinel-json","tokens":null,"friction":null}
 ```
 
 Continuation (context or rate-limit hand-off):
 ```
-TEMPER:RESULT {"v":1,"status":"continue","issue":21,"pr":null,"branch":"feat/#21-temper-sentinel-json","tokens":null,"friction":null,"continuation_file":".claude/temper-continue-21.md"}
+FORGE:RESULT {"v":1,"status":"continue","issue":21,"pr":null,"branch":"feat/#21-temper-sentinel-json","tokens":null,"friction":null,"continuation_file":".claude/temper-continue-21.md"}
 ```
 
 Needs human (CI stuck after retries):
 ```
-TEMPER:RESULT {"v":1,"status":"needs_human","issue":21,"pr":58,"branch":"feat/#21-temper-sentinel-json","tokens":null,"friction":null,"reason":"ci-stuck"}
+FORGE:RESULT {"v":1,"status":"needs_human","issue":21,"pr":58,"branch":"feat/#21-temper-sentinel-json","tokens":null,"friction":null,"reason":"ci-stuck"}
 ```
 
 Friction left for human review:
 ```
-TEMPER:RESULT {"v":1,"status":"needs_human","issue":21,"pr":58,"branch":"feat/#21-temper-sentinel-json","tokens":null,"friction":"flaky test in CI — retried twice, still intermittent","reason":"friction"}
+FORGE:RESULT {"v":1,"status":"needs_human","issue":21,"pr":58,"branch":"feat/#21-temper-sentinel-json","tokens":null,"friction":"flaky test in CI — retried twice, still intermittent","reason":"friction"}
 ```
 
 Unrecoverable failure:
 ```
-TEMPER:RESULT {"v":1,"status":"fail","issue":21,"pr":null,"branch":"feat/#21-temper-sentinel-json","tokens":null,"friction":null,"reason":"branch creation blocked by hook"}
+FORGE:RESULT {"v":1,"status":"fail","issue":21,"pr":null,"branch":"feat/#21-temper-sentinel-json","tokens":null,"friction":null,"reason":"branch creation blocked by hook"}
 ```
 
 ### Protocol version (`v`)
 
 `v` is the schema version field. It was added in sub-phase 3a (audit rec #29)
 after the protocol's first migration — the flag-day swap from four prose
-sentinels (`TEMPER:SUCCESS` et al.) to the structured `TEMPER:RESULT` JSON —
+sentinels (`TEMPER:SUCCESS` et al.) to the structured `FORGE:RESULT` JSON —
 so that the *next* schema change can be non-breaking: Forge's parser can
 branch on `v` and support two schemas during a transition instead of requiring
 every temper and forge to update atomically.
@@ -118,7 +118,7 @@ seal classifies merge-vs-skip purely by labels (see `.claude/skills/seal/SKILL.m
 The sentinel is temper→forge; the label is temper/forge→seal. Both are required when a PR
 is open.
 
-If no `TEMPER:RESULT` line is present in temper's output, Forge treats the run as
+If no `FORGE:RESULT` line is present in temper's output, Forge treats the run as
 `status: "fail"` with reason `"no result sentinel"` and applies the fail branch.
 
 Sentinels are internal protocol — they are never shown to end users in WHJ mode.
@@ -128,7 +128,7 @@ Dev-mode users may see them in forge output.
 
 Earlier versions of this protocol used four prose sentinels: `TEMPER:SUCCESS`,
 `TEMPER:CONTINUE:<N>`, `TEMPER:NEEDS_HUMAN:<reason>`, `TEMPER:FAIL:<reason>`. These
-are no longer emitted. New tooling should parse `TEMPER:RESULT` JSON only.
+are no longer emitted. New tooling should parse `FORGE:RESULT` JSON only.
 
 ## Slice labels
 

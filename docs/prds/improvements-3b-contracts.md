@@ -1,5 +1,8 @@
 # PRD — Documented Contracts + Bootstrap Stamp
 
+> **Naming context (after sub-phase 4b, 2026-05-17):** in the body below, "/forge" refers to the orchestrator role now named `/forgemaster`, and "/temper" refers to the builder role now named `/forge`. See [ADR-0005](../adr/0005-pipeline-role-split.md) for the rename rationale.
+
+
 > Sub-phase **3b** (Phase **P3 — Improvements**) · Status: 📝 prd-ready · Filed 2026-05-15
 >
 > **Why this size?** Four cheap doc-contract recs that share a single review surface — two ADRs, prose pointers, one bootstrap-script tweak, one PRD-template wiring. Bundled as a sub-phase so the ADR discipline + template change land as one coherent move rather than four drive-by PRs.

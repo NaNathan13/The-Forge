@@ -5,7 +5,7 @@ description: Write the PRD, file issues, triage all slices, then print the forge
 
 # Inscribe — write up, file, triage, hand off
 
-The "writing" sub-skill of Ponder. Takes resolved design decisions and produces triaged, labeled issues ready for `/temper`. Handles both sub-phase (PRD + multiple issues) and single-slice (one issue) paths.
+The "writing" sub-skill of Ponder. Takes resolved design decisions and produces triaged, labeled issues ready for `/forge`. Handles both sub-phase (PRD + multiple issues) and single-slice (one issue) paths.
 
 **Inscribe does NOT grill.** If decisions are unresolved, stop and tell the user to run `/ponder` first. Inscribe's job is to execute the mechanical steps: write → file → triage → hand off.
 
@@ -213,7 +213,7 @@ After all issues are triaged:
    a. **Row marker (Issues column).** Replace `<!-- mc:none -->` with `<!-- mc:open=N,N,... -->` where the comma-joined integer list is the issue numbers filed in step A2 (Path A) or B1 (Path B). If the row already carries an `mc:open=` marker (e.g. a re-entry or additional slice filing for the same sub-phase), merge the new issue numbers in — keep them sorted ascending, no duplicates, comma-separated, no spaces. Marker format is exactly `<!-- mc:open=N,N -->` (single space inside the comment, no trailing comma).
 
    b. **Status emoji (Status column).** Flip the emoji to match the new state:
-      - **Path A (sub-phase):** `⏳ queued` → `📝 prd-ready` (PRD is written, issues filed and triaged, but no slice is in-flight yet — `/forge` will dispatch the first `/temper` and that's what flips it to `🚧 in-progress`).
+      - **Path A (sub-phase):** `⏳ queued` → `📝 prd-ready` (PRD is written, issues filed and triaged, but no slice is in-flight yet — `/forgemaster` will dispatch the first `/forge` and that's what flips it to `🚧 in-progress`).
       - **Path B (single-slice):** `⏳ queued` → `🚧 in-progress` (one slice is immediately actionable — there is no "PRD-ready, awaiting build" middle state for single-slice work in `fast`/`balanced` modes, and even in `tdd` mode the slice is ready to build the moment inscribe hands off). If the row had a non-queued emoji (e.g. already `🚧 in-progress` from a prior partial run), leave it alone.
 
    If no matching sub-phase row exists for a standalone Path B slice (the user answered "none" to the sub-phase prompt in §Inputs), skip this step — there is no MC row to update.
@@ -226,7 +226,7 @@ After all issues are triaged:
    **Recommended next prompt:**
 
    \`\`\`
-   /forge --phase <sub-phase-id>
+   /forgemaster --phase <sub-phase-id>
    \`\`\`
 
    > Build all <sub-phase-id> slices
@@ -238,7 +238,7 @@ After all issues are triaged:
    **Recommended next prompt:**
 
    \`\`\`
-   /temper <N>
+   /forge <N>
    \`\`\`
 
    > Build the standalone slice
@@ -250,13 +250,13 @@ After all issues are triaged:
    **Recommended next prompt:**
 
    \`\`\`
-   /forge
+   /forgemaster
    \`\`\`
 
    > Build all ready slices
    ```
 
-   Never emit `/forge --phase none` — that's not a valid form. The `--phase` flag only appears when a real sub-phase ID was resolved.
+   Never emit `/forgemaster --phase none` — that's not a valid form. The `--phase` flag only appears when a real sub-phase ID was resolved.
 
 3. **Append newly-written ADRs to MC's `## 📡 ADRs` section.** If A0 / B-1 wrote one or more ADRs this run (the path list carried forward is non-empty), append **one row per path** to the `## 📡 ADRs` bullet list in `MISSION-CONTROL.md`. Row format, verbatim:
 
@@ -279,13 +279,13 @@ Filed N issues for sub-phase <sub-phase-id>:
 
 Build order: 101 → 102 → 103 → ...
 
-All slices triaged. Run `/forge` to begin building.
+All slices triaged. Run `/forgemaster` to begin building.
 ```
 
 ## Anti-patterns
 
 - **Don't grill.** Inscribe writes up resolved decisions. If you're tempted to ask a design question, you're in the wrong skill — hand back to Ponder or `/grill-me`.
 - **Don't leave issues untriaged.** Every issue gets a `slice:*` label. No lazy backfill.
-- **Don't run `/temper` from inside inscribe.** Phases are session-scoped. End the session, hand off.
+- **Don't run `/forge` from inside inscribe.** Phases are session-scoped. End the session, hand off.
 - **Don't guess the sub-phase ID.** Read it from MISSION-CONTROL.md, or ask the user once.
 - **Don't fabricate `size_reason` or leave a TODO placeholder.** If ponder didn't pass it and the user declines twice on the standalone ask, omit the `**Why this size?**` line entirely. A TODO defeats the rec's purpose (future re-readers *see* the reasoning, or see nothing).

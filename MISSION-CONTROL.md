@@ -1,18 +1,18 @@
 # 🚀 The Forge — Mission Control
 
 > Ground station for the project's trajectory — where it stands, and the next burn.
-> Auto-updated by pipeline skills (`/inscribe`, `/temper`, `/seal`). Each phase updates the "Recommended next prompt". Drift between this doc and GitHub issue state is surfaced as a SessionStart reminder.
+> Auto-updated by pipeline skills (`/inscribe`, `/forge`, `/seal`). Each phase updates the "Recommended next prompt". Drift between this doc and GitHub issue state is surfaced as a SessionStart reminder.
 
 ## 🛰️ Telemetry — right now
 
 **Phase:** P5 — Dev Mode ░ 0/1
 **In flight:** —
-**Workflow:** Ponder → Forge → Temper pipeline. See [`docs/workflow/`](docs/workflow/) for details. (Pipeline role names are inverted pre-rename: the current `/forge` is the orchestrator and `/temper` is the builder. Sub-phase 4b corrects this — see [ADR-0005](docs/adr/0005-pipeline-role-split.md).)
+**Workflow:** Ponder → Forge → Temper pipeline. See [`docs/workflow/`](docs/workflow/) for details. (Pipeline role names are inverted pre-rename: the current `/forgemaster` is the orchestrator and `/forge` is the builder. Sub-phase 4b corrects this — see [ADR-0005](docs/adr/0005-pipeline-role-split.md).)
 
 **Recommended next prompt:**
 
 ```
-/forge
+/forgemaster
 ```
 
 ## ☄️ In flight
@@ -25,7 +25,7 @@
 
 <!--
   Sub-phases live in tables under phase headers. As work is filed and shipped,
-  /inscribe, /temper, and /seal update these rows.
+  /inscribe, /forge, and /seal update these rows.
 
   Status emoji: ⏳ queued · 🔥 grilling · 📝 prd-ready · 🚧 in-progress · ✅ shipped · ⏸ deferred
 
@@ -51,7 +51,7 @@
 | --- | --- | --- | --- | --- | --- |
 | 1a | Research + design (north-star, ADR, P2/P3 design docs) | ✅ shipped | — | [`docs/prds/autonomous-forge.md`](docs/prds/autonomous-forge.md) | #129, #130, #131 <!-- mc:done=129,130,131 --> |
 | 1b | P2 single-session resilience — build | ✅ shipped | — | [`docs/prds/p2-single-session-resilience-build.md`](docs/prds/p2-single-session-resilience-build.md) | #136, #137, #138, #139, #140, #141, #142, #143, #152 <!-- mc:done=136,137,138,139,140,141,142,143,152 --> |
-| 1c | Wire forge into the P2 relaunch loop | ✅ shipped | — | [`docs/prds/forge-relaunch-loop-integration.md`](docs/prds/forge-relaunch-loop-integration.md) | #181, #182, #183, #184, #185 <!-- mc:done=181,182,183,184,185 --> |
+| 1c | Wire forge into the P2 relaunch loop | ✅ shipped | — | [`docs/prds/forgemaster-relaunch-loop-integration.md`](docs/prds/forgemaster-relaunch-loop-integration.md) | #181, #182, #183, #184, #185 <!-- mc:done=181,182,183,184,185 --> |
 
 ### P2 — Pipeline Audit ▓ 1/1
 
@@ -82,8 +82,8 @@
 > Two related reforms surfaced during the 3i wrap-up (2026-05-16), grilled + filed 2026-05-17, plus two follow-up stubs:
 >
 > 1. **4a — Permissions deny → ask** (#258). ADR-0004's defense-in-depth `permissions.deny` block hard-blocked Claude from reading human-only docs *even when the operator explicitly authorized a read*. The deny was designed to protect against autonomous misjudgment, not against in-the-loop authorization. Shift to `ask` semantics so the operator gets a permission prompt instead of a wall; autonomous mode (`dontAsk`) still auto-denies `ask` rules per Claude Code docs — original safety preserved. ADR-0004 amended append-only.
-> 2. **4b — Forge ↔ Temper rename + role re-split** (#259). Current naming is metallurgically inverted: `/forge` is the dispatcher/orchestrator, `/temper` does the actual building + testing. Forge (verb) = shape by heat and hammer (build); Temper (verb) = harden by cycles after forging (review + durability). The rename: `/forgemaster` becomes the orchestrator, `/forge` becomes the builder, `/temper` becomes the review-and-harden phase (stub passthrough in 4b; real review behavior in 4c). Atomic big-bang — no back-compat for sentinel names. ADR-0005 new.
-> 3. **4c — /temper review behavior** (stub). Promote when 4b ships green and operator has post-rename muscle memory.
+> 2. **4b — Forge ↔ Temper rename + role re-split** (#259). Current naming is metallurgically inverted: `/forgemaster` is the dispatcher/orchestrator, `/forge` does the actual building + testing. Forge (verb) = shape by heat and hammer (build); Temper (verb) = harden by cycles after forging (review + durability). The rename: `/forgemaster` becomes the orchestrator, `/forgemaster` becomes the builder, `/forge` becomes the review-and-harden phase (stub passthrough in 4b; real review behavior in 4c). Atomic big-bang — no back-compat for sentinel names. ADR-0005 new.
+> 3. **4c — /forge review behavior** (stub). Promote when 4b ships green and operator has post-rename muscle memory.
 > 4. **4d — Naming-annotation cleanup** (stub). Rewrite historical-doc bodies to new terms verbatim; remove the annotation scaffolding 4b adds. Ships after the new vocabulary has been stable for at least one product cycle.
 >
 > 4a ships first to lock the hook contract before 4b touches `.claude/hooks/`.
@@ -92,7 +92,7 @@
 | --- | --- | --- | --- | --- | --- |
 | 4a | Permissions deny → ask | ✅ shipped | — | [`docs/prds/improvements-4a-permissions-ask.md`](docs/prds/improvements-4a-permissions-ask.md) | #258 <!-- mc:done=258 --> |
 | 4b | Forge ↔ Temper rename + role re-split | 📝 prd-ready | 4a | [`docs/prds/improvements-4b-rename.md`](docs/prds/improvements-4b-rename.md) | #259 <!-- mc:open=259 --> |
-| 4c | /temper review behavior (reviewer-agent + durability checks + friction-label logic) | ⏳ queued | 4b | — | <!-- mc:none --> |
+| 4c | /forge review behavior (reviewer-agent + durability checks + friction-label logic) | ⏳ queued | 4b | — | <!-- mc:none --> |
 | 4d | Naming-annotation cleanup (rewrite historical bodies; remove annotation scaffolding) | ⏳ queued | 4b | — | <!-- mc:none --> |
 
 ### P5 — Dev Mode ░ 0/1
@@ -116,9 +116,9 @@
 
 - [`0001-autonomous-forge-architecture.md`](docs/adr/0001-autonomous-forge-architecture.md) — 3-tier model + optional-by-layers principle + operator-setup requirement (P1 / sub-phase 1a). **Now historical** — the 3-tier model survives as future vision but its P2–P6 phasing has been superseded by P3 (Improvements) + P4 (WHJ). See `docs/design/improvements-overview.md` for the new direction.
 - [`0002-phase-isolation.md`](docs/adr/0002-phase-isolation.md) — Phases communicate only via on-disk artifacts; session memory between phases is forbidden (P3 / sub-phase 3b).
-- [`0003-concurrency-cap.md`](docs/adr/0003-concurrency-cap.md) — Single-worker concurrency cap as a deliberate trade: forge dispatches exactly one temper per generation, with a recorded revisit precondition (P3 / sub-phase 3b).
+- [`0003-concurrency-cap.md`](docs/adr/0003-concurrency-cap.md) — Single-worker concurrency cap as a deliberate trade: forgemaster dispatches exactly one temper per generation, with a recorded revisit precondition (P3 / sub-phase 3b).
 - [`0004-context-loading-defense-in-depth.md`](docs/adr/0004-context-loading-defense-in-depth.md) — Context-loading enforcement uses both a static permissions block AND a `PreToolUse` Read hook (dynamic, banner-scan); the two mechanisms cover disjoint failure modes and collapsing breaks one of them (P3 / sub-phase 3g). **Amended 2026-05-17 (sub-phase 4a)**: decision values swap from `deny` to `ask` so the operator can authorize reads via a permission prompt; defense-in-depth architecture unchanged.
-- [`0005-pipeline-role-split.md`](docs/adr/0005-pipeline-role-split.md) — Pipeline runs three named roles: `/forgemaster` (orchestrator), `/forge` (builder), `/temper` (review + harden). Per-slice cut between green-CI PR and post-PR review. Sets project's amendment convention via ADR-0004 as the sibling decision-value-swap example (P4 / sub-phase 4b).
+- [`0005-pipeline-role-split.md`](docs/adr/0005-pipeline-role-split.md) — Pipeline runs three named roles: `/forgemaster` (orchestrator), `/forgemaster` (builder), `/forge` (review + harden). Per-slice cut between green-CI PR and post-PR review. Sets project's amendment convention via ADR-0004 as the sibling decision-value-swap example (P4 / sub-phase 4b).
 
 ## 🌑 Out of scope
 
@@ -139,4 +139,4 @@
 
 **Phase progress bars:** `▓` = shipped sub-phase, `░` = not yet shipped. Format: `▓▓░░░ 2/5`. (Future: `scripts/derive-progress.sh`, sub-phase 3f, will compute these from the rows below.)
 
-**Updated by:** `/inscribe` (PRD + issues + triage), `/temper` (in-progress status), `/seal` (post-merge reconciliation). Each phase also updates the "Recommended next prompt".
+**Updated by:** `/inscribe` (PRD + issues + triage), `/forge` (in-progress status), `/seal` (post-merge reconciliation). Each phase also updates the "Recommended next prompt".

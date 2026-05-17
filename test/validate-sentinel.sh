@@ -1,14 +1,17 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
-# validate-sentinel.sh — assert that a single line is a valid TEMPER:RESULT sentinel.
+# validate-sentinel.sh — assert that a single line is a valid worker sentinel.
 #
-# A temper worker ends every run by emitting exactly one line of the form
+# After sub-phase 4b's pipeline rename, two skills emit sentinels with the same
+# JSON shape — only the prefix differs:
 #
-#     TEMPER:RESULT <json-object>
+#     FORGE:RESULT <json-object>   — emitted by /forge (the builder)
+#     TEMPER:RESULT <json-object>  — emitted by /temper (the review skill)
 #
-# Forge parses that line to decide what to do next. Today the schema is enforced
-# only by prose in `.claude/skills/temper/SKILL.md` and `docs/shared/pipeline.md`.
+# Forgemaster parses the matching line to decide what to do next. Today the
+# schema is enforced only by prose in `.claude/skills/forge/SKILL.md`,
+# `.claude/skills/temper/SKILL.md`, and `docs/shared/pipeline.md`.
 # This validator is the code-level check those documents asked for — a thin
 # `jq`-driven shape test that catches malformed sentinels at write time (in
 # tests, fixtures, and future CI hooks) rather than at the orchestrator at
@@ -60,7 +63,14 @@ set -uo pipefail
 # and `.claude/skills/temper/SKILL.md` §"Emit the result sentinel" for the
 # emission rules.
 
-PREFIX="TEMPER:RESULT "
+# Two sentinel prefixes share the same schema after the 4b rename:
+#   FORGE:RESULT — emitted by /forge (the builder), build outcome.
+#   TEMPER:RESULT — emitted by /temper (the review skill), review outcome.
+# Both carry an identical JSON object shape; this validator accepts either
+# prefix. The build sentinel (FORGE:RESULT) is checked first because it is the
+# load-bearing one Forgemaster parses for every shipped slice.
+PREFIX_FORGE="FORGE:RESULT "
+PREFIX_TEMPER="TEMPER:RESULT "
 
 die() {
   # die <exit-code> <message...>
@@ -119,14 +129,16 @@ line="$stripped"
 #
 # Accept both the wire form (prefix present, as temper emits) and the
 # post-parse form (prefix stripped, as Forge handles it).
-if [[ "$line" == "$PREFIX"* ]]; then
-  json="${line#"$PREFIX"}"
+if [[ "$line" == "$PREFIX_FORGE"* ]]; then
+  json="${line#"$PREFIX_FORGE"}"
+elif [[ "$line" == "$PREFIX_TEMPER"* ]]; then
+  json="${line#"$PREFIX_TEMPER"}"
 else
   json="$line"
 fi
 
 if [[ -z "$json" ]]; then
-  die 1 "no JSON payload after TEMPER:RESULT prefix"
+  die 1 "no JSON payload after FORGE:RESULT / TEMPER:RESULT prefix"
 fi
 
 # ── JSON parse ───────────────────────────────────────────────────────────────

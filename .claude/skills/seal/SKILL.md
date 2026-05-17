@@ -1,11 +1,11 @@
 ---
 name: seal
-description: Close out a build batch — approve and merge every open temper PR (skipping any with friction or non-green CI), reconcile MISSION-CONTROL.md against GitHub state, then clean up runtime artifacts. Use after /forge drains its queue, when the user types /seal, says "seal the batch", "close out the PRs", "wrap up", "ship it", or "mark this shipped".
+description: Close out a build batch — approve and merge every PR marked ready-for-seal (skipping any with friction or non-green CI), reconcile MISSION-CONTROL.md against GitHub state, then clean up runtime artifacts. Use after /forgemaster drains its queue, when the user types /seal, says "seal the batch", "close out the PRs", "wrap up", "ship it", or "mark this shipped".
 ---
 
 # Seal — close out the batch
 
-`/seal` is the closing step of the **Ponder → Forge → Temper → Seal** pipeline. Temper opens PRs and stops at CI-green; seal approves them, merges them, reconciles `MISSION-CONTROL.md`, and cleans up.
+`/seal` is the closing step of the **Ponder → Forgemaster → Forge → Temper → Seal** pipeline. `/forge` opens PRs and stops at CI-green; `/temper` reviews each PR and marks it `ready-for-seal`; seal approves them, merges them, reconciles `MISSION-CONTROL.md`, and cleans up.
 
 Idempotent: running `/seal` twice in a row with no new work between produces no changes.
 
@@ -13,12 +13,12 @@ Idempotent: running `/seal` twice in a row with no new work between produces no 
 
 ```
 /seal             # interactive — shows the plan, asks for approval before merging
-/seal --auto      # autonomous — used when forge invokes seal at end of run.
-                  #   Skips per-batch confirmation (user already approved at forge pre-flight).
-                  #   Still skips PRs with friction / needs-human / non-green CI.
+/seal --auto      # autonomous — used when forgemaster invokes seal at end of run.
+                  #   Skips per-batch confirmation (user already approved at forgemaster pre-flight).
+                  #   Still skips PRs with friction / needs-human / non-green CI or no ready-for-seal label.
 ```
 
-When seal is invoked by `/forge` at end of run, it runs in `--auto` mode. When a user types `/seal` directly, it runs interactively (default).
+When seal is invoked by `/forgemaster` at end of run, it runs in `--auto` mode. When a user types `/seal` directly, it runs interactively (default).
 
 ## Process
 
@@ -28,7 +28,7 @@ When seal is invoked by `/forge` at end of run, it runs in `--auto` mode. When a
 gh pr list --state open --json number,title,headRefName,labels,statusCheckRollup,isDraft
 ```
 
-Filter to PRs from temper-produced branches — branches matching `feat/#*-*` (temper's convention). PRs from other branches are left alone.
+Filter to PRs from forge-produced branches — branches matching `feat/#*-*` (`/forge`'s branch convention). PRs from other branches are left alone.
 
 ### 2. Classify each PR
 
@@ -36,10 +36,11 @@ For each candidate PR, decide:
 
 | Status | Action |
 |--------|--------|
-| CI green AND no `friction` / `needs-human` label AND not draft | **ship** — approve + merge |
-| CI red or pending | **skip** — note reason ("CI not green — wait for it to finish or re-run /temper <N>") |
-| Has `friction` label | **skip** — note reason ("flagged for human review"). Temper applies this label whenever it emits `TEMPER:RESULT` with `"status":"needs_human","reason":"friction"` and a PR is open. |
-| Has `needs-human` label | **skip** — note reason ("temper emitted `TEMPER:RESULT` with `status:\"needs_human\"`"). Temper applies this label whenever it emits `TEMPER:RESULT` with `"status":"needs_human"` for any non-friction reason (e.g. `"ci-stuck"`) and a PR is open; Forge re-applies it on the final `fail` retry. The label is the only signal seal reads — sentinels are temper→forge, labels are temper/forge→seal. |
+| CI green AND has `ready-for-seal` label AND no `friction` / `needs-human` label AND not draft | **ship** — approve + merge |
+| Missing `ready-for-seal` label | **skip** — note reason ("`/temper` has not marked this PR ready-for-seal yet"). `/temper` applies the label after review; without it, seal skips. |
+| CI red or pending | **skip** — note reason ("CI not green — wait for it to finish or re-run /forge <N>") |
+| Has `friction` label | **skip** — note reason ("flagged for human review"). `/forge` applies this label whenever it emits `FORGE:RESULT` with `"status":"needs_human","reason":"friction"` and a PR is open. `/temper` also applies it if it discovers a friction-grade issue during review. |
+| Has `needs-human` label | **skip** — note reason ("worker emitted `<FORGE|TEMPER>:RESULT` with `status:\"needs_human\"`"). `/forge` applies this label whenever it emits `FORGE:RESULT` with `"status":"needs_human"` for any non-friction reason (e.g. `"ci-stuck"`) and a PR is open; Forgemaster re-applies it on the final `fail` retry. `/temper` also applies it when its review surfaces blockers. The label is the only signal seal reads — sentinels are worker→Forgemaster, labels are worker→seal. |
 | Draft | **skip** — note reason ("PR is draft") |
 
 ### 3. Show the plan, get approval
@@ -60,7 +61,7 @@ Proceed? (yes / no)
 
 Default `yes` on enter. If the user says no, stop without changes.
 
-**`--auto` mode behavior:** Print the same summary for visibility, but **skip the approval prompt** and proceed directly to step 4. The user already approved this batch at the forge pre-flight. The friction/needs-human/CI-red filter (step 2) still applies — `--auto` doesn't override those skips, it just removes the human confirmation.
+**`--auto` mode behavior:** Print the same summary for visibility, but **skip the approval prompt** and proceed directly to step 4. The user already approved this batch at the forgemaster pre-flight. The friction/needs-human/CI-red filter (step 2) still applies — `--auto` doesn't override those skips, it just removes the human confirmation.
 
 ### 4. Ship each shippable PR
 
@@ -146,13 +147,15 @@ Construct the merged-issue list by collecting the issue numbers parsed from the 
 ```bash
 # Per-PR continuation and summary files for slices that just shipped:
 for issue in <merged-issues>; do
+  rm -f ".claude/forge-continue-${issue}.md"
+  rm -f ".claude/forge-summary-${issue}.md"
   rm -f ".claude/temper-continue-${issue}.md"
   rm -f ".claude/temper-summary-${issue}.md"
 done
 
 # Forge's continuation file, only if the ready-for-agent queue is now empty:
 if [[ -z "$(gh issue list --label ready-for-agent --state open --json number --jq '.[]')" ]]; then
-  rm -f .claude/forge-continue.md
+  rm -f .claude/forgemaster-continue.md
 fi
 ```
 
@@ -249,7 +252,7 @@ Seal never resolves merge conflicts inline. When step 4 detects a conflict, it d
 
 - It does **not** run `gh pr merge`. Merging is seal's responsibility — keeping the merge decision in one place prevents two actors from racing on the same PR.
 - It does **not** modify the PR description, add labels, or comment on the PR. Seal owns all PR-level metadata changes.
-- It does **not** touch `MISSION-CONTROL.md`, `.claude/temper-*.md`, or any other pipeline state. Those are sealed-batch concerns.
+- It does **not** touch `MISSION-CONTROL.md`, `.claude/forge-*.md`, `.claude/temper-*.md`, or any other pipeline state. Those are sealed-batch concerns.
 - It does **not** open a new PR or branch. If rebase is impossible, it aborts cleanly and reports failure.
 
 ### Why this split
@@ -261,7 +264,7 @@ The conflict-resolution subagent runs in a fresh context window — it doesn't c
 
 ## Anti-patterns
 
-- **Don't merge PRs that aren't from temper.** The branch-name filter (`feat/#*-*`) is intentional. PRs created by the user outside the pipeline stay untouched.
+- **Don't merge PRs that aren't from /forge.** The branch-name filter (`feat/#*-*`) is intentional. PRs created by the user outside the pipeline stay untouched.
 - **Don't auto-approve PRs labeled `friction` or `needs-human`.** Those exist exactly because a human needs to look.
 - **Don't run step 5 (MC reconciliation) without step 4 (the merges).** Step 5 reads GitHub issue state; if the PRs haven't merged yet, the issues are still open and nothing will advance.
 - **Don't skip the user-approval prompt in step 3.** Even though /seal is "wrap-up", it does irreversible merges. The one-screen review is a cheap safety belt.

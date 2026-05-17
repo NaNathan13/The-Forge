@@ -1,5 +1,8 @@
 # PRD — Crash-Layer Correctness + Measurement
 
+> **Naming context (after sub-phase 4b, 2026-05-17):** in the body below, "/forge" refers to the orchestrator role now named `/forgemaster`, and "/temper" refers to the builder role now named `/forge`. See [ADR-0005](../adr/0005-pipeline-role-split.md) for the rename rationale.
+
+
 > Sub-phase **3d** (Phase **P3 — Improvements**) · Status: 📝 prd-ready · Filed 2026-05-15
 >
 > **Why this size?** 3d closes two correctness gaps in the P1.1b crash layer (PID-file kill target, persistent crash-respin breaker) and converts temper's context checkpoint from eyeball to statusline-read — three file-disjoint logic slices that ship the audit's Theme-7+8 picks (recs #22, #23, #25, #31) under one PRD.

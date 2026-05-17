@@ -1,5 +1,8 @@
 # PRD — Close the Knowledge-Loop Write Side
 
+> **Naming context (after sub-phase 4b, 2026-05-17):** in the body below, "/forge" refers to the orchestrator role now named `/forgemaster`, and "/temper" refers to the builder role now named `/forge`. See [ADR-0005](../adr/0005-pipeline-role-split.md) for the rename rationale.
+
+
 > Sub-phase **3c** (Phase **P3 — Improvements**) · Status: 📝 prd-ready · Filed 2026-05-15
 >
 > **Why this size?** 3c closes the audit's knowledge-loop write-side gap (recs #5, #6, #7) via four file-disjoint behavioral changes across temper / diagnose / forge / lessons.md — coordinated enough to need a PRD anchor, scoped enough to ship in one batch.

@@ -1,6 +1,6 @@
 # The Forge
 
-A markdown- and bash-driven pipeline for running Claude Code projects end-to-end: ponder → forge → temper → seal. Skills, scripts, and templates that other repos clone into themselves via `light-the-forge.sh`.
+A markdown- and bash-driven pipeline for running Claude Code projects end-to-end: ponder → forgemaster → forge → temper → seal. Skills, scripts, and templates that other repos clone into themselves via `light-the-forge.sh`.
 
 **Dev mode:** balanced
 
@@ -8,26 +8,27 @@ A markdown- and bash-driven pipeline for running Claude Code projects end-to-end
 
 - **Language / runtime:** Markdown + Bash (no application runtime)
 - **Framework:** Claude Code skills (`.claude/skills/`) + GitHub Actions
-- **Test runner:** `test/run-tests.sh` — bash test harness for shell components (P2 onward); the pipeline itself is still exercised by dogfooding (real `/temper` runs). See `test/README.md`.
+- **Test runner:** `test/run-tests.sh` — bash test harness for shell components (P2 onward); the pipeline itself is still exercised by dogfooding (real `/forge` builds + `/temper` reviews). See `test/README.md`.
 - **Check command:** `bash -n` on changed shell scripts, then `test/run-tests.sh` for behavioural coverage of anything under `test/`
 - **Package manager:** none
 - **CI:** GitHub Actions on `ubuntu-latest` (see `.github/workflows/`)
 
 ## Key terms
 
-See [`CONTEXT.md`](./CONTEXT.md) for the full glossary. The load-bearing five:
+See [`CONTEXT.md`](./CONTEXT.md) for the full glossary. The load-bearing six:
 
 - **Ponder** — the planning phase: grill the idea, write the PRD, file + triage issues.
-- **Forge** — the orchestrator: dispatches temper workers, watches sentinels, advances the queue.
-- **Temper** — one worker that takes a triaged issue from branch → green-CI PR. Does not merge.
-- **Seal** — the closer: approves + squash-merges every shippable PR in the batch, then reconciles `MISSION-CONTROL.md`.
-- **Slice** — a single triaged issue. Slice labels (`slice:logic` / `slice:ui` / `slice:mixed`) drive how temper builds it.
+- **Forgemaster** — the orchestrator: dispatches `/forge` and `/temper` workers per slice, watches sentinels, advances the queue. Does no inline work.
+- **Forge** — one worker that takes a triaged issue from branch → green-CI PR. Does not merge.
+- **Temper** — review-and-harden phase per slice: confirms `/forge`'s PR is shippable, marks it `ready-for-seal`. In sub-phase 4b this is a stub passthrough; real review behavior lands in 4c.
+- **Seal** — the closer: approves + squash-merges every `ready-for-seal` PR in the batch, then reconciles `MISSION-CONTROL.md`.
+- **Slice** — a single triaged issue. Slice labels (`slice:logic` / `slice:ui` / `slice:mixed`) drive how `/forge` builds it.
 
 ## Rules
 
 - Branch per issue: `feat/#<N>-short-description`. PR includes `closes #<N>`.
 - The repo-root `CLAUDE.md` / `CONTEXT.md` / `MISSION-CONTROL.md` are The Forge's **own real working docs** — that's what lets The Forge develop itself. `templates/` holds the **placeholder versions** that `light-the-forge.sh` ships to new projects (`templates/CLAUDE.md`, `templates/CONTEXT.md`, `templates/MISSION-CONTROL.md`, `templates/README.md`). When you change the *structure* of a root doc, mirror that change into its `templates/` counterpart.
-- No application tests — the pipeline is exercised by running it. Skill + script changes are validated by dogfooding (`/temper` on a real issue).
+- No application tests — the pipeline is exercised by running it. Skill + script changes are validated by dogfooding (`/forge` + `/temper` on a real issue).
 - Screenshots for UI changes: `screenshots/issue-<N>/`. (Rarely applicable — this project has no UI surface of its own.)
 
 ## When to write an ADR
