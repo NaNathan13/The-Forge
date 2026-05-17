@@ -12,7 +12,7 @@
 **Recommended next prompt:**
 
 ```
-/forgemaster
+/ponder 4c
 ```
 
 ## ☄️ In flight
@@ -77,7 +77,7 @@
 | 3h | Token-waste audit | ⏸ deferred | — | [`docs/prds/improvements-3h-token-waste-audit.md`](docs/prds/improvements-3h-token-waste-audit.md) | <!-- mc:none --> |
 | 3i | Doc reconciliation | ✅ shipped | — | [`docs/prds/improvements-3i-doc-reconciliation.md`](docs/prds/improvements-3i-doc-reconciliation.md) | #254, #255 <!-- mc:done=254,255 --> |
 
-### P4 — Pipeline naming + permissions ▓░░░ 1/4
+### P4 — Pipeline naming + permissions ▓▓░░ 2/4
 
 > Two related reforms surfaced during the 3i wrap-up (2026-05-16), grilled + filed 2026-05-17, plus two follow-up stubs:
 >
@@ -91,7 +91,7 @@
 | # | Sub-phase | Status | Blocked by | PRD | Issues |
 | --- | --- | --- | --- | --- | --- |
 | 4a | Permissions deny → ask | ✅ shipped | — | [`docs/prds/improvements-4a-permissions-ask.md`](docs/prds/improvements-4a-permissions-ask.md) | #258 <!-- mc:done=258 --> |
-| 4b | Forge ↔ Temper rename + role re-split | 📝 prd-ready | 4a | [`docs/prds/improvements-4b-rename.md`](docs/prds/improvements-4b-rename.md) | #259 <!-- mc:open=259 --> |
+| 4b | Forge ↔ Temper rename + role re-split | ✅ shipped | — | [`docs/prds/improvements-4b-rename.md`](docs/prds/improvements-4b-rename.md) | #259 <!-- mc:done=259 --> |
 | 4c | /forge review behavior (reviewer-agent + durability checks + friction-label logic) | ⏳ queued | 4b | — | <!-- mc:none --> |
 | 4d | Naming-annotation cleanup (rewrite historical bodies; remove annotation scaffolding) | ⏳ queued | 4b | — | <!-- mc:none --> |
 
