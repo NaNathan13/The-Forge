@@ -1,6 +1,6 @@
 # The Forge
 
-A markdown- and bash-driven pipeline for running Claude Code projects end-to-end: ponder → forgemaster → forge → temper → seal. Skills, scripts, and templates that other repos clone into themselves via `light-the-forge.sh`.
+A markdown- and bash-driven pipeline for running Claude Code projects end-to-end: ponder → forge → temper → seal (the Forge and Temper phases each run an orchestrator inside them — `/forge-overseer` and `/temper-overseer`). Skills, scripts, and templates that other repos clone into themselves via `light-the-forge.sh`.
 
 **Dev mode:** balanced
 
@@ -15,14 +15,16 @@ A markdown- and bash-driven pipeline for running Claude Code projects end-to-end
 
 ## Key terms
 
-See [`CONTEXT.md`](./CONTEXT.md) for the full glossary. The load-bearing six:
+[`CONTEXT.md`](./CONTEXT.md) is the canonical glossary (single source of truth per [ADR-0008](./docs/adr/0008-naming-discipline.md)). The load-bearing seven, with anchor links into CONTEXT.md for full definitions:
 
-- **Ponder** — the planning phase: grill the idea, write the PRD, file + triage issues.
-- **Forgemaster** — the orchestrator: dispatches `/forge` and `/temper` workers per slice, watches sentinels, advances the queue. Does no inline work.
-- **Forge** — one worker that takes a triaged issue from branch → green-CI PR. Does not merge.
-- **Temper** — review-and-harden phase per slice: dispatches the `reviewer` agent on the PR diff, runs an inline intent-match against the issue body, and applies a strict friction rule (any reviewer HIGH or intent-match fail → `friction`; else `ready-for-seal`). Deterministic structural-integrity gating lives in CI, not `/temper` — see [ADR-0006](./docs/adr/0006-temper-review-boundary.md).
-- **Seal** — the closer: approves + squash-merges every `ready-for-seal` PR in the batch, then reconciles `MISSION-CONTROL.md`.
-- **Slice** — a single triaged issue. Slice labels (`slice:logic` / `slice:ui` / `slice:mixed`) drive how `/forge` builds it.
+- [**Ponder**](./CONTEXT.md#ponder) — the planning phase: grill the idea, write the PRD, file + triage issues.
+- [**Forge phase**](./CONTEXT.md#forge-phase) — the build phase, second of four. Runs [`/forge-overseer`](./CONTEXT.md#forge-overseer) as orchestrator and [`/forge <N>`](./CONTEXT.md#forge) as the per-slice worker.
+- [**Temper**](./CONTEXT.md#temper) — the review-and-harden phase, third of four. Runs [`/temper-overseer`](./CONTEXT.md#temper-overseer) as orchestrator and `/temper <PR>` as the per-PR worker (reviewer agent + inline intent-match + strict friction rule per [ADR-0006](./docs/adr/0006-temper-review-boundary.md)).
+- [**Seal**](./CONTEXT.md#seal) — the closer phase: approves + squash-merges every `ready-for-seal` PR in the batch, then reconciles `MISSION-CONTROL.md`. No internal orchestrator per ADR-0007.
+- [**Slice**](./CONTEXT.md#slice) — a single triaged issue. Slice labels (`slice:logic` / `slice:ui` / `slice:mixed`) drive how `/forge` builds it.
+- [**Friction**](./CONTEXT.md#friction) — the first-class "stuck" signal the worker labels + the PR comment shape.
+
+The pipeline runs four phases in fixed order — `Ponder → Forge → Temper → Seal` — with one operator command per phase per [ADR-0007](./docs/adr/0007-pipeline-orchestrator-structure.md).
 
 ## Rules
 

@@ -1,11 +1,22 @@
 ---
 name: seal
-description: Close out a build batch — approve and merge every PR marked ready-for-seal (skipping any with friction or non-green CI), reconcile MISSION-CONTROL.md against GitHub state, then clean up runtime artifacts. Use after /forgemaster drains its queue, when the user types /seal, says "seal the batch", "close out the PRs", "wrap up", "ship it", or "mark this shipped".
+description: Close out a build batch — approve and merge every PR marked ready-for-seal (skipping any with friction or non-green CI), reconcile MISSION-CONTROL.md against GitHub state, then clean up runtime artifacts. Use after /temper-overseer drains the review queue, when the user types /seal, says "seal the batch", "close out the PRs", "wrap up", "ship it", or "mark this shipped".
 ---
 
 # Seal — close out the batch
 
-`/seal` is the closing step of the **Ponder → Forgemaster → Forge → Temper → Seal** pipeline. `/forge` opens PRs and stops at CI-green; `/temper` reviews each PR and marks it `ready-for-seal`; seal approves them, merges them, reconciles `MISSION-CONTROL.md`, and cleans up.
+`/seal` is the closer phase of the four-phase pipeline (`Ponder → Forge →
+Temper → Seal`). `/forge` opens PRs and stops at CI-green; `/temper` reviews
+each PR and marks it [`ready-for-seal`](../../../CONTEXT.md#ready-for-seal);
+`/seal` approves them, merges them, reconciles `MISSION-CONTROL.md`, and
+cleans up.
+
+Per [ADR-0007](../../../docs/adr/0007-pipeline-orchestrator-structure.md)
+§Decision, Seal stays **flat** — no internal orchestrator, no
+`/seal-overseer` — because per-PR merge work is small enough that subagent
+isolation buys nothing. The operator runs `/seal` explicitly after
+[`/temper-overseer`](../../../CONTEXT.md#temper-overseer) drains the review
+queue.
 
 Idempotent: running `/seal` twice in a row with no new work between produces no changes.
 
@@ -13,12 +24,11 @@ Idempotent: running `/seal` twice in a row with no new work between produces no 
 
 ```
 /seal             # interactive — shows the plan, asks for approval before merging
-/seal --auto      # autonomous — used when forgemaster invokes seal at end of run.
-                  #   Skips per-batch confirmation (user already approved at forgemaster pre-flight).
+/seal --auto      # autonomous — skip the per-batch confirmation prompt.
                   #   Still skips PRs with friction / needs-human / non-green CI or no ready-for-seal label.
 ```
 
-When seal is invoked by `/forgemaster` at end of run, it runs in `--auto` mode. When a user types `/seal` directly, it runs interactively (default).
+`--auto` mode is for operators who want a non-interactive seal run (e.g. running `/seal` immediately after inspecting `/temper-overseer`'s end-of-phase summary). It is NOT auto-invoked by any other skill — per ADR-0007 §Decision, the pre-4e auto-chain into Seal is removed; one operator command per phase.
 
 ## Process
 
@@ -40,7 +50,7 @@ For each candidate PR, decide:
 | Missing `ready-for-seal` label | **skip** — note reason ("`/temper` has not marked this PR ready-for-seal yet"). `/temper` applies the label after review; without it, seal skips. |
 | CI red or pending | **skip** — note reason ("CI not green — wait for it to finish or re-run /forge <N>") |
 | Has `friction` label | **skip** — note reason ("flagged for human review"). `/forge` applies this label whenever it emits `FORGE:RESULT` with `"status":"needs_human","reason":"friction"` and a PR is open. `/temper` also applies it if it discovers a friction-grade issue during review. |
-| Has `needs-human` label | **skip** — note reason ("worker emitted `<FORGE|TEMPER>:RESULT` with `status:\"needs_human\"`"). `/forge` applies this label whenever it emits `FORGE:RESULT` with `"status":"needs_human"` for any non-friction reason (e.g. `"ci-stuck"`) and a PR is open; Forgemaster re-applies it on the final `fail` retry. `/temper` also applies it when its review surfaces blockers. The label is the only signal seal reads — sentinels are worker→Forgemaster, labels are worker→seal. |
+| Has `needs-human` label | **skip** — note reason ("worker emitted `<FORGE|TEMPER>:RESULT` with `status:\"needs_human\"`"). `/forge` applies this label whenever it emits `FORGE:RESULT` with `"status":"needs_human"` for any non-friction reason (e.g. `"ci-stuck"`) and a PR is open; the matching overseer (`/forge-overseer` or `/temper-overseer`) re-applies it on the final `fail` retry. `/temper` also applies it when its review surfaces blockers. The label is the only signal seal reads — sentinels route worker → overseer, labels route worker / overseer → seal. |
 | Draft | **skip** — note reason ("PR is draft") |
 
 ### 3. Show the plan, get approval
@@ -61,7 +71,7 @@ Proceed? (yes / no)
 
 Default `yes` on enter. If the user says no, stop without changes.
 
-**`--auto` mode behavior:** Print the same summary for visibility, but **skip the approval prompt** and proceed directly to step 4. The user already approved this batch at the forgemaster pre-flight. The friction/needs-human/CI-red filter (step 2) still applies — `--auto` doesn't override those skips, it just removes the human confirmation.
+**`--auto` mode behavior:** Print the same summary for visibility, but **skip the approval prompt** and proceed directly to step 4. The friction/needs-human/CI-red filter (step 2) still applies — `--auto` doesn't override those skips, it just removes the human confirmation. (Per ADR-0007 the operator runs `/seal` explicitly; `--auto` is a low-friction operator option, not an auto-invocation from another skill.)
 
 ### 4. Ship each shippable PR
 
@@ -153,9 +163,11 @@ for issue in <merged-issues>; do
   rm -f ".claude/temper-summary-${issue}.md"
 done
 
-# Forge's continuation file, only if the ready-for-agent queue is now empty:
+# Overseer batch-level continuation files, only if the ready-for-agent queue is now empty
+# (and similarly the temper-overseer continuation, if either was written this batch):
 if [[ -z "$(gh issue list --label ready-for-agent --state open --json number --jq '.[]')" ]]; then
-  rm -f .claude/forgemaster-continue.md
+  rm -f .claude/forge-overseer-continue.md
+  rm -f .claude/temper-overseer-continue.md
 fi
 ```
 

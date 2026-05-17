@@ -1,5 +1,7 @@
 # PRD — Forgemaster / Forge / Temper rename + role re-split
 
+> **Naming context (after sub-phase 4e, 2026-05-17):** the body below uses the 4b-era role names. `/forgemaster` (the orchestrator role here) was retired in sub-phase 4e and split into `/forge-overseer` + `/temper-overseer` per [ADR-0007](../adr/0007-pipeline-orchestrator-structure.md) and [ADR-0008](../adr/0008-naming-discipline.md). The `/forge` (builder) and `/temper` (review) worker roles named below are unchanged. Historical body retained per ADR-0007 §Consequences (history is not rewritten).
+
 > Sub-phase **4b** (Phase **P4 — Pipeline naming + permissions**) · Status: 📝 prd-ready · Filed 2026-05-17
 >
 > **Why this size?** P4 is two distinct sub-phases (4a permissions, 4b rename) needing their own PRDs, an ADR amendment + a new ADR, plus two future-stub rows for follow-up work.

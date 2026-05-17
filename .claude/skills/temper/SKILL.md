@@ -5,17 +5,24 @@ description: Review and harden a built slice — dispatches the reviewer agent o
 
 # Temper — Review and Harden a Built Slice
 
-`/temper` runs **after** `/forge` produces a green-CI PR for a slice. It is the
-review-and-harden phase of the pipeline:
+`/temper` is the per-PR worker of the [Temper phase](../../../CONTEXT.md#temper).
+It runs **after** `/forge` produces a green-CI PR for a slice. The pipeline shape:
 
 ```
-Ponder → Forgemaster → Forge → Temper → Seal
+Ponder → Forge → Temper → Seal
 ```
+
+(The Forge and Temper phases each run an orchestrator —
+[`/forge-overseer`](../../../CONTEXT.md#forge-overseer) and
+[`/temper-overseer`](../../../CONTEXT.md#temper-overseer) — that dispatches
+the per-slice / per-PR worker. The four-phase shape above is the operator's
+mental model per [ADR-0007](../../../docs/adr/0007-pipeline-orchestrator-structure.md).)
 
 `/forge` shaped the part (branch → implement → test → PR → green CI). `/temper`
 applies two LLM lenses to what was shipped — a reviewer-agent code-quality pass and an
 inline intent-match against the issue body — then applies a strict friction rule and
-marks the PR ready-for-seal (or labels it `friction` for human review).
+marks the PR [`ready-for-seal`](../../../CONTEXT.md#ready-for-seal) (or labels it
+[`friction`](../../../CONTEXT.md#friction) for human review).
 
 Deterministic structural-integrity gating (template drift, banner discipline, sentinel
 protocol drift, etc.) is **not** `/temper`'s job — those live in CI (`bash -n`,
@@ -27,7 +34,7 @@ LLM-judgment-vs-CI boundary and the strict-friction-rule rationale.
 
 - Issue number from argument (e.g. `/temper 95`).
 - The PR opened by `/forge` for that issue (resolved via `gh pr list` if not provided
-  by forgemaster).
+  by `/temper-overseer`).
 - The slice label (`slice:logic` / `slice:ui` / `slice:mixed`) — used to decide whether
   the reviewer dispatch points at `screenshots/issue-<N>/` for visual conformance.
 
@@ -49,15 +56,15 @@ LLM-judgment-vs-CI boundary and the strict-friction-rule rationale.
 Run these checks first. If any fail, fall through to the friction / needs-human path
 before doing any review work.
 
-1. **Resolve the PR.** Fetch the issue number from the argument; if forgemaster passed
-   the PR number on `FORGE:RESULT`, use it directly. Otherwise:
-   `gh pr list --head feat/#<N>-* --state open --json number,headRefName,labels`.
+1. **Resolve the PR.** Fetch the issue number from the argument; if
+   `/temper-overseer` passed the PR number on `FORGE:RESULT`, use it directly.
+   Otherwise: `gh pr list --head feat/#<N>-* --state open --json number,headRefName,labels`.
 2. **PR is open.** Confirm the resolved PR exists and is in `OPEN` state.
 3. **CI is green.** `gh pr checks <PR>` — last run must be green. If not green, this is
    friction-shape-but-belt-and-suspenders: apply the `needs-human` label and emit
-   `TEMPER:RESULT` with `status:"needs_human"`, `reason:"ci-not-green"`. (Forgemaster's
+   `TEMPER:RESULT` with `status:"needs_human"`, `reason:"ci-not-green"`. (`/forge-overseer`'s
    `FORGE:RESULT` success contract means this should not happen; the check guards
-   against a CI flake going red between forge's exit and temper's start.)
+   against a CI flake going red between `/forge`'s exit and `/temper`'s start.)
 4. **No pre-existing `friction` / `needs-human` labels.** If either is already present,
    pass the PR through unchanged — the upstream worker has already flagged it —
    and emit `TEMPER:RESULT` with `status:"needs_human"`, `reason:"<label>"`. The
@@ -91,7 +98,7 @@ Agent({
 })
 ```
 
-(`subagent_type: "general-purpose"` is the project convention — see `.claude/skills/forgemaster/SKILL.md` for the matching `/forge` and `/temper` dispatches and `.claude/skills/forge/SKILL.md` §Rules for the canonical support-agent dispatch protocol. The `reviewer.md` file is an **agent definition** loaded into the prompt, not a `subagent_type` value.)
+(`subagent_type: "general-purpose"` is the project convention — see `.claude/skills/forge-overseer/SKILL.md` for the matching `/forge` dispatch and `.claude/skills/temper-overseer/SKILL.md` for the matching `/temper` dispatch; `.claude/skills/forge/SKILL.md` §Rules has the canonical support-agent dispatch protocol. The `reviewer.md` file is an **agent definition** loaded into the prompt, not a `subagent_type` value.)
 
 **Slice-conditional addendum.** For `slice:ui` or `slice:mixed`, append one line to the
 prompt pointing the reviewer at the screenshots:
@@ -184,12 +191,12 @@ inputs, that is a real bug. See ADR-0006 §Rationale.
 ### 7. Emit the result sentinel
 
 Every `/temper` run ends by printing a short prose summary followed by **exactly one**
-`TEMPER:RESULT` JSON line. The JSON is the source of truth Forgemaster parses; the
+`TEMPER:RESULT` JSON line. The JSON is the source of truth `/temper-overseer` parses; the
 prose is human-readability only.
 
 Format: a single line beginning with `TEMPER:RESULT ` followed by a JSON object. No
 trailing text, no code fences around the line, no pretty-printing — one object on one
-line so Forgemaster can parse it deterministically.
+line so `/temper-overseer` can parse it deterministically.
 
 Schema is identical to `FORGE:RESULT` (see `docs/shared/pipeline.md`):
 
@@ -203,8 +210,8 @@ Required fields on every emission:
 - `issue` — issue number (integer).
 - `pr` — PR number (integer), or `null` if no PR could be resolved.
 - `branch` — branch name (string), or `null`.
-- `tokens` — always `null` from `/temper`. Forgemaster fills this in via ccusage after
-  the run.
+- `tokens` — always `null` from `/temper`. `/temper-overseer` fills this in via ccusage
+  after the run.
 - `friction` — `null` unless friction was flagged this run; otherwise the friction
   text (string).
 
@@ -254,8 +261,8 @@ corresponding label to the PR **before** emitting the sentinel:
 
 Why: `/seal` classifies merge-vs-skip purely by PR labels. A `needs_human` sentinel
 that leaves no label means a broken PR can be auto-merged the moment CI happens to be
-green. The sentinel tells Forgemaster to skip to the next slice in *this* batch; the
-label tells Seal to skip the PR at close-out. Both signals are required.
+green. The sentinel tells `/temper-overseer` to skip to the next PR in *this* batch; the
+label tells `/seal` to skip the PR at close-out. Both signals are required.
 
 ## Continuation files
 

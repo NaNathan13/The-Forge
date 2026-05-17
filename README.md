@@ -1,8 +1,8 @@
 # The Forge
 
-A drop-in Claude Code workflow that takes a project from idea to shipped code. Plan with `/ponder`, run with `/forgemaster` (dispatches `/forge` + `/temper` per slice), ship with `/seal`. 17 skills, zero project-specific code.
+A drop-in Claude Code workflow that takes a project from idea to shipped code. Plan with `/ponder`, build with `/forge-overseer` (dispatches `/forge <N>` per slice), review with `/temper-overseer` (dispatches `/temper <PR>` per PR), ship with `/seal`. Four phases, one operator command each — no auto-chain. 18 skills, zero project-specific code.
 
-**Pipeline:** `/ponder` (grill + PRD + triage) --> `/forgemaster` (build queue + dispatch loop) --> `/forge <N>` (branch, implement, test, PR, CI) --> `/temper <N>` (review + mark ready-for-seal) --> `/seal` (merge + reconcile). Runs end-to-end after you approve the build queue.
+**Pipeline:** `/ponder` (grill + PRD + triage) --> `/forge-overseer` (build queue + dispatch loop, one `/forge <N>` per slice) --> `/temper-overseer` (review queue + dispatch loop, one `/temper <PR>` per PR) --> `/seal` (merge + reconcile). Each phase runs in its own session; the operator inspects state between phases per [ADR-0007](./docs/adr/0007-pipeline-orchestrator-structure.md).
 
 ## Why this is different
 
@@ -40,10 +40,11 @@ For manual setup, see [`docs/dev/setup.md`](./docs/dev/setup.md). Full dev-mode 
 |-------|-------------|
 | `/ponder` | Grill the idea, write a PRD, file and triage issues |
 | `/prototype` | Fast-mode: skip grill/PRD, file issues directly |
-| `/forgemaster` | Drain the build queue (auto-invokes `/seal` at end) |
-| `/forge <N>` | Build one slice: branch, implement, test, PR, CI |
-| `/temper <N>` | Review one built slice and mark it ready-for-seal |
-| `/seal` | Merge open PRs, reconcile `MISSION-CONTROL.md`, clean up |
+| `/forge-overseer` | Forge-phase orchestrator: drain the build queue, dispatch `/forge <N>` per slice |
+| `/forge <N>` | Build one slice: branch, implement, test, PR, CI (stops at green CI; does NOT merge) |
+| `/temper-overseer` | Temper-phase orchestrator: drain the review queue, dispatch `/temper <PR>` per PR |
+| `/temper <N>` | Review one built slice and mark it `ready-for-seal` (or `friction`) |
+| `/seal` | Approve + merge open `ready-for-seal` PRs, reconcile `MISSION-CONTROL.md`, clean up |
 
 **Sub-skills of `/ponder`:**
 

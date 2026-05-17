@@ -16,14 +16,14 @@
       {
         "hooks": [
           { "type": "command", "command": ".claude/hooks/mission-control-drift.sh" },
-          { "type": "command", "command": ".claude/hooks/forgemaster-session-start.sh" }
+          { "type": "command", "command": ".claude/hooks/overseer-session-start.sh" }
         ]
       }
     ],
     "Stop": [
       {
         "hooks": [
-          { "type": "command", "command": ".claude/hooks/forgemaster-stop-handoff.sh" }
+          { "type": "command", "command": ".claude/hooks/overseer-stop-handoff.sh" }
         ]
       }
     ],

@@ -1,6 +1,6 @@
 ---
 name: forge
-description: Build a triaged slice end-to-end — branch, implement, test, PR, CI, merge. Invoked as /forge <N> where N is the issue number.
+description: Build a triaged slice end-to-end — branch, implement, test, PR, green CI. Stops at green CI and emits FORGE:RESULT; does NOT merge (that's /seal's job). Invoked as /forge <N> where N is the issue number; usually dispatched by /forge-overseer during a batch.
 ---
 
 # Forge — Build a Slice

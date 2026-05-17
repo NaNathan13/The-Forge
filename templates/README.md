@@ -17,19 +17,20 @@ recommended next prompt.
 ## Getting started
 
 This project uses [The Forge](https://github.com/NaNathan13/The-Forge) — a Claude Code
-workflow that takes a project from idea to shipped code. The pipeline is:
+workflow that takes a project from idea to shipped code. The pipeline is four phases
+(`Ponder → Forge → Temper → Seal`); the Forge and Temper phases each run an
+orchestrator inside them:
 
 ```
-/ponder  →  /forgemaster  →  /forge <N>  →  /seal
+/ponder  →  /forge-overseer  →  /temper-overseer  →  /seal
 ```
 
 - `/ponder` — grill the idea, write the PRD, file the issues
-- `/forgemaster` — dispatch a worker per triaged slice
-- `/forge <N>` — build issue `<N>` from branch to green PR
+- `/forge-overseer` — dispatch a `/forge <N>` worker per triaged slice
+- `/temper-overseer` — dispatch a `/temper <PR>` worker per batch PR (review)
 - `/seal` — approve and merge the batch, reconcile mission control
 
-See [`WORKFLOW.md`](./WORKFLOW.md) for the full cheat-sheet and [`CLAUDE.md`](./CLAUDE.md)
-for the project's tech stack and conventions.
+One operator command per phase — no auto-chain between phases. See [`WORKFLOW.md`](./WORKFLOW.md) for the full cheat-sheet and [`CLAUDE.md`](./CLAUDE.md) for the project's tech stack and conventions.
 
 ## Docs
 

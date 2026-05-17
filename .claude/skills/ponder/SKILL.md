@@ -1,19 +1,30 @@
 ---
 name: ponder
-description: Use when starting new work from a fuzzy idea, want to grill out a feature, write a PRD, or break a sub-phase into issues. First phase of the Ponder → Forgemaster → Forge → Temper workflow. Ends with all slices triaged `ready-for-agent` with `slice:*` labels, ready for `/forgemaster`.
+description: Use when starting new work from a fuzzy idea, want to grill out a feature, write a PRD, or break a sub-phase into issues. First phase of the Ponder → Forge → Temper → Seal workflow. Ends with all slices triaged `ready-for-agent` with `slice:*` labels, ready for `/forge-overseer`.
 ---
 
 # Ponder — think, scope, file work
 
-The planning phase of the pipeline (Ponder → Forgemaster → Forge → Temper). You leave Ponder with **all slices triaged `ready-for-agent`** and kanban cards in **Ready**. Forgemaster dispatches /forge then /temper per slice to build them.
+The planning phase of the four-phase pipeline (`Ponder → Forge → Temper →
+Seal`; the Forge and Temper phases each run an orchestrator inside them —
+[`/forge-overseer`](../../../CONTEXT.md#forge-overseer) and
+[`/temper-overseer`](../../../CONTEXT.md#temper-overseer) — per
+[ADR-0007](../../../docs/adr/0007-pipeline-orchestrator-structure.md)). You
+leave Ponder with **all slices triaged
+[`ready-for-agent`](../../../CONTEXT.md#ready-for-agent)** and kanban cards
+in **Ready**. `/forge-overseer` then dispatches `/forge <N>` per slice;
+after every PR is open + CI green, the operator runs `/temper-overseer` to
+review them, then `/seal` to merge.
 
 **The pipeline shape:**
 
 ```
-/ponder ──→ /forgemaster ──→ /forge <N> (dispatched as subagent with up to 2 support agents)
+/ponder ──→ /forge-overseer ──→ /temper-overseer ──→ /seal
+            (dispatches /forge   (dispatches /temper
+             per slice)           per PR)
 ```
 
-Each phase runs in its own Claude session and hands off via on-disk artifacts (issues, PRD, screenshots, PR body). No session-memory continuity between phases.
+Each phase runs in its own Claude session and hands off via on-disk artifacts (issues, PRD, screenshots, PR body, labels). No session-memory continuity between phases — see [ADR-0002](../../../docs/adr/0002-phase-isolation.md). No auto-chain between phases — the operator runs each phase explicitly per ADR-0007.
 
 ## Invocation
 
@@ -126,8 +137,8 @@ Inscribe handles everything from here: PRD writing (sub-phase always; single-sli
 - Kanban cards in **Ready**.
 - (Sub-phase path only) PRD saved to `docs/prds/`.
 - `MISSION-CONTROL.md` "Recommended next prompt" updated.
-- Handoff printed: "Run `/forgemaster` to dispatch the build queue."
-- Session ends. The user runs `/forgemaster` next, in a fresh session.
+- Handoff printed: "Run `/forge-overseer` to dispatch the build queue."
+- Session ends. The user runs `/forge-overseer` next, in a fresh session.
 
 ## When NOT to use `/ponder`
 

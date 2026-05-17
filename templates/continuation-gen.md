@@ -9,7 +9,7 @@
   The file is IMMUTABLE once written — the next generation is a new file, never
   an in-place edit. All five sections below are MANDATORY and appear in this
   order. `scripts/continuation.sh write` stamps the header and placeholders;
-  the session fills the body before it exits with a FORGEMASTER_CONTINUE sentinel.
+  the session fills the body before it exits with an OVERSEER_CONTINUE sentinel.
 
   Hardening rules (do not relax — these defend R1's named anti-patterns):
    - Hard constraints: restated VERBATIM every generation. Never summarized.

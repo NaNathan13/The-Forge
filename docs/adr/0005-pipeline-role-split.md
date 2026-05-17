@@ -1,5 +1,7 @@
 # ADR 0005 — Pipeline role split: forgemaster / forge / temper
 
+> **Naming context (after sub-phase 4e, 2026-05-17):** the body below uses the 4b-era role names. `/forgemaster` (the orchestrator role here) was retired in sub-phase 4e and split into two phase-scoped overseers — `/forge-overseer` and `/temper-overseer` — per [ADR-0007](./0007-pipeline-orchestrator-structure.md). The `/forge` (builder) and `/temper` (review) worker roles named below are unchanged. See [ADR-0008](./0008-naming-discipline.md) for the canonical-glossary discipline that pins the post-4e names.
+
 **Status:** Accepted
 **Date:** 2026-05-17
 **Phase:** P4 — Pipeline naming + permissions · sub-phase 4b (Forge ↔ Temper rename + role re-split)

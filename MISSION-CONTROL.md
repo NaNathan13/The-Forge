@@ -7,12 +7,12 @@
 
 **Phase:** P5 — Dev Mode ░ 0/1
 **In flight:** —
-**Workflow:** Ponder → Forge → Temper pipeline. See [`docs/workflow/`](docs/workflow/) for details. (Pipeline role names are inverted pre-rename: the current `/forgemaster` is the orchestrator and `/forge` is the builder. Sub-phase 4b corrects this — see [ADR-0005](docs/adr/0005-pipeline-role-split.md).)
+**Workflow:** Ponder → Forge → Temper → Seal pipeline. See [`docs/workflow/`](docs/workflow/) for details. The Forge and Temper phases each run an orchestrator inside them — `/forge-overseer` and `/temper-overseer` — per [ADR-0007](docs/adr/0007-pipeline-orchestrator-structure.md). One operator command per phase; no auto-chain.
 
 **Recommended next prompt:**
 
 ```
-/forgemaster --phase 4e
+/forge-overseer --phase 4e
 ```
 
 > Build all 4e slices
@@ -53,7 +53,7 @@
 | --- | --- | --- | --- | --- | --- |
 | 1a | Research + design (north-star, ADR, P2/P3 design docs) | ✅ shipped | — | [`docs/prds/autonomous-forge.md`](docs/prds/autonomous-forge.md) | #129, #130, #131 <!-- mc:done=129,130,131 --> |
 | 1b | P2 single-session resilience — build | ✅ shipped | — | [`docs/prds/p2-single-session-resilience-build.md`](docs/prds/p2-single-session-resilience-build.md) | #136, #137, #138, #139, #140, #141, #142, #143, #152 <!-- mc:done=136,137,138,139,140,141,142,143,152 --> |
-| 1c | Wire forge into the P2 relaunch loop | ✅ shipped | — | [`docs/prds/forgemaster-relaunch-loop-integration.md`](docs/prds/forgemaster-relaunch-loop-integration.md) | #181, #182, #183, #184, #185 <!-- mc:done=181,182,183,184,185 --> |
+| 1c | Wire forge into the P2 relaunch loop | ✅ shipped | — | [`docs/prds/forge-relaunch-loop-integration.md`](docs/prds/forge-relaunch-loop-integration.md) | #181, #182, #183, #184, #185 <!-- mc:done=181,182,183,184,185 --> |
 
 ### P2 — Pipeline Audit ▓ 1/1
 
@@ -86,7 +86,7 @@
 > 1. **4a — Permissions deny → ask** (#258). ADR-0004's defense-in-depth `permissions.deny` block hard-blocked Claude from reading human-only docs *even when the operator explicitly authorized a read*. The deny was designed to protect against autonomous misjudgment, not against in-the-loop authorization. Shift to `ask` semantics so the operator gets a permission prompt instead of a wall; autonomous mode (`dontAsk`) still auto-denies `ask` rules per Claude Code docs — original safety preserved. ADR-0004 amended append-only.
 > 2. **4b — Forge ↔ Temper rename + role re-split** (#259). Current naming is metallurgically inverted: `/forgemaster` is the dispatcher/orchestrator, `/forge` does the actual building + testing. Forge (verb) = shape by heat and hammer (build); Temper (verb) = harden by cycles after forging (review + durability). The rename: `/forgemaster` becomes the orchestrator, `/forge` becomes the builder, `/temper` becomes the review-and-harden phase (stub passthrough in 4b; real review behavior in 4c). Atomic big-bang — no back-compat for sentinel names. ADR-0005 new.
 > 3. **4c — /temper real review behavior**. Promote from stub passthrough to real reviewer-agent dispatch + inline intent-match + strict friction rule. ADR-0006 new.
-> 4. **4e — Orchestrator rename + "the Forge" disambiguation** (stub). 4b corrected the build/review naming but left the orchestrator named `/forgemaster`, which still reads like a pipeline step. The pipeline is **Ponder → Forge → Temper → Seal**; the orchestrator oversees it from *outside* the lineup and should be named accordingly (e.g. `/master`, `/overseer`, `/conductor` — final name resolved by 4e's grill). Also disambiguates "The Forge" (the project) from `/forge` (the build phase) — likely via a project-scoped `CONTEXT.md` entry that pins both terms. Ships after 4c so it doesn't churn the SKILL.md /temper rewrite is editing.
+> 4. **4e — Orchestrator rename + naming discipline**. 4b corrected the build/review naming but left the orchestrator named `/forgemaster`, which still reads like a pipeline step. Per ADR-0007 the four phases are **Ponder → Forge → Temper → Seal**; orchestrators run *inside* a phase, not as one. 4e splits `/forgemaster` into `/forge-overseer` (Forge phase) and `/temper-overseer` (Temper phase) — symmetric per-phase orchestrators with no auto-chain between phases. ADR-0008 locks the naming discipline (CONTEXT.md as canonical glossary SSOT, `/inscribe` hard gate on PRD "Terms used" sections, `<phase>-overseer` pattern, `/forgemaster` reserved for a future cross-project session manager) and disambiguates "The Forge" / "Forge phase" / "/forge".
 > 5. **4d — Naming-annotation cleanup** (stub). Rewrite historical-doc bodies to new terms verbatim; remove the annotation scaffolding 4b adds. Now blocked by 4e too (the orchestrator rename is the second pass that historical bodies need to absorb). Ships after the new vocabulary has been stable for at least one product cycle.
 >
 > 4a ships first to lock the hook contract before 4b touches `.claude/hooks/`. 4c → 4e → 4d is the natural completion order.
@@ -120,9 +120,9 @@
 
 - [`0001-autonomous-forge-architecture.md`](docs/adr/0001-autonomous-forge-architecture.md) — 3-tier model + optional-by-layers principle + operator-setup requirement (P1 / sub-phase 1a). **Now historical** — the 3-tier model survives as future vision but its P2–P6 phasing has been superseded by P3 (Improvements) + P4 (WHJ). See `docs/design/improvements-overview.md` for the new direction.
 - [`0002-phase-isolation.md`](docs/adr/0002-phase-isolation.md) — Phases communicate only via on-disk artifacts; session memory between phases is forbidden (P3 / sub-phase 3b).
-- [`0003-concurrency-cap.md`](docs/adr/0003-concurrency-cap.md) — Single-worker concurrency cap as a deliberate trade: forgemaster dispatches exactly one temper per generation, with a recorded revisit precondition (P3 / sub-phase 3b).
+- [`0003-concurrency-cap.md`](docs/adr/0003-concurrency-cap.md) — Single-worker concurrency cap as a deliberate trade: the active overseer dispatches exactly one worker per generation, with a recorded revisit precondition (P3 / sub-phase 3b).
 - [`0004-context-loading-defense-in-depth.md`](docs/adr/0004-context-loading-defense-in-depth.md) — Context-loading enforcement uses both a static permissions block AND a `PreToolUse` Read hook (dynamic, banner-scan); the two mechanisms cover disjoint failure modes and collapsing breaks one of them (P3 / sub-phase 3g). **Amended 2026-05-17 (sub-phase 4a)**: decision values swap from `deny` to `ask` so the operator can authorize reads via a permission prompt; defense-in-depth architecture unchanged.
-- [`0005-pipeline-role-split.md`](docs/adr/0005-pipeline-role-split.md) — Pipeline runs three named roles: `/forgemaster` (orchestrator), `/forgemaster` (builder), `/forge` (review + harden). Per-slice cut between green-CI PR and post-PR review. Sets project's amendment convention via ADR-0004 as the sibling decision-value-swap example (P4 / sub-phase 4b).
+- [`0005-pipeline-role-split.md`](docs/adr/0005-pipeline-role-split.md) — Pipeline runs three named roles: `/forgemaster` (orchestrator), `/forge` (builder), `/temper` (review). Per-slice cut between green-CI PR and post-PR review. Sets project's amendment convention via ADR-0004 as the sibling decision-value-swap example (P4 / sub-phase 4b). **Superseded by ADR-0007 in sub-phase 4e** — `/forgemaster` was retired and split into `/forge-overseer` + `/temper-overseer`.
 - [`0006-temper-review-boundary.md`](docs/adr/0006-temper-review-boundary.md) — `/temper`'s responsibility is LLM judgment (reviewer-agent on diff + inline intent-match against issue body); deterministic structural-integrity gating lives in CI; strict friction rule (any reviewer HIGH or intent-match failure → friction; else ready-for-seal) keeps the gate audit-stable (P4 / sub-phase 4c).
 - [`0007-pipeline-orchestrator-structure.md`](docs/adr/0007-pipeline-orchestrator-structure.md) — Pipeline is four phases (`Ponder → Forge → Temper → Seal`); the orchestrator runs inside a phase, not as a phase; Forge and Temper carry symmetric `<phase>-overseer` orchestrators; one operator command per phase (no auto-chain); rework loops via `friction` / `needs-rework` labels + operator re-runs Forge; Seal stays flat (P4 / sub-phase 4e).
 - [`0008-naming-discipline.md`](docs/adr/0008-naming-discipline.md) — CONTEXT.md is the canonical glossary single-source-of-truth; living docs anchor-link to `CONTEXT.md#term`; `/inscribe` hard-gates PRD filing on a `Terms used` section; `<phase>-overseer` is the orchestrator naming pattern; `/forgemaster` is reserved for a future cross-project Claude session manager (P4 / sub-phase 4e).
