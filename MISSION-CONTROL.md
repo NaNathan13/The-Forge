@@ -94,7 +94,7 @@
 | 4a | Permissions deny → ask | ✅ shipped | — | [`docs/prds/improvements-4a-permissions-ask.md`](docs/prds/improvements-4a-permissions-ask.md) | #258 <!-- mc:done=258 --> |
 | 4b | Forge ↔ Temper rename + role re-split | ✅ shipped | — | [`docs/prds/improvements-4b-rename.md`](docs/prds/improvements-4b-rename.md) | #259 <!-- mc:done=259 --> |
 | 4c | /temper real review behavior (reviewer-agent dispatch + inline intent-match + strict friction rule) | ✅ shipped | — | — | #262 <!-- mc:done=262 --> |
-| 4e | Orchestrator rename (`/forgemaster` → TBD) + "the Forge" / `/forge` disambiguation | ⏳ queued | 4c | — | <!-- mc:none --> |
+| 4e | Orchestrator rename (`/forgemaster` → TBD) + "the Forge" / `/forge` disambiguation | ⏳ queued | — | [`docs/prds/improvements-4e-orchestrator-rename.md`](docs/prds/improvements-4e-orchestrator-rename.md) | <!-- mc:none --> |
 | 4d | Naming-annotation cleanup (rewrite historical bodies; remove annotation scaffolding) | ⏳ queued | 4b, 4e | — | <!-- mc:none --> |
 
 ### P5 — Dev Mode ░ 0/1
