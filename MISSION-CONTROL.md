@@ -5,21 +5,23 @@
 
 ## 🛰️ Telemetry — right now
 
-**Phase:** P4 — Dev Mode ░ 0/1
+**Phase:** P4 — Pipeline naming + permissions ░░░░ 0/4
 **In flight:** —
-**Workflow:** Ponder → Forge → Temper pipeline. See [`docs/workflow/`](docs/workflow/) for details.
+**Workflow:** Ponder → Forge → Temper pipeline. See [`docs/workflow/`](docs/workflow/) for details. (Pipeline role names are inverted pre-rename: the current `/forge` is the orchestrator and `/temper` is the builder. Sub-phase 4b corrects this — see [ADR-0005](docs/adr/0005-pipeline-role-split.md).)
 
 **Recommended next prompt:**
 
 ```
-/ponder 4a
+/forge --phase 4a
 ```
+
+> Build the 4a slice (#258) — permissions deny→ask. Ships first to lock the hook surface before 4b's rename touches `.claude/hooks/`.
 
 ## ☄️ In flight
 
 | Sub-phase | Slice | Status |
 | --- | --- | --- |
-| 3h | Token-waste audit | ⏸ deferred — needs ≥3 real sessions of post-3g log data; revisit after P4 grill + first product project |
+| 3h | Token-waste audit | ⏸ deferred — needs ≥3 real sessions of post-3g log data; revisit after P5 grill + first product project |
 
 ## 🪐 Phase progress
 
@@ -77,13 +79,31 @@
 | 3h | Token-waste audit | ⏸ deferred | — | [`docs/prds/improvements-3h-token-waste-audit.md`](docs/prds/improvements-3h-token-waste-audit.md) | <!-- mc:none --> |
 | 3i | Doc reconciliation | ✅ shipped | — | [`docs/prds/improvements-3i-doc-reconciliation.md`](docs/prds/improvements-3i-doc-reconciliation.md) | #254, #255 <!-- mc:done=254,255 --> |
 
-### P4 — Dev Mode ░ 0/1
+### P4 — Pipeline naming + permissions ░░░░ 0/4
 
-> Replaces the current `fast`/`balanced`/`tdd` developer-modes system (shipped in P0a) with three workflow-character modes: **Weenie Hut Junior** (non-technical users), **Fast** (spike/prototype), and **Default** (sensible TDD modeled on Claude Code's brainstorm-plugin, *not* full Matt-Pocock-style RGR). **Phase exists; scope deliberately deferred** per Improvements grill lock #6 — the P4 `/ponder` runs after P3 ships, informed by what the first product project teaches us about which mode needs depth first. Design notes: [`docs/design/dev-mode-overview.md`](docs/design/dev-mode-overview.md). WHJ-mode source material: [`.forge-dev/future/weenie-hut-junior.md`](.forge-dev/future/weenie-hut-junior.md). Historical: [`docs/prds/developer-modes.md`](docs/prds/developer-modes.md) (the system being replaced).
+> Two related reforms surfaced during the 3i wrap-up (2026-05-16), grilled + filed 2026-05-17, plus two follow-up stubs:
+>
+> 1. **4a — Permissions deny → ask** (#258). ADR-0004's defense-in-depth `permissions.deny` block hard-blocked Claude from reading human-only docs *even when the operator explicitly authorized a read*. The deny was designed to protect against autonomous misjudgment, not against in-the-loop authorization. Shift to `ask` semantics so the operator gets a permission prompt instead of a wall; autonomous mode (`dontAsk`) still auto-denies `ask` rules per Claude Code docs — original safety preserved. ADR-0004 amended append-only.
+> 2. **4b — Forge ↔ Temper rename + role re-split** (#259). Current naming is metallurgically inverted: `/forge` is the dispatcher/orchestrator, `/temper` does the actual building + testing. Forge (verb) = shape by heat and hammer (build); Temper (verb) = harden by cycles after forging (review + durability). The rename: `/forgemaster` becomes the orchestrator, `/forge` becomes the builder, `/temper` becomes the review-and-harden phase (stub passthrough in 4b; real review behavior in 4c). Atomic big-bang — no back-compat for sentinel names. ADR-0005 new.
+> 3. **4c — /temper review behavior** (stub). Promote when 4b ships green and operator has post-rename muscle memory.
+> 4. **4d — Naming-annotation cleanup** (stub). Rewrite historical-doc bodies to new terms verbatim; remove the annotation scaffolding 4b adds. Ships after the new vocabulary has been stable for at least one product cycle.
+>
+> 4a ships first to lock the hook contract before 4b touches `.claude/hooks/`.
 
 | # | Sub-phase | Status | Blocked by | PRD | Issues |
 | --- | --- | --- | --- | --- | --- |
-| 4a | Scope (TBD post-P3) | ⏳ scope-TBD | — | [`docs/design/dev-mode-overview.md`](docs/design/dev-mode-overview.md) (stub) | <!-- mc:none --> |
+| 4a | Permissions deny → ask | 📝 prd-ready | — | [`docs/prds/improvements-4a-permissions-ask.md`](docs/prds/improvements-4a-permissions-ask.md) | #258 <!-- mc:open=258 --> |
+| 4b | Forge ↔ Temper rename + role re-split | 📝 prd-ready | 4a | [`docs/prds/improvements-4b-rename.md`](docs/prds/improvements-4b-rename.md) | #259 <!-- mc:open=259 --> |
+| 4c | /temper review behavior (reviewer-agent + durability checks + friction-label logic) | ⏳ queued | 4b | — | <!-- mc:none --> |
+| 4d | Naming-annotation cleanup (rewrite historical bodies; remove annotation scaffolding) | ⏳ queued | 4b | — | <!-- mc:none --> |
+
+### P5 — Dev Mode ░ 0/1
+
+> Replaces the current `fast`/`balanced`/`tdd` developer-modes system (shipped in P0a) with three workflow-character modes: **Weenie Hut Junior** (non-technical users), **Fast** (spike/prototype), and **Default** (sensible TDD modeled on Claude Code's brainstorm-plugin, *not* full Matt-Pocock-style RGR). **Phase exists; scope deliberately deferred** per Improvements grill lock #6 — the P5 `/ponder` runs after P4 ships, informed by what the first product project teaches us about which mode needs depth first. Design notes: [`docs/design/dev-mode-overview.md`](docs/design/dev-mode-overview.md). WHJ-mode source material: [`.forge-dev/future/weenie-hut-junior.md`](.forge-dev/future/weenie-hut-junior.md). Historical: [`docs/prds/developer-modes.md`](docs/prds/developer-modes.md) (the system being replaced).
+
+| # | Sub-phase | Status | Blocked by | PRD | Issues |
+| --- | --- | --- | --- | --- | --- |
+| 5a | Scope (TBD post-P4) | ⏳ scope-TBD | — | [`docs/design/dev-mode-overview.md`](docs/design/dev-mode-overview.md) (stub) | <!-- mc:none --> |
 
 ## 🛸 Architectural items
 
@@ -99,7 +119,8 @@
 - [`0001-autonomous-forge-architecture.md`](docs/adr/0001-autonomous-forge-architecture.md) — 3-tier model + optional-by-layers principle + operator-setup requirement (P1 / sub-phase 1a). **Now historical** — the 3-tier model survives as future vision but its P2–P6 phasing has been superseded by P3 (Improvements) + P4 (WHJ). See `docs/design/improvements-overview.md` for the new direction.
 - [`0002-phase-isolation.md`](docs/adr/0002-phase-isolation.md) — Phases communicate only via on-disk artifacts; session memory between phases is forbidden (P3 / sub-phase 3b).
 - [`0003-concurrency-cap.md`](docs/adr/0003-concurrency-cap.md) — Single-worker concurrency cap as a deliberate trade: forge dispatches exactly one temper per generation, with a recorded revisit precondition (P3 / sub-phase 3b).
-- [`0004-context-loading-defense-in-depth.md`](docs/adr/0004-context-loading-defense-in-depth.md) — Context-loading enforcement uses both `permissions.deny` (static, known paths) AND a `PreToolUse` Read hook (dynamic, banner-scan); the two mechanisms cover disjoint failure modes and collapsing breaks one of them (P3 / sub-phase 3g).
+- [`0004-context-loading-defense-in-depth.md`](docs/adr/0004-context-loading-defense-in-depth.md) — Context-loading enforcement uses both a static permissions block AND a `PreToolUse` Read hook (dynamic, banner-scan); the two mechanisms cover disjoint failure modes and collapsing breaks one of them (P3 / sub-phase 3g). **Amended 2026-05-17 (sub-phase 4a)**: decision values swap from `deny` to `ask` so the operator can authorize reads via a permission prompt; defense-in-depth architecture unchanged.
+- [`0005-pipeline-role-split.md`](docs/adr/0005-pipeline-role-split.md) — Pipeline runs three named roles: `/forgemaster` (orchestrator), `/forge` (builder), `/temper` (review + harden). Per-slice cut between green-CI PR and post-PR review. Sets project's amendment convention via ADR-0004 as the sibling decision-value-swap example (P4 / sub-phase 4b).
 
 ## 🌑 Out of scope
 
