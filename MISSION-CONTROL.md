@@ -5,17 +5,15 @@
 
 ## 🛰️ Telemetry — right now
 
-**Phase:** P4 — Pipeline naming + permissions ░░░░ 0/4
+**Phase:** P5 — Dev Mode ░ 0/1
 **In flight:** —
 **Workflow:** Ponder → Forge → Temper pipeline. See [`docs/workflow/`](docs/workflow/) for details. (Pipeline role names are inverted pre-rename: the current `/forge` is the orchestrator and `/temper` is the builder. Sub-phase 4b corrects this — see [ADR-0005](docs/adr/0005-pipeline-role-split.md).)
 
 **Recommended next prompt:**
 
 ```
-/forge --phase 4a
+/forge
 ```
-
-> Build the 4a slice (#258) — permissions deny→ask. Ships first to lock the hook surface before 4b's rename touches `.claude/hooks/`.
 
 ## ☄️ In flight
 
@@ -79,7 +77,7 @@
 | 3h | Token-waste audit | ⏸ deferred | — | [`docs/prds/improvements-3h-token-waste-audit.md`](docs/prds/improvements-3h-token-waste-audit.md) | <!-- mc:none --> |
 | 3i | Doc reconciliation | ✅ shipped | — | [`docs/prds/improvements-3i-doc-reconciliation.md`](docs/prds/improvements-3i-doc-reconciliation.md) | #254, #255 <!-- mc:done=254,255 --> |
 
-### P4 — Pipeline naming + permissions ░░░░ 0/4
+### P4 — Pipeline naming + permissions ▓░░░ 1/4
 
 > Two related reforms surfaced during the 3i wrap-up (2026-05-16), grilled + filed 2026-05-17, plus two follow-up stubs:
 >
@@ -92,7 +90,7 @@
 
 | # | Sub-phase | Status | Blocked by | PRD | Issues |
 | --- | --- | --- | --- | --- | --- |
-| 4a | Permissions deny → ask | 📝 prd-ready | — | [`docs/prds/improvements-4a-permissions-ask.md`](docs/prds/improvements-4a-permissions-ask.md) | #258 <!-- mc:open=258 --> |
+| 4a | Permissions deny → ask | ✅ shipped | — | [`docs/prds/improvements-4a-permissions-ask.md`](docs/prds/improvements-4a-permissions-ask.md) | #258 <!-- mc:done=258 --> |
 | 4b | Forge ↔ Temper rename + role re-split | 📝 prd-ready | 4a | [`docs/prds/improvements-4b-rename.md`](docs/prds/improvements-4b-rename.md) | #259 <!-- mc:open=259 --> |
 | 4c | /temper review behavior (reviewer-agent + durability checks + friction-label logic) | ⏳ queued | 4b | — | <!-- mc:none --> |
 | 4d | Naming-annotation cleanup (rewrite historical bodies; remove annotation scaffolding) | ⏳ queued | 4b | — | <!-- mc:none --> |
