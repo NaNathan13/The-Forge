@@ -1,148 +1,70 @@
 # 🚀 The Forge — Mission Control
 
 > Ground station for the project's trajectory — where it stands, and the next burn.
-> Auto-updated by pipeline skills (`/inscribe`, `/forge`, `/seal`). Each phase updates the "Recommended next prompt". Drift between this doc and GitHub issue state is surfaced as a SessionStart reminder.
+> Flat state-bucket ledger. Auto-updated by pipeline skills (`/inscribe`, `/forge`, `/seal`). Each phase updates the "Recommended next prompt". Drift between this doc and GitHub issue state is surfaced as a SessionStart reminder.
 
 ## 🛰️ Telemetry — right now
 
-**Phase:** P4 — Pipeline naming + permissions ▓▓▓▓░ 4/5 (4d in flight)
-**In flight:** 4d — v1 cleanup ratchet (6 slices)
 **Workflow:** Ponder → Forge → Temper → Seal pipeline. See [`docs/workflow/`](docs/workflow/) for details. The Forge and Temper phases each run an orchestrator inside them — `/forge-overseer` and `/temper-overseer` — per [ADR-0005](docs/adr/0005-pipeline-orchestrator-structure.md). One operator command per phase; no auto-chain.
 
 **Recommended next prompt:**
 
 ```
-/forge-overseer --phase 4d
+/forge-overseer
 ```
 
-> Build all 4d slices
+> Drain the remaining 4d build queue (#274, #275)
 
-## ☄️ In flight
+## 🚧 In flight
 
-| Sub-phase | Slice | Status |
+| # | Title | Status |
 | --- | --- | --- |
-| 3h | Token-waste audit | ⏸ deferred — needs ≥3 real sessions of post-3g log data; revisit after P5 grill + first product project |
+| 273 | v1 cleanup ratchet — root docs + MC flat-ledger + MC-coupled scripts (atomic) | 🚧 in-progress <!-- mc:open=273 --> |
+| 274 | v1 cleanup ratchet — skills/rules/workflow/shared/vision/onboarding/knowledge sweep | ⏳ queued <!-- mc:open=274 --> |
+| 275 | v1 cleanup ratchet — templates mirror | ⏳ queued <!-- mc:open=275 --> |
 
-## 🪐 Phase progress
+## ⏳ Queued
 
-<!--
-  Sub-phases live in tables under phase headers. As work is filed and shipped,
-  /inscribe, /forge, and /seal update these rows.
+| # | Title |
+| --- | --- |
 
-  Status emoji: ⏳ queued · 🔥 grilling · 📝 prd-ready · 🚧 in-progress · ✅ shipped · ⏸ deferred
+## ⏸ Deferred
 
-  Row markers (HTML comments at end of Issues column, invisible when rendered):
-    <!-- mc:none -->            no issues filed yet
-    <!-- mc:open=N,N -->        issue numbers tracked as open
-    <!-- mc:done=N,N -->        all listed issues closed (shipped)
--->
-
-### P0 Foundations ▓▓▓ 3/3
-
-| # | Sub-phase | Status | Blocked by | PRD | Issues |
-| --- | --- | --- | --- | --- | --- |
-| 0a | Developer modes (fast/balanced/tdd) | ✅ shipped | — | [`docs/prds/developer-modes.md`](docs/prds/developer-modes.md) | #56, #57, #58, #59 <!-- mc:done=56,57,58,59 --> |
-| 0b | Template invariant + push-to-main freedom | ✅ shipped | — | [`docs/prds/template-invariant.md`](docs/prds/template-invariant.md) | #115, #116, #117, #118, #119, #120, #121 <!-- mc:done=115,116,117,118,119,120,121 --> |
-| 0z | Pipeline audit cleanup (2026-05-13) | ✅ shipped | — | — | #66, #67, #68, #69, #70, #71, #72, #73, #74, #75, #76, #77, #78, #79, #80, #81, #82, #83, #84, #85, #86, #87, #88 <!-- mc:done=66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88 --> |
-
-### P1 — Autonomous Forge ▓▓▓ 3/3
-
-> Original initiative north star: [`docs/vision/autonomous-forge.md`](docs/vision/autonomous-forge.md). **Superseded as roadmap** — sub-phases beyond 1c (fleet substrate, Discord control plane, Tier-0 sudo orchestrator) do not ship as P-stack phases; they re-enter the roadmap after P4 (WHJ), if at all. Retained as historical record + future-vision input. The Discord-specific design context (including the 2026-05-15 Agent View finding) lives in [`docs/vision/discord-control-plane.md`](docs/vision/discord-control-plane.md) and [`docs/research/2026-05-15-cc-session-managers.md`](docs/research/2026-05-15-cc-session-managers.md). The Tier-0 cross-project rollup is sketched in [`docs/vision/tier0-sudo-orchestrator.md`](docs/vision/tier0-sudo-orchestrator.md).
-
-| # | Sub-phase | Status | Blocked by | PRD | Issues |
-| --- | --- | --- | --- | --- | --- |
-| 1a | Research + design (north-star, ADR, P2/P3 design docs) | ✅ shipped | — | [`docs/prds/autonomous-forge.md`](docs/prds/autonomous-forge.md) | #129, #130, #131 <!-- mc:done=129,130,131 --> |
-| 1b | P2 single-session resilience — build | ✅ shipped | — | [`docs/prds/p2-single-session-resilience-build.md`](docs/prds/p2-single-session-resilience-build.md) | #136, #137, #138, #139, #140, #141, #142, #143, #152 <!-- mc:done=136,137,138,139,140,141,142,143,152 --> |
-| 1c | Wire forge into the P2 relaunch loop | ✅ shipped | — | [`docs/prds/forge-relaunch-loop-integration.md`](docs/prds/forge-relaunch-loop-integration.md) | #181, #182, #183, #184, #185 <!-- mc:done=181,182,183,184,185 --> |
-
-### P2 — Pipeline Audit ▓ 1/1
-
-> Documentation + validation initiative — no pipeline behavior changes. Produced one onboarding doc + eleven facet audits + the `AUDIT-SUMMARY.md` rollup. **Outputs feed P3 — Improvements.**
-
-| # | Sub-phase | Status | Blocked by | PRD | Issues |
-| --- | --- | --- | --- | --- | --- |
-| 2a | Workflow audit + onboarding doc | ✅ shipped | — | [`docs/prds/pipeline-audit.md`](docs/prds/pipeline-audit.md) | #154, #155, #156, #157, #158, #159, #160, #161, #162, #163, #164, #165, #166 <!-- mc:done=154,155,156,157,158,159,160,161,162,163,164,165,166 --> |
-
-### P3 — Improvements ▓▓▓▓▓▓▓▓░ 8/9
-
-> Finite, scoped refinement pass on The Forge — fix what's empirically broken, polish proven surfaces, get Discord-ready *as a constraint* (no Discord build). Driven by the 2a audit findings, triaged 2026-05-15 via `/grill`. The initial batch (3a–3f) shipped 2026-05-16; an extension batch (3g–3i) was filed the same day, sourced from a 2026-05-16 best-practices research finding + a user-stated token-efficiency goal. Phase overview + locked decisions + extension rationale: [`docs/design/improvements-overview.md`](docs/design/improvements-overview.md). When this phase ships green, The Forge is at the launch-pad for the first real product project.
-
-| # | Sub-phase | Status | Blocked by | PRD | Issues |
-| --- | --- | --- | --- | --- | --- |
-| 3a | Validation contracts (`validate-*.sh` family + sentinel `"v":1` + write-time integrity checks) | ✅ shipped | — | [`docs/prds/improvements-3a-validation.md`](docs/prds/improvements-3a-validation.md) | #192, #193, #194, #195, #196, #197, #198 <!-- mc:done=192,193,194,195,196,197,198 --> |
-| 3b | Documented contracts + bootstrap stamp | ✅ shipped | — | [`docs/prds/improvements-3b-contracts.md`](docs/prds/improvements-3b-contracts.md) | #208, #209, #210, #211 <!-- mc:done=208,209,210,211 --> |
-| 3c | Close knowledge-loop write side | ✅ shipped | — | [`docs/prds/improvements-3c-knowledge-loop.md`](docs/prds/improvements-3c-knowledge-loop.md) | #216, #217, #218, #219 <!-- mc:done=216,217,218,219 --> |
-| 3d | Crash-layer correctness + measurement | ✅ shipped | — | [`docs/prds/improvements-3d-crash-correctness.md`](docs/prds/improvements-3d-crash-correctness.md) | #224, #225, #226 <!-- mc:done=224,225,226 --> |
-| 3e | Live grill artifacts + ADRs | ✅ shipped | — | [`docs/prds/improvements-3e-live-grill.md`](docs/prds/improvements-3e-live-grill.md) | #230, #231, #232 <!-- mc:done=230,231,232 --> |
-| 3f | MC deepening + reconciliation | ✅ shipped | — | [`docs/prds/improvements-3f-mc-deepening.md`](docs/prds/improvements-3f-mc-deepening.md) | <!-- mc:done=236,237,238,239,240 --> |
-| 3g | Context-loading hardening | ✅ shipped | — | [`docs/prds/improvements-3g-context-hardening.md`](docs/prds/improvements-3g-context-hardening.md) | <!-- mc:done=247,248,249 --> |
-| 3h | Token-waste audit | ⏸ deferred | — | [`docs/prds/improvements-3h-token-waste-audit.md`](docs/prds/improvements-3h-token-waste-audit.md) | <!-- mc:none --> |
-| 3i | Doc reconciliation | ✅ shipped | — | [`docs/prds/improvements-3i-doc-reconciliation.md`](docs/prds/improvements-3i-doc-reconciliation.md) | #254, #255 <!-- mc:done=254,255 --> |
-
-### P4 — Pipeline naming + permissions ▓▓▓▓░ 4/5
-
-> Two related reforms surfaced during the 3i wrap-up (2026-05-16), grilled + filed 2026-05-17, plus three follow-up stubs:
->
-> 1. **4a — Permissions deny → ask** (#258). ADR-0003's defense-in-depth `permissions.deny` block hard-blocked Claude from reading human-only docs *even when the operator explicitly authorized a read*. The deny was designed to protect against autonomous misjudgment, not against in-the-loop authorization. Shift to `ask` semantics so the operator gets a permission prompt instead of a wall; autonomous mode (`dontAsk`) still auto-denies `ask` rules per Claude Code docs — original safety preserved. ADR-0003 amended append-only.
-> 2. **4b — Forge ↔ Temper rename + role re-split** (#259). Current naming is metallurgically inverted: `/forgemaster` is the dispatcher/orchestrator, `/forge` does the actual building + testing. Forge (verb) = shape by heat and hammer (build); Temper (verb) = harden by cycles after forging (review + durability). The rename: `/forgemaster` becomes the orchestrator, `/forge` becomes the builder, `/temper` becomes the review-and-harden phase (stub passthrough in 4b; real review behavior in 4c). Atomic big-bang — no back-compat for sentinel names. ADR-0005 new.
-> 3. **4c — /temper real review behavior**. Promote from stub passthrough to real reviewer-agent dispatch + inline intent-match + strict friction rule. ADR-0004 new.
-> 4. **4e — Orchestrator rename + naming discipline**. 4b corrected the build/review naming but left the orchestrator named `/forgemaster`, which still reads like a pipeline step. Per ADR-0005 the four phases are **Ponder → Forge → Temper → Seal**; orchestrators run *inside* a phase, not as one. 4e splits `/forgemaster` into `/forge-overseer` (Forge phase) and `/temper-overseer` (Temper phase) — symmetric per-phase orchestrators with no auto-chain between phases. ADR-0006 locks the naming discipline (CONTEXT.md as canonical glossary SSOT, `/inscribe` hard gate on PRD "Terms used" sections, `<phase>-overseer` pattern, `/forgemaster` reserved for a future cross-project session manager) and disambiguates "The Forge" / "Forge phase" / "/forge".
-> 5. **4d — Naming-annotation cleanup** (stub). Rewrite historical-doc bodies to new terms verbatim; remove the annotation scaffolding 4b adds. Now blocked by 4e too (the orchestrator rename is the second pass that historical bodies need to absorb). Ships after the new vocabulary has been stable for at least one product cycle.
->
-> 4a ships first to lock the hook contract before 4b touches `.claude/hooks/`. 4c → 4e → 4d is the natural completion order.
-
-| # | Sub-phase | Status | Blocked by | PRD | Issues |
-| --- | --- | --- | --- | --- | --- |
-| 4a | Permissions deny → ask | ✅ shipped | — | [`docs/prds/improvements-4a-permissions-ask.md`](docs/prds/improvements-4a-permissions-ask.md) | #258 <!-- mc:done=258 --> |
-| 4b | Forge ↔ Temper rename + role re-split | ✅ shipped | — | [`docs/prds/improvements-4b-rename.md`](docs/prds/improvements-4b-rename.md) | #259 <!-- mc:done=259 --> |
-| 4c | /temper real review behavior (reviewer-agent dispatch + inline intent-match + strict friction rule) | ✅ shipped | — | — | #262 <!-- mc:done=262 --> |
-| 4e | Orchestrator rename (`/forgemaster` → `/forge-overseer`) + naming discipline (CONTEXT.md SSOT + `/inscribe` hard gate) | ✅ shipped | — | [`docs/prds/improvements-4e-orchestrator-rename.md`](docs/prds/improvements-4e-orchestrator-rename.md) | #264, #265, #266 <!-- mc:done=264,265,266 --> |
-| 4d | v1 cleanup ratchet (scrub phase IDs from living docs + flat-ledger MC restructure + delete historical PRDs/audit/design/research + ADR rewrite & renumber + templates mirror) | 📝 prd-ready | — | [`docs/prds/improvements-4d-v1-cleanup.md`](docs/prds/improvements-4d-v1-cleanup.md) | #270, #271, #272, #273, #274, #275 <!-- mc:open=270,271,272,273,274,275 --> |
-
-### P5 — Dev Mode ░ 0/1
-
-> Replaces the current `fast`/`balanced`/`tdd` developer-modes system (shipped in P0a) with three workflow-character modes: **Weenie Hut Junior** (non-technical users), **Fast** (spike/prototype), and **Default** (sensible TDD modeled on Claude Code's brainstorm-plugin, *not* full Matt-Pocock-style RGR). **Phase exists; scope deliberately deferred** per Improvements grill lock #6 — the P5 `/ponder` runs after P4 ships, informed by what the first product project teaches us about which mode needs depth first. Design notes: [`docs/design/dev-mode-overview.md`](docs/design/dev-mode-overview.md). WHJ-mode source material: [`.forge-dev/future/weenie-hut-junior.md`](.forge-dev/future/weenie-hut-junior.md). Historical: [`docs/prds/developer-modes.md`](docs/prds/developer-modes.md) (the system being replaced).
-
-| # | Sub-phase | Status | Blocked by | PRD | Issues |
-| --- | --- | --- | --- | --- | --- |
-| 5a | Scope (TBD post-P4) | ⏳ scope-TBD | — | [`docs/design/dev-mode-overview.md`](docs/design/dev-mode-overview.md) (stub) | <!-- mc:none --> |
-
-## 🛸 Architectural items
-
-> Architectural prerequisites that shape how features get built. Each produces an ADR.
-
-| # | Item | Sequence | Status | Issues |
-| --- | --- | --- | --- | --- |
+| # | Title | Why deferred |
+| --- | --- | --- |
+| — | Token-waste audit | Needs ≥3 real sessions of post-context-hardening log data; revisit after first product project. <!-- mc:none --> |
 
 ## 📡 ADRs
 
-<!-- Append links to `docs/adr/NNNN-*.md` as decisions are recorded. -->
+<!--
+  Append links to `docs/adr/NNNN-*.md` as decisions are recorded.
+-->
 
-- [`0001-phase-isolation.md`](docs/adr/0001-phase-isolation.md) — Phases communicate only via on-disk artifacts; session memory between phases is forbidden (P3 / sub-phase 3b).
-- [`0002-concurrency-cap.md`](docs/adr/0002-concurrency-cap.md) — Single-worker concurrency cap as a deliberate trade: the active overseer dispatches exactly one worker per generation, with a recorded revisit precondition (P3 / sub-phase 3b).
-- [`0003-context-loading-defense-in-depth.md`](docs/adr/0003-context-loading-defense-in-depth.md) — Context-loading enforcement uses both a static permissions block AND a `PreToolUse` Read hook (dynamic, banner-scan); the two mechanisms cover disjoint failure modes and collapsing breaks one of them (P3 / sub-phase 3g). **Amended 2026-05-17 (sub-phase 4a)**: decision values swap from `deny` to `ask` so the operator can authorize reads via a permission prompt; defense-in-depth architecture unchanged.
-- [`0004-temper-review-boundary.md`](docs/adr/0004-temper-review-boundary.md) — `/temper`'s responsibility is LLM judgment (reviewer-agent on diff + inline intent-match against issue body); deterministic structural-integrity gating lives in CI; strict friction rule (any reviewer HIGH or intent-match failure → friction; else ready-for-seal) keeps the gate audit-stable (P4 / sub-phase 4c).
-- [`0005-pipeline-orchestrator-structure.md`](docs/adr/0005-pipeline-orchestrator-structure.md) — Pipeline is four phases (`Ponder → Forge → Temper → Seal`); the orchestrator runs inside a phase, not as a phase; Forge and Temper carry symmetric `<phase>-overseer` orchestrators; one operator command per phase (no auto-chain); rework loops via `friction` / `needs-rework` labels + operator re-runs Forge; Seal stays flat (P4 / sub-phase 4e).
-- [`0006-naming-discipline.md`](docs/adr/0006-naming-discipline.md) — CONTEXT.md is the canonical glossary single-source-of-truth; living docs anchor-link to `CONTEXT.md#term`; `/inscribe` hard-gates PRD filing on a `Terms used` section; `<phase>-overseer` is the orchestrator naming pattern; `/forgemaster` is reserved for a future cross-project Claude session manager (P4 / sub-phase 4e).
-- [`0007-v1-cleanup-ratchet.md`](docs/adr/0007-v1-cleanup-ratchet.md) — No phase IDs in living-doc prose; MISSION-CONTROL.md restructured to flat state-buckets (`🛰️ Telemetry`, `🚧 In flight`, `⏳ Queued`, `⏸ Deferred`, `📡 ADRs`, `🌑 Out of scope`) with three MC-coupled scripts rewritten or deleted in lockstep; historical PRDs + the pre-renumber ADR-0001 (autonomous-forge architecture, historical) + the pre-renumber ADR-0005 (pipeline-role-split, superseded) + docs/audit/design/research all deleted; surviving ADRs renumbered to a contiguous 0001–0007 sequence (P4 / sub-phase 4d).
+- [`0001-phase-isolation.md`](docs/adr/0001-phase-isolation.md) — Phases communicate only via on-disk artifacts; session memory between phases is forbidden.
+- [`0002-concurrency-cap.md`](docs/adr/0002-concurrency-cap.md) — Single-worker concurrency cap as a deliberate trade: the active overseer dispatches exactly one worker per generation, with a recorded revisit precondition.
+- [`0003-context-loading-defense-in-depth.md`](docs/adr/0003-context-loading-defense-in-depth.md) — Context-loading enforcement uses both a static permissions block AND a `PreToolUse` Read hook (dynamic, banner-scan); the two mechanisms cover disjoint failure modes and collapsing breaks one of them.
+- [`0004-temper-review-boundary.md`](docs/adr/0004-temper-review-boundary.md) — `/temper`'s responsibility is LLM judgment (reviewer-agent on diff + inline intent-match against issue body); deterministic structural-integrity gating lives in CI; strict friction rule (any reviewer HIGH or intent-match failure → friction; else ready-for-seal) keeps the gate audit-stable.
+- [`0005-pipeline-orchestrator-structure.md`](docs/adr/0005-pipeline-orchestrator-structure.md) — Pipeline is four phases (`Ponder → Forge → Temper → Seal`); the orchestrator runs inside a phase, not as a phase; Forge and Temper carry symmetric `<phase>-overseer` orchestrators; one operator command per phase (no auto-chain); rework loops via `friction` / `needs-rework` labels + operator re-runs Forge; Seal stays flat.
+- [`0006-naming-discipline.md`](docs/adr/0006-naming-discipline.md) — CONTEXT.md is the canonical glossary single-source-of-truth; living docs anchor-link to `CONTEXT.md#term`; `/inscribe` hard-gates PRD filing on a `Terms used` section; `<phase>-overseer` is the orchestrator naming pattern; `/forgemaster` is reserved for a future cross-project Claude session manager.
+- [`0007-v1-cleanup-ratchet.md`](docs/adr/0007-v1-cleanup-ratchet.md) — No phase IDs in living-doc prose; MISSION-CONTROL.md restructured to flat state-buckets (`🛰️ Telemetry`, `🚧 In flight`, `⏳ Queued`, `⏸ Deferred`, `📡 ADRs`, `🌑 Out of scope`) with three MC-coupled scripts rewritten or deleted in lockstep; historical PRDs + the pre-renumber ADR-0001 + the pre-renumber ADR-0005 + docs/audit/design/research all deleted; surviving ADRs renumbered to a contiguous 0001–0007 sequence.
 
 ## 🌑 Out of scope
 
-<!-- Append links to `.out-of-scope/<concept>.md` files as feature requests are rejected. -->
+<!--
+  Append links to `.out-of-scope/<concept>.md` files as feature requests are rejected.
+-->
 
 ## Legend
 
-**Statuses:** ⏳ queued · 🔥 grilling · 📝 prd-ready · 🚧 in-progress · ✅ shipped · ⏸ deferred · ⏳ scope-TBD (stub phase)
+**Flat-ledger shape.** Mission Control is a state-bucket ledger. Every tracked piece of work lives in exactly one of `🚧 In flight`, `⏳ Queued`, `⏸ Deferred`, or `🌑 Out of scope` while it has any state to carry. Shipped work disappears — git log carries history; MC carries the live frontier.
 
-**Sub-phase table columns:** `# | Sub-phase | Status | Blocked by | PRD | Issues`. The `Blocked by` column is a forward-planning aid — it carries a sub-phase ID list (e.g. `3a` or `3a, 3b`) when a `🚧 in-progress` or `⏳ queued` row depends on an unshipped sibling, and `—` otherwise (including every `✅ shipped` row — history is settled, the column has no retro purpose).
+**Row markers** (HTML comments embedded at the end of the last column — invisible when rendered, grep-able from the source. Used by `/seal` and the drift hook):
 
-**Row markers** (HTML comments embedded at the end of the Issues column — invisible when rendered, grep-able from the source. Used by `/seal` and the drift hook):
-- `<!-- mc:none -->` — no issues filed yet
-- `<!-- mc:open=N,N -->` — issue numbers tracked as open
-- `<!-- mc:done=N,N -->` — all listed issues closed (shipped)
+- `<!-- mc:none -->` — placeholder row (e.g. a deferred item with no issues filed yet).
+- `<!-- mc:open=N,N -->` — issue numbers tracked as open.
 
-**Stub rows** (forward-roadmap placeholders for planned-but-not-filed sub-phases): operators hand-write a row with status `⏳ queued` (or `⏳ scope-TBD` when scope is genuinely unknown), `—` in `Blocked by`, an `—` or stub-link in `PRD`, and `<!-- mc:none -->` in `Issues`. No auto-emission — the row exists to make the future roadmap legible alongside the current ledger. `validate-mc.sh` accepts the stub shape as valid.
+When every issue in an `mc:open=N,N` set closes, the row is removed entirely by `scripts/reconcile-mc.sh` (or migrated to `⏸ Deferred` if the work is intentionally paused). There is no `mc:done=` shape in the flat ledger — closed work leaves the ledger.
 
-**Phase progress bars:** `▓` = shipped sub-phase, `░` = not yet shipped. Format: `▓▓░░░ 2/5`. (Future: `scripts/derive-progress.sh`, sub-phase 3f, will compute these from the rows below.)
+**In-flight statuses:** `⏳ queued` · `🔥 grilling` · `📝 prd-ready` · `🚧 in-progress` · `⏸ deferred`. Status emoji + label appear in the Status column for the `🚧 In flight` table; the `⏳ Queued` and `⏸ Deferred` tables have their own columns and do not duplicate the status glyph.
 
-**Updated by:** `/inscribe` (PRD + issues + triage), `/forge` (in-progress status), `/seal` (post-merge reconciliation). Each phase also updates the "Recommended next prompt".
+**Updated by:** `/inscribe` (PRD + issues + triage adds rows to `🚧 In flight`), `/forge` (advances Status to `🚧 in-progress` on first dispatch), `/seal` (post-merge reconciliation — removes shipped rows + recomputes the Recommended next prompt). The sole writer for the close-out pass is `scripts/reconcile-mc.sh`.

@@ -40,7 +40,7 @@ When the queue is drained, the operator runs `/temper-overseer` next.
 When a worker flags `friction`, `/temper-overseer` also applies [`needs-rework`](./CONTEXT.md#needs-rework) to the originating issue. The next `/forge-overseer` run prefers those issues first — that's the rework loop per ADR-0005.
 
 ## Seal phase
-`/seal` is operator-run after the Temper phase finishes. `/seal --auto` is an optional non-interactive mode; it is NOT auto-invoked by any other skill (auto-chain removed in 4e per ADR-0005).
+`/seal` is operator-run after the Temper phase finishes. `/seal --auto` is an optional non-interactive mode; it is NOT auto-invoked by any other skill — one operator command per phase per ADR-0005.
 
 Seal:
 - Lists open PRs from `/forge`-produced branches
@@ -86,8 +86,7 @@ First-time setup: run `.claude/scripts/setup-kanban.sh` once after `/light-the-f
 
 ## Sentinels
 
-After the 4b rename there are two structured sentinel lines, sharing the same JSON
-shape and differing only in prefix:
+Two structured sentinel lines, sharing the same JSON shape and differing only in prefix:
 
 - `/forge` emits `FORGE:RESULT <json-object>` — build outcome.
 - `/temper` emits `TEMPER:RESULT <json-object>` — review outcome.
@@ -119,8 +118,7 @@ TEMPER:RESULT {"v":1,"status":"success","issue":21,"pr":58,"branch":"feat/#21-fo
 ```
 
 The legacy prose sentinels (`TEMPER:SUCCESS`, `TEMPER:CONTINUE:<N>`,
-`TEMPER:NEEDS_HUMAN:<reason>`, `TEMPER:FAIL:<reason>`) and the pre-4b `TEMPER:RESULT`
-build sentinel are no longer emitted; new tooling must parse `FORGE:RESULT` /
+`TEMPER:NEEDS_HUMAN:<reason>`, `TEMPER:FAIL:<reason>`) are no longer emitted; tooling must parse `FORGE:RESULT` /
 `TEMPER:RESULT` JSON only.
 
 ## Friction protocol

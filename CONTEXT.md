@@ -1,6 +1,6 @@
 # CONTEXT — The Forge
 
-> Ubiquitous-language doc. **Canonical glossary — the single source of truth** for every project term per [ADR-0006](docs/adr/0006-naming-discipline.md). Every other living doc (CLAUDE.md, MISSION-CONTROL.md, WORKFLOW.md, README.md, every SKILL.md, every doc under `docs/workflow/` + `docs/shared/`, every file under `templates/`) that uses a project term either anchor-links to the canonical entry below (`CONTEXT.md#term`) or assumes the reader knows it. No other doc may re-define a term in its own body. ADRs and historical PRDs are exempt — history is not rewritten.
+> Ubiquitous-language doc. **Canonical glossary — the single source of truth** for every project term per [ADR-0006](docs/adr/0006-naming-discipline.md). Every other living doc (CLAUDE.md, MISSION-CONTROL.md, WORKFLOW.md, README.md, every SKILL.md, every doc under `docs/workflow/` + `docs/shared/`, every file under `templates/`) that uses a project term either anchor-links to the canonical entry below (`CONTEXT.md#term`) or assumes the reader knows it. No other doc may re-define a term in its own body. ADRs are exempt from anchor-link discipline.
 
 <!--
   Add a term when you find yourself disambiguating it in conversation. Pick
@@ -38,7 +38,7 @@
 
 **Overseer (generic)**: Catch-all for "the orchestrator running the current phase" — `/forge-overseer` or `/temper-overseer`. The `<phase>-overseer` pattern is the locked orchestrator naming convention per ADR-0006 §Decision §3 — any future phase that grows an orchestrator follows it.
 
-**`/forgemaster`** (retired, name reserved): The pre-4e orchestrator. **Retired** per ADR-0005 §Consequences and ADR-0006 §Decision §4. The skill directory `.claude/skills/forgemaster/` was deleted in sub-phase 4e. The name is **reserved at the project level** for a future cross-project Claude session manager (a fleet-level layer above the per-project pipeline that manages multiple Forge installs) — no skill in this project may reclaim it.
+**`/forgemaster`** (retired, name reserved): The previous orchestrator name, before the split into `/forge-overseer` and `/temper-overseer`. **Retired** per ADR-0005 §Consequences and ADR-0006 §Decision §4. The skill directory `.claude/skills/forgemaster/` no longer exists. The name is **reserved at the project level** for a future cross-project Claude session manager (a fleet-level layer above the per-project pipeline that manages multiple Forge installs) — no skill in this project may reclaim it.
 
 ### Slices, sentinels, and labels
 
@@ -46,7 +46,7 @@
 
 **Slice labels** (`slice:logic` / `slice:ui` / `slice:mixed`): Sub-vocabulary of [Slice](#slice). `slice:logic` — code + tests only. `slice:ui` — code + visual review (Playwright by default) + screenshots under `screenshots/issue-<N>/`. `slice:mixed` — both, logic first. `slice:docs` / `slice:script` / `slice:skill` are accepted by the queue-shape check but treated as logic by `/forge` unless documented otherwise.
 
-**Sentinel**: A structured machine-readable line a skill emits to communicate with its parent. `/forge` emits `FORGE:RESULT {…json…}` (build outcome); `/temper` emits `TEMPER:RESULT {…json…}` (review outcome); both share the same JSON schema. The matching overseer (`/forge-overseer` or `/temper-overseer`) parses the JSON's `status` field to decide what to do next (advance, retry, escalate). The legacy prose sentinels (`TEMPER:SUCCESS`, `TEMPER:NEEDS_HUMAN:<reason>`, …) and the legacy build-sentinel name (pre-4b `TEMPER:RESULT` for build outcomes) are deprecated — see `docs/shared/pipeline.md`. _Avoid_: "marker" (collides with MC row markers), "signal" (too generic).
+**Sentinel**: A structured machine-readable line a skill emits to communicate with its parent. `/forge` emits `FORGE:RESULT {…json…}` (build outcome); `/temper` emits `TEMPER:RESULT {…json…}` (review outcome); both share the same JSON schema. The matching overseer (`/forge-overseer` or `/temper-overseer`) parses the JSON's `status` field to decide what to do next (advance, retry, escalate). The legacy prose sentinels (`TEMPER:SUCCESS`, `TEMPER:NEEDS_HUMAN:<reason>`, …) are deprecated — see `docs/shared/pipeline.md`. _Avoid_: "marker" (collides with MC row markers), "signal" (too generic).
 
 **`FORGE:RESULT`** / **`TEMPER:RESULT`**: The two structured sentinel names — see [Sentinel](#sentinel). `FORGE:RESULT` is emitted by `/forge` (the build worker); `TEMPER:RESULT` is emitted by `/temper` (the review worker). Schema lives in `docs/shared/pipeline.md`.
 
@@ -62,32 +62,31 @@
 
 ### MC row state vocabulary
 
-**MC row status**: The status emoji used in `MISSION-CONTROL.md`'s phase-progress tables and the corresponding row lifecycle. Six terminal/transient states:
+**MC row status**: The status emoji used in `MISSION-CONTROL.md`'s flat-ledger tables and the corresponding row lifecycle:
 
-- **`⏳ queued`** — row exists, no issues filed yet (`<!-- mc:none -->`).
+- **`⏳ queued`** — row exists, no issues filed yet (`<!-- mc:none -->`), or filed but not yet in flight.
 - **`🔥 grilling`** — `/ponder` is actively grilling.
 - **`📝 prd-ready`** — PRD written, issues filed and triaged (`<!-- mc:open=N,N -->`), no slice in flight yet.
 - **`🚧 in-progress`** — at least one slice is being built (`/forge-overseer` flipped this on first dispatch).
-- **`✅ shipped`** — every issue closed (`<!-- mc:done=N,N -->`).
 - **`⏸ deferred`** — PRD written but the row is intentionally paused (e.g. waiting on real-session data); `<!-- mc:none -->` or `<!-- mc:open=N,N -->` per state.
 
-A seventh transient — **`⏳ scope-TBD`** — marks stub-phase placeholders whose scope is not yet defined.
+Shipped work disappears from the ledger — git log carries history. There is no `✅ shipped` row in MC.
 
 ### Documents
 
 **ADR**: Architectural Decision Record. Lives under `docs/adr/NNNN-slug.md`. Filed when a resolved decision is (1) hard to reverse, (2) surprising without context, and (3) the result of a real trade-off — all three per `CLAUDE.md` §"When to write an ADR". Body sections: Context, Decision, Rationale, Rejected alternatives, Revisit precondition, Consequences, Related. **Exempt from anchor-link discipline** per ADR-0006 §Decision (history is not rewritten); ADRs may reference terms by name without `CONTEXT.md#term` anchors. _Avoid_: "design doc" (too generic).
 
-**PRD**: Product Requirements Document — the spec for a sub-phase or non-trivial single slice. Lives under `docs/prds/<feature>.md`. Written by `/inscribe` (sub-phase path always; single-slice path only when dev-mode is `tdd`). Per ADR-0006 §Decision §2 every new PRD carries a **"Terms used"** section that `/inscribe`'s hard gate validates against this glossary — every term either exists here or is confirmed non-canon before issues are filed. Pre-4e PRDs are exempt (history is not rewritten). _Avoid_: "spec" (too generic), "design doc" (collides with ADR).
+**PRD**: Product Requirements Document — the spec for a sub-phase or non-trivial single slice. Lives under `docs/prds/<feature>.md`. Written by `/inscribe` (sub-phase path always; single-slice path only when dev-mode is `tdd`). Per ADR-0006 §Decision §2 every new PRD carries a **"Terms used"** section that `/inscribe`'s hard gate validates against this glossary — every term either exists here or is confirmed non-canon before issues are filed. _Avoid_: "spec" (too generic), "design doc" (collides with ADR).
 
-**MISSION-CONTROL.md** (the doc): The project's session-state ledger — phase-progress tables, in-flight banner, "Recommended next prompt", ADR index. Read once at session start (not every turn). Written by `/inscribe` (PRD + issues + triage), `/forge` (in-progress status), `/seal` (post-merge reconciliation). `scripts/reconcile-mc.sh` is the sole writer for the close-out pass.
+**MISSION-CONTROL.md** (the doc): The project's session-state ledger — flat state-bucket tables (`🛰️ Telemetry`, `🚧 In flight`, `⏳ Queued`, `⏸ Deferred`, `📡 ADRs`, `🌑 Out of scope`), "Recommended next prompt", ADR index. Read once at session start (not every turn). Written by `/inscribe` (PRD + issues + triage), `/forge` (in-progress status), `/seal` (post-merge reconciliation). `scripts/reconcile-mc.sh` is the sole writer for the close-out pass.
 
-**Sub-phase**: A coherent chunk of work inside a numbered project phase (P0, P1, …). E.g. sub-phase `0a` = "Developer modes". Each sub-phase has one row in `MISSION-CONTROL.md`'s phase-progress table and usually one PRD. _Avoid_: "epic" (Jira-coded), "milestone" (collides with GitHub milestones).
+**Sub-phase**: An optional planning primitive — a coherent chunk of work bundled under a shared theme or PRD. Useful for tracking dependent slices during planning; not a required structural element of MISSION-CONTROL.md (the flat-ledger MC tracks individual rows, not sub-phase groupings). `/ponder` may organise a PRD's slices under one sub-phase label for legibility. _Avoid_: "epic" (Jira-coded), "milestone" (collides with GitHub milestones).
 
-**Dev mode**: One of `fast` / `balanced` / `tdd`, declared as a single line in `CLAUDE.md`. Gates three things: whether tests are written, whether the check command is a hard PR gate, and whether the pre-PR reviewer agent runs. See `docs/prds/developer-modes.md`. _Avoid_: "discipline tier" (used in the PRD body but not as a label).
+**Dev mode**: One of `fast` / `balanced` / `tdd`, declared as a single line in `CLAUDE.md`. Gates three things: whether tests are written, whether the check command is a hard PR gate, and whether the pre-PR reviewer agent runs. _Avoid_: "discipline tier".
 
 ### Process: Terms used (the /inscribe hard gate)
 
-Every PRD written after sub-phase 4e ships carries a `## Terms used` section listing every project term in its body. `/inscribe`'s hard gate (steps A1.5 / B0.5 — see `.claude/skills/inscribe/SKILL.md`) parses that section between writing the PRD and filing the issues, then greps each declared canon term against this file. On the first undefined canon term, `/inscribe` halts with an operator prompt offering exactly two paths: **add an entry inline** (operator dictates the definition; /inscribe writes a new `**<term>**: <definition>` block into this file) or **mark non-canon** (operator gives a one-line reason; /inscribe edits the PRD entry to append `non-canon — <reason>`). No issues are filed until the section validates clean. The check is mandatory and hard-gating per [ADR-0006](docs/adr/0006-naming-discipline.md) §Decision §2 — no soft-warn, no skip flag. `scripts/validate-prd-terms.sh <prd-path>` runs the same check as a callable helper (e.g. for `/temper`-time spot-checks); it is **not** a CI gate.
+Every new PRD carries a `## Terms used` section listing every project term in its body. `/inscribe`'s hard gate (steps A1.5 / B0.5 — see `.claude/skills/inscribe/SKILL.md`) parses that section between writing the PRD and filing the issues, then greps each declared canon term against this file. On the first undefined canon term, `/inscribe` halts with an operator prompt offering exactly two paths: **add an entry inline** (operator dictates the definition; /inscribe writes a new `**<term>**: <definition>` block into this file) or **mark non-canon** (operator gives a one-line reason; /inscribe edits the PRD entry to append `non-canon — <reason>`). No issues are filed until the section validates clean. The check is mandatory and hard-gating per [ADR-0006](docs/adr/0006-naming-discipline.md) §Decision §2 — no soft-warn, no skip flag. `scripts/validate-prd-terms.sh <prd-path>` runs the same check as a callable helper (e.g. for `/temper`-time spot-checks); it is **not** a CI gate.
 
 ### Worker mechanics
 
@@ -148,7 +147,6 @@ One operator command per phase. No auto-chain — the operator inspects state be
 
 - [`docs/workflow/`](./docs/workflow/) — pipeline reference docs (per-skill cheatsheets).
 - [`docs/shared/pipeline.md`](./docs/shared/pipeline.md) — sentinel contracts shared across forge / temper / seal.
-- [`docs/prds/developer-modes.md`](./docs/prds/developer-modes.md) — dev-mode PRD (sub-phase 0a).
 - [`docs/adr/0005-pipeline-orchestrator-structure.md`](./docs/adr/0005-pipeline-orchestrator-structure.md) — the four-phase structure + orchestrator-runs-inside-a-phase decision.
 - [`docs/adr/0006-naming-discipline.md`](./docs/adr/0006-naming-discipline.md) — the canonical-glossary-as-SSOT contract this file implements.
 
@@ -160,10 +158,9 @@ One operator command per phase. No auto-chain — the operator inspects state be
 > — "Is that a slice or a sub-phase?"
 > — "Sub-phase — it has its own PRD. The slices are the four issues filed underneath it."
 
-> — "Should I run `/forgemaster --phase 4e`?"
+> — "Should I run `/forgemaster`?"
 > — "`/forgemaster` is retired. Run `/forge-overseer` for the build phase; `/temper-overseer` after CI is green on every PR; `/seal` to ship."
 
 ## Flagged ambiguities
 
-- Earlier docs used `slice:skill` and `slice:docs` (see `docs/prds/developer-modes.md`); the canonical set is `slice:logic` / `slice:ui` / `slice:mixed`. Reconciliation is tracked in issue #71.
-- Pre-4e docs (ADRs 0001–0006, historical PRDs under `docs/prds/improvements-3*.md` and `docs/prds/improvements-4b-rename.md`) use `/forgemaster` as the orchestrator name. Those bodies carry a "Naming context (after sub-phase 4e, …)" annotation at the top pointing to the post-4e split; bodies are not rewritten per ADR-0006 §Decision.
+- The canonical slice-label set is `slice:logic` / `slice:ui` / `slice:mixed`. Older labels (`slice:skill`, `slice:docs`) may appear on a few legacy issues; treat them as `slice:logic`.
