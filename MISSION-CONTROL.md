@@ -12,10 +12,8 @@
 **Recommended next prompt:**
 
 ```
-/forge-overseer --phase 4e
+/ponder 4d
 ```
-
-> Build all 4e slices
 
 ## ☄️ In flight
 
@@ -79,7 +77,7 @@
 | 3h | Token-waste audit | ⏸ deferred | — | [`docs/prds/improvements-3h-token-waste-audit.md`](docs/prds/improvements-3h-token-waste-audit.md) | <!-- mc:none --> |
 | 3i | Doc reconciliation | ✅ shipped | — | [`docs/prds/improvements-3i-doc-reconciliation.md`](docs/prds/improvements-3i-doc-reconciliation.md) | #254, #255 <!-- mc:done=254,255 --> |
 
-### P4 — Pipeline naming + permissions ▓▓▓░░ 3/5
+### P4 — Pipeline naming + permissions ▓▓▓▓░ 4/5
 
 > Two related reforms surfaced during the 3i wrap-up (2026-05-16), grilled + filed 2026-05-17, plus three follow-up stubs:
 >
@@ -96,7 +94,7 @@
 | 4a | Permissions deny → ask | ✅ shipped | — | [`docs/prds/improvements-4a-permissions-ask.md`](docs/prds/improvements-4a-permissions-ask.md) | #258 <!-- mc:done=258 --> |
 | 4b | Forge ↔ Temper rename + role re-split | ✅ shipped | — | [`docs/prds/improvements-4b-rename.md`](docs/prds/improvements-4b-rename.md) | #259 <!-- mc:done=259 --> |
 | 4c | /temper real review behavior (reviewer-agent dispatch + inline intent-match + strict friction rule) | ✅ shipped | — | — | #262 <!-- mc:done=262 --> |
-| 4e | Orchestrator rename (`/forgemaster` → `/forge-overseer`) + naming discipline (CONTEXT.md SSOT + `/inscribe` hard gate) | 📝 prd-ready | — | [`docs/prds/improvements-4e-orchestrator-rename.md`](docs/prds/improvements-4e-orchestrator-rename.md) | #264, #265, #266 <!-- mc:open=264,265,266 --> |
+| 4e | Orchestrator rename (`/forgemaster` → `/forge-overseer`) + naming discipline (CONTEXT.md SSOT + `/inscribe` hard gate) | ✅ shipped | — | [`docs/prds/improvements-4e-orchestrator-rename.md`](docs/prds/improvements-4e-orchestrator-rename.md) | #264, #265, #266 <!-- mc:done=264,265,266 --> |
 | 4d | Naming-annotation cleanup (rewrite historical bodies; remove annotation scaffolding) | ⏳ queued | 4b, 4e | — | <!-- mc:none --> |
 
 ### P5 — Dev Mode ░ 0/1
