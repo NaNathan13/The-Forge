@@ -1,5 +1,7 @@
 # Single-Command Setup, Agent Definitions, and /scrub — Implementation Plan
 
+> **Historical document — naming superseded by [ADR-0008](../../adr/0008-operator-surface-naming.md) on 2026-05-18.** This plan was authored 2026-05-13 and used the pre-rename naming (`/temper <N>` for the per-PR worker). After ADR-0008, that worker is invoked as `/temper-worker <N>` and `/temper` is the phase orchestrator. The plan's structural decisions (3-agent model, `/scrub` standalone skill, additive-only changes) are unchanged. Diagram lines 826/831 below preserve the original wording for the record.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Replace the two-step `git clone` + `kindle.sh` setup with a single `curl | bash` command, add reusable agent definitions to `.claude/agents/`, update temper/forge to use the 3-agent model, and add a `/scrub` cleanup skill.
