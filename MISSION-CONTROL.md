@@ -9,19 +9,12 @@
 
 **Recommended next prompt:**
 
-```
-/forge-overseer
-```
-
-> Drain the remaining 4d build queue (#274, #275)
+_All caught up — no open PRs, no triaged work in the queue._
 
 ## 🚧 In flight
 
 | # | Title | Status |
 | --- | --- | --- |
-| 273 | v1 cleanup ratchet — root docs + MC flat-ledger + MC-coupled scripts (atomic) | 🚧 in-progress <!-- mc:open=273 --> |
-| 274 | v1 cleanup ratchet — skills/rules/workflow/shared/vision/onboarding/knowledge sweep | ⏳ queued <!-- mc:open=274 --> |
-| 275 | v1 cleanup ratchet — templates mirror | ⏳ queued <!-- mc:open=275 --> |
 
 ## ⏳ Queued
 
