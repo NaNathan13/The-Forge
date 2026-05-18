@@ -6,7 +6,7 @@
 
 ## Context
 
-Sub-phase 4e shipped the four-phase pipeline in its intended final shape: Ponder → Forge → Temper → Seal, with symmetric `/forge-overseer` and `/temper-overseer` orchestrators (ADR-0005), CONTEXT.md as the canonical glossary SSOT, and `/inscribe`'s hard gate on PRD "Terms used" sections (ADR-0006). The pipeline-build journey is over; The Forge is at v1 of its workflow.
+Sub-phase 4e shipped the four-phase pipeline in its intended final shape: Ponder → Forge → Temper → Seal, with symmetric `/forge` and `/temper` orchestrators (ADR-0005), CONTEXT.md as the canonical glossary SSOT, and `/inscribe`'s hard gate on PRD "Terms used" sections (ADR-0006). The pipeline-build journey is over; The Forge is at v1 of its workflow.
 
 The phase scaffolding that drove the build journey persists across the project as three categories of artifact:
 
@@ -243,8 +243,8 @@ The Forge's own `MISSION-CONTROL.md` is The Forge's working development ledger; 
 - **`/forge`**: non-canon — the CONTEXT.md header carries an inline qualifier (`(with leading slash)`) that defeats the strict `**\`/forge\`**:` grep; the semantic entry exists at [`CONTEXT.md#forge`](../../CONTEXT.md#forge) and remains the canonical reference for the per-slice builder worker command.
 - **Temper**: see [`CONTEXT.md#temper`](../../CONTEXT.md#temper) — the review-and-harden phase; covers the `/temper` command.
 - **Seal**: see [`CONTEXT.md#seal`](../../CONTEXT.md#seal) — the closer phase; covers the `/seal` command.
-- **Forge-overseer**: see [`CONTEXT.md#forge-overseer`](../../CONTEXT.md#forge-overseer) — Forge-phase orchestrator; covers the `/forge-overseer` command.
-- **Temper-overseer**: see [`CONTEXT.md#temper-overseer`](../../CONTEXT.md#temper-overseer) — Temper-phase orchestrator; covers the `/temper-overseer` command.
+- **Forge-overseer**: see [`CONTEXT.md#forge`](../../CONTEXT.md#forge) — Forge-phase orchestrator; covers the `/forge` command.
+- **Temper-overseer**: see [`CONTEXT.md#temper`](../../CONTEXT.md#temper) — Temper-phase orchestrator; covers the `/temper` command.
 - **Forge phase**: non-canon — the CONTEXT.md header carries an inline qualifier (`(always qualified with "phase")`) that defeats the strict `**Forge phase**:` grep; the semantic entry exists at [`CONTEXT.md#forge-phase`](../../CONTEXT.md#forge-phase) and remains the canonical reference.
 - **Slice**: see [`CONTEXT.md#slice`](../../CONTEXT.md#slice)
 - **Sentinel**: see [`CONTEXT.md#sentinel`](../../CONTEXT.md#sentinel)

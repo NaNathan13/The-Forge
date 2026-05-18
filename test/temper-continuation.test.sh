@@ -20,7 +20,7 @@
 # shellcheck source=lib/assert.sh
 source "$TEST_DIR/lib/assert.sh"
 
-SKILL="$REPO_ROOT/.claude/skills/forge/SKILL.md"
+SKILL="$REPO_ROOT/.claude/skills/forge-worker/SKILL.md"
 GEN_TEMPLATE="$REPO_ROOT/templates/continuation-gen.md"
 
 # ── forge/SKILL.md documents the hardened five-section schema ────────────────

@@ -18,7 +18,7 @@ skill redirects.
 ## Pipeline placement
 
 ```
-/prototype ──→ /forge ──→ /temper <N> ──→ /seal
+/prototype ──→ /forge ──→ /temper-worker <N> ──→ /seal
 ```
 
 Same downstream pipeline as `/ponder`. Only the planning phase differs: no grill, no
@@ -205,7 +205,7 @@ flagged as ponder-shaped.
 | Complex feature, fuzzy requirements, design decisions to make | `/ponder` |
 | Bug you can repro and fix | `/ponder` single-slice (or trivial path) |
 | Bug you can't repro | `/diagnose` first |
-| You already have a triaged issue | `/temper <N>` directly |
+| You already have a triaged issue | `/temper-worker <N>` directly |
 
 `/prototype` sits between `/tinker` (no issues, throwaway) and `/ponder` (full design
 phase). It's the right tool when the work *is* real, but small enough not to need

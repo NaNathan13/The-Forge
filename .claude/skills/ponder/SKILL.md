@@ -1,25 +1,25 @@
 ---
 name: ponder
-description: Use when starting new work from a fuzzy idea, want to grill out a feature, write a PRD, or break a sub-phase into issues. First phase of the Ponder → Forge → Temper → Seal workflow. Ends with all slices triaged `ready-for-agent` with `slice:*` labels, ready for `/forge-overseer`.
+description: Use when starting new work from a fuzzy idea, want to grill out a feature, write a PRD, or break a sub-phase into issues. First phase of the Ponder → Forge → Temper → Seal workflow. Ends with all slices triaged `ready-for-agent` with `slice:*` labels, ready for `/forge`.
 ---
 
 # Ponder — think, scope, file work
 
 The planning phase of the four-phase pipeline (`Ponder → Forge → Temper →
 Seal`; the Forge and Temper phases each run an orchestrator inside them —
-[`/forge-overseer`](../../../CONTEXT.md#forge-overseer) and
-[`/temper-overseer`](../../../CONTEXT.md#temper-overseer) — per
+[`/forge`](../../../CONTEXT.md#forge) and
+[`/temper`](../../../CONTEXT.md#temper) — per
 [ADR-0005](../../../docs/adr/0005-pipeline-orchestrator-structure.md)). You
 leave Ponder with **all slices triaged
 [`ready-for-agent`](../../../CONTEXT.md#ready-for-agent)** and kanban cards
-in **Ready**. `/forge-overseer` then dispatches `/forge <N>` per slice;
-after every PR is open + CI green, the operator runs `/temper-overseer` to
+in **Ready**. `/forge` then dispatches `/forge-worker <N>` per slice;
+after every PR is open + CI green, the operator runs `/temper` to
 review them, then `/seal` to merge.
 
 **The pipeline shape:**
 
 ```
-/ponder ──→ /forge-overseer ──→ /temper-overseer ──→ /seal
+/ponder ──→ /forge ──→ /temper ──→ /seal
             (dispatches /forge   (dispatches /temper
              per slice)           per PR)
 ```
@@ -100,7 +100,7 @@ The grill step:
 
 1. **Skip when no PRD will be written.** If `size=single-slice` and `mode=fast|balanced`, /inscribe won't write a PRD and there's nothing for the gate to check — skip the terms-used grill entirely and pass `terms_used` as an empty list. Otherwise (sub-phase always, or single-slice + `mode=tdd`), continue.
 
-2. **Surface the project-likely terms.** Render a short prompt listing the terms most PRDs touch — `/forge-overseer`, `/temper-overseer`, `/forge`, `/temper`, `/seal`, `Ponder`, `Forge phase`, `Sentinel`, `Slice`, `Friction`, `Ready-for-agent`, `Ready-for-seal`, `Needs-rework`, `Needs-human`, `Sub-phase`, `Dev mode`, `PRD`, `ADR`. Ask the operator (one `AskUserQuestion`, multi-select):
+2. **Surface the project-likely terms.** Render a short prompt listing the terms most PRDs touch — `/forge`, `/temper`, `/forge`, `/temper`, `/seal`, `Ponder`, `Forge phase`, `Sentinel`, `Slice`, `Friction`, `Ready-for-agent`, `Ready-for-seal`, `Needs-rework`, `Needs-human`, `Sub-phase`, `Dev mode`, `PRD`, `ADR`. Ask the operator (one `AskUserQuestion`, multi-select):
 
    > "Which of these project terms appear in this PRD's body? Pick all that apply. (Inscribe will validate each pick against CONTEXT.md and halt if any is undefined.)"
 
@@ -160,14 +160,14 @@ Inscribe handles everything from here: PRD writing (sub-phase always; single-sli
 - Kanban cards in **Ready**.
 - (Sub-phase path only) PRD saved to `docs/prds/`.
 - `MISSION-CONTROL.md` "Recommended next prompt" updated.
-- Handoff printed: "Run `/forge-overseer` to dispatch the build queue."
-- Session ends. The user runs `/forge-overseer` next, in a fresh session.
+- Handoff printed: "Run `/forge` to dispatch the build queue."
+- Session ends. The user runs `/forge` next, in a fresh session.
 
 ## When NOT to use `/ponder`
 
 | Situation | Use instead |
 | --- | --- |
-| Issue is already triaged `ready-for-agent` with a `slice:*` label | `/forge <N>` directly |
+| Issue is already triaged `ready-for-agent` with a `slice:*` label | `/forge-worker <N>` directly |
 | Trivial one-liner (typo, copy fix, obvious bug) | Branch + commit + manual PR — no skill needed |
 | Unknown-cause bug (you can't repro or don't know what's broken) | `/diagnose` first — produces a fix or a clear issue body, then `/ponder` reads its output |
 

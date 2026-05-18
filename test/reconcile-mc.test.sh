@@ -86,7 +86,7 @@ test_removes_row_when_all_issues_closed() {
 **Recommended next prompt:**
 
 ```
-/forge-overseer
+/forge
 ```
 
 ## 🚧 In flight
@@ -110,7 +110,7 @@ test_keeps_row_when_any_issue_still_open() {
 **Recommended next prompt:**
 
 ```
-/forge-overseer
+/forge
 ```
 
 ## 🚧 In flight
@@ -132,7 +132,7 @@ test_ignores_marker_examples_in_legend_html_comment_block() {
 **Recommended next prompt:**
 
 ```
-/forge-overseer
+/forge
 ```
 
 ## 🚧 In flight
@@ -163,7 +163,7 @@ test_ignores_backtick_wrapped_marker_examples() {
 **Recommended next prompt:**
 
 ```
-/forge-overseer
+/forge
 ```
 
 ## 🚧 In flight
@@ -188,7 +188,7 @@ test_dry_run_leaves_working_tree_clean() {
 **Recommended next prompt:**
 
 ```
-/forge-overseer
+/forge
 ```
 
 ## 🚧 In flight
@@ -213,7 +213,7 @@ test_noop_when_no_open_markers() {
 **Recommended next prompt:**
 
 ```
-/forge-overseer
+/forge
 ```
 
 ## 🚧 In flight

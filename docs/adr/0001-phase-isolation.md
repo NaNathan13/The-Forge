@@ -10,7 +10,7 @@ The Forge's pipeline runs in four phases — **Ponder → Forge → Temper → S
 This invariant is *implied everywhere* in the codebase and the skill docs but needs to be **stated explicitly** so it cannot be silently undone:
 
 - `/temper` reads the issue, writes a PR, emits a sentinel.
-- The Forge-orchestrator (`/forge-overseer`) reads the sentinel string from a worker's stdout — it does not hold a live reference to that worker's session.
+- The Forge-orchestrator (`/forge`) reads the sentinel string from a worker's stdout — it does not hold a live reference to that worker's session.
 - `/seal` reads PR labels and CI state from GitHub, not from any in-memory state.
 - Continuation files exist precisely because session memory is *not* a safe channel across a restart.
 

@@ -1,298 +1,353 @@
 ---
 name: temper
-description: Review and harden a built slice — dispatches the reviewer agent on the diff, runs an inline intent-match against the issue body, and applies a strict friction rule (any reviewer HIGH or intent-match failure → friction; else ready-for-seal). Invoked as /temper <N>.
+description: The Temper-phase orchestrator — dispatches /temper-worker <PR> workers per batch PR awaiting review, watches TEMPER:RESULT sentinels, marks each PR ready-for-seal or friction (and matching issues needs-rework on friction). Invoked as /temper after /forge drains the build queue. Does no inline review, no seal chain — one operator command per phase per ADR-0005.
 ---
 
-# Temper — Review and Harden a Built Slice
+# /temper — Orchestrator of the Temper Phase
 
-`/temper` is the per-PR worker of the [Temper phase](../../../CONTEXT.md#temper).
-It runs **after** `/forge` produces a green-CI PR for a slice. The pipeline shape:
+`/temper` is the orchestrator that runs **inside the Temper phase**
+of the pipeline. It is not itself a phase. See
+[`CONTEXT.md#temper`](../../../CONTEXT.md#temper) and
+[ADR-0005](../../../docs/adr/0005-pipeline-orchestrator-structure.md) for
+the four-phase shape:
 
 ```
 Ponder → Forge → Temper → Seal
 ```
 
-(The Forge and Temper phases each run an orchestrator —
-[`/forge-overseer`](../../../CONTEXT.md#forge-overseer) and
-[`/temper-overseer`](../../../CONTEXT.md#temper-overseer) — that dispatches
-the per-slice / per-PR worker. The four-phase shape above is the operator's
-mental model per [ADR-0005](../../../docs/adr/0005-pipeline-orchestrator-structure.md).)
+The operator types `/ponder`, then `/forge`, then `/temper`,
+then `/seal` — **one command per phase**, no auto-chain. `/temper`
+finishes when every PR in its review queue has been marked
+[`ready-for-seal`](../../../CONTEXT.md#ready-for-seal) or
+[`friction`](../../../CONTEXT.md#friction); the operator inspects state,
+then runs `/seal` next.
 
-`/forge` shaped the part (branch → implement → test → PR → green CI). `/temper`
-applies two LLM lenses to what was shipped — a reviewer-agent code-quality pass and an
-inline intent-match against the issue body — then applies a strict friction rule and
-marks the PR [`ready-for-seal`](../../../CONTEXT.md#ready-for-seal) (or labels it
-[`friction`](../../../CONTEXT.md#friction) for human review).
+`/temper` is symmetric with
+[`/forge`](../../../CONTEXT.md#forge) per
+ADR-0005 §Decision — both are autonomous, loop-managed dispatch loops, both
+dispatch exactly one worker per generation, both consume their worker's
+`*:RESULT` sentinel. The only differences are the queue source (open PRs
+awaiting review vs the `ready-for-agent`/`needs-rework` issue queue) and the
+worker (`/temper-worker <PR>` vs `/forge-worker <N>`).
 
-Deterministic structural-integrity gating (template drift, banner discipline, sentinel
-protocol drift, etc.) is **not** `/temper`'s job — those live in CI (`bash -n`,
-`scripts/validate-*.sh`, the bash test harness) and gate `/forge` before a green-CI PR
-exists. See [ADR-0004](../../../docs/adr/0004-temper-review-boundary.md) for the locked
-LLM-judgment-vs-CI boundary and the strict-friction-rule rationale.
+## Rework loop (sourced from `/temper`, consumed by `/forge`)
 
-## Inputs
+When `/temper-worker <PR>` marks a PR `friction`, `/temper` **also marks
+the matching issue [`needs-rework`](../../../CONTEXT.md#needs-rework)**. The
+next `/forge` run prefers `needs-rework` issues over fresh
+`ready-for-agent` issues. The rework loop preserves the phase boundary per
+ADR-0005 §Decision — `/temper` does NOT dispatch a forge worker
+inline; the operator decides when to re-enter the Forge phase.
 
-- Issue number from argument (e.g. `/temper 95`).
-- The PR opened by `/forge` for that issue (resolved via `gh pr list` if not provided
-  by `/temper-overseer`).
-- The slice label (`slice:logic` / `slice:ui` / `slice:mixed`) — used to decide whether
-  the reviewer dispatch points at `screenshots/issue-<N>/` for visual conformance.
+## Invocation
 
-## Workflow
-
-### 1. Setup
-
-- **No new branch.** `/temper` reviews the existing `/forge` branch + PR; it does not
-  open a parallel branch.
-- **No kanban move.** The slice is already `in-review` from `/forge`'s PR-open step.
-  `/temper` does not advance kanban state; `/seal` will do the `shipped` move when it
-  merges.
-- **Read the dev mode line** from `CLAUDE.md`. `/temper`'s strict friction rule does
-  not currently branch on mode, but read the line for forward-compat and so a future
-  mode-conditional behavior is a small change rather than a redesign.
-
-### 2. Pre-gate — cheap shape checks
-
-Run these checks first. If any fail, fall through to the friction / needs-human path
-before doing any review work.
-
-1. **Resolve the PR.** Fetch the issue number from the argument; if
-   `/temper-overseer` passed the PR number on `FORGE:RESULT`, use it directly.
-   Otherwise: `gh pr list --head feat/#<N>-* --state open --json number,headRefName,labels`.
-2. **PR is open.** Confirm the resolved PR exists and is in `OPEN` state.
-3. **CI is green.** `gh pr checks <PR>` — last run must be green. If not green, this is
-   friction-shape-but-belt-and-suspenders: apply the `needs-human` label and emit
-   `TEMPER:RESULT` with `status:"needs_human"`, `reason:"ci-not-green"`. (`/forge-overseer`'s
-   `FORGE:RESULT` success contract means this should not happen; the check guards
-   against a CI flake going red between `/forge`'s exit and `/temper`'s start.)
-4. **No pre-existing `friction` / `needs-human` labels.** If either is already present,
-   pass the PR through unchanged — the upstream worker has already flagged it —
-   and emit `TEMPER:RESULT` with `status:"needs_human"`, `reason:"<label>"`. The
-   `friction` label semantics are unified at the `/seal` consumer (see ADR-0004); a
-   pre-labeled PR is `/seal`'s problem to skip, not `/temper`'s problem to re-judge.
-
-The pre-gate is intentionally cheap and label-before-emit: any failed check applies the
-matching label first, then emits the sentinel — so `/seal` can classify by labels alone
-without re-reading the sentinel stream.
-
-### 3. Read the diff
-
-```bash
-gh pr diff <PR>
-```
-
-Full diff, not just the file list. Both lenses below operate on it.
-
-### 4. Dispatch the reviewer agent
-
-Foreground dispatch (`/temper` has nothing else to do while it runs; the support-agent
-cap of 2 concurrent matches `/forge`'s, but typical use is 1 — just the reviewer).
-
-Read `.claude/agents/reviewer.md` and include its content as system context in the
-`Agent` tool's `prompt`, then add the diff and a short instruction:
+`/temper` is normally started **by the relaunch loop**, not by a
+human typing a slash command. The loop runs plain `claude -p` with no
+prompt args; generation 1 reads its scope from the session charter — see
+[`/forge`'s SKILL.md](../forge/SKILL.md#running-under-the-relaunch-loop)
+for the loop + charter contract (identical for both overseers).
 
 ```
-Agent({
-  subagent_type: "general-purpose",
-  description: "review PR #<PR>",
-  prompt: "<reviewer.md contents>\n\nReview this diff for PR #<PR> (issue #<N>):\n\n<gh pr diff <PR> output>\n\nReport HIGH-confidence findings only in the documented output format."
-})
+/temper                    # interactive escape hatch — no auto-continuation across generations
+/temper --phase <id>       # interactive, scope to PRs whose issues carry the phase:<id> label
+/temper --resume           # manual escape hatch — resume from the latest continuation generation
 ```
 
-(`subagent_type: "general-purpose"` is the project convention — see `.claude/skills/forge-overseer/SKILL.md` for the matching `/forge` dispatch and `.claude/skills/temper-overseer/SKILL.md` for the matching `/temper` dispatch; `.claude/skills/forge/SKILL.md` §Rules has the canonical support-agent dispatch protocol. The `reviewer.md` file is an **agent definition** loaded into the prompt, not a `subagent_type` value.)
+The slash-command forms are a **documented manual fallback** for when you
+are not running under the loop. Interactive `/temper` works, but
+it does not auto-continue across generations: when context fills, it stops
+at the end of the current generation and you restart it by hand. The loop
++ the SessionStart hook are the primary resume mechanism.
 
-**Slice-conditional addendum.** For `slice:ui` or `slice:mixed`, append one line to the
-prompt pointing the reviewer at the screenshots:
+## Running under the relaunch loop
 
-```
-Visual conformance: screenshots for this slice live in `screenshots/issue-<N>/`. Check the implementation against them where the diff touches rendered UI.
-```
+`scripts/relaunch-loop.sh` owns `/temper`'s lifecycle, identically
+to how it owns `/forge`'s. The same `OVERSEER_LOOP_MANAGED=1` env
+var is exported, the same `OVERSEER_CONTINUE` / `OVERSEER_COMPLETE`
+sentinels are emitted, the same SessionStart hook
+(`.claude/hooks/overseer-session-start.sh`) re-injects the latest
+continuation generation. The loop wraps **whichever overseer is currently
+running** per ADR-0005 §Consequences.
 
-For `slice:logic`, no screenshot line is added.
+See [`/forge` SKILL.md §Running under the relaunch loop](../forge/SKILL.md#running-under-the-relaunch-loop)
+for the full contract — the loop, the SessionStart hook, the charter format
+(`phase: <id>` directive), the budget gate as real-token safety net, the
+manual `--resume` escape hatch. **The contract is identical**; only the
+worker dispatched and the queue source differ.
 
-Parse the reviewer's output for:
+## Pre-flight: Review Queue Preview
 
-- The **HIGH-findings list** under `### Findings` (count the `#### [HIGH]` blocks).
-- The **Verdict** line under `### Summary`. The verdict is human-readable context only —
-  it is NOT the gate signal. The HIGH count is. (See ADR-0004 §Rationale for why the
-  verdict's natural language is rejected as a gate input.)
+**Pre-flight runs in generation 1 only.** It is the single required human
+touch-point. Resumed generations skip it (see "Skipping pre-flight on
+resumed generations" below).
 
-If the reviewer agent errors or returns no parseable findings block, treat that as
-friction: apply the `friction` label and emit `needs_human` / `reason:"friction"` with
-the failure summarized in the `friction` field. Do not try to re-dispatch — surface it
-for human review.
+Before dispatching any workers:
 
-### 5. Inline intent-match
+1. **Query open PRs awaiting review.** The review queue is every open PR
+   on a `feat/#*-*` branch (the `/forge` branch convention) that has CI
+   green AND does NOT yet carry `ready-for-seal` / `friction` /
+   `needs-human` labels:
+   ```bash
+   gh pr list --state open --json number,headRefName,labels,statusCheckRollup --jq '
+     .[] | select(.headRefName | test("^feat/#[0-9]+-"))
+         | select((.labels | map(.name) | any(. == "ready-for-seal" or . == "friction" or . == "needs-human")) | not)
+         | select(.statusCheckRollup | map(.conclusion) | all(. == "SUCCESS"))
+         | {number, headRefName, labels}
+   '
+   ```
 
-`/temper` itself runs this — no subagent dispatch. Read the issue body and the diff,
-and produce a one-line pass/fail verdict about whether the diff satisfies the issue's
-stated acceptance criteria.
+2. **Resolve the phase scope from the charter.** If the charter set a
+   `phase: <id>` scope, filter the PR list to PRs whose originating issue
+   carries the `phase:<id>` label. Parse the issue number from the PR
+   branch name (`feat/#<N>-…`) and check the issue's labels via `gh issue
+   view <N> --json labels`.
 
-```bash
-gh issue view <N> --json body -q .body
-```
+3. **Present the review queue as a numbered table.**
 
-Procedure:
+   | # | PR | Branch | Issue | Slice | CI |
+   |---|----|--------|-------|-------|----|
+   | 1 | #110 | feat/#95-derive-status | #95 | logic | green |
+   | 2 | #111 | feat/#96-status-chip | #96 | ui | green |
 
-1. Read the acceptance-criteria list from the issue body (the `## Acceptance criteria`
-   section, or whatever heading the issue uses for its checkbox list).
-2. Walk the diff (already in context from step 3) and decide whether each criterion is
-   satisfied by code or doc changes in the diff.
-3. Emit one verdict line, internal to `/temper`:
-   - `intent-match: pass — <one-sentence reason>` if every load-bearing criterion is
-     covered by the diff.
-   - `intent-match: fail — <one-sentence reason>` if any load-bearing criterion is
-     missing or contradicted by the diff. Specifically: criterion is unaddressed, or
-     the diff adds the wrong thing, or the diff regresses a criterion previously met.
+4. **Ask the user to approve, reorder, or remove PRs.** Default to "review
+   them all in order". If the user removes a PR, the next
+   `/temper` run can pick it up.
 
-**Calibration note.** This is a context-aware judgment a generic linter cannot make —
-it asks "did `/forge` actually solve the issue, or just produce green CI on a
-tangent?" Be honest. If a criterion is not addressed by the diff, that is a fail
-regardless of how clean the code is. Do not soften a fail because the diff looks well
-written; do not pass a diff that solves a different problem than the issue asked for.
-A criterion explicitly marked optional or "out of scope for this slice" in the issue
-body does not count as load-bearing for this verdict.
+5. **On approval, write `gen-001.md` immediately — before dispatching
+   anything.** Run `scripts/continuation.sh write` to create the first
+   continuation generation. The approved review queue table goes in the
+   Execution-frontier **Review queue** field; `approved-queue: true` goes
+   in the verbatim **hard-constraints** section. **If the charter set a
+   phase scope, also write `phase-scope: <id>` into that verbatim
+   hard-constraints section.**
 
-### 6. Apply the strict friction rule
+6. Begin the autonomous dispatch loop.
 
-This is the gate. Compute the gate signal from the two lenses:
+### Skipping pre-flight on resumed generations
 
-```
-friction = (reviewer-HIGH-count > 0) OR (intent-match == fail)
-```
+Identical to `/forge`'s rule — a resumed generation reads
+`approved-queue: true` from the injected `gen-NNN.md` and skips pre-flight
+entirely, going straight to the dispatch loop.
 
-Branch on `friction`:
+## Dispatch Loop
 
-- **Friction (true).** Apply the `friction` label:
-  ```bash
-  gh pr edit <PR> --add-label friction
-  ```
-  Then post a `## Friction` comment on the PR summarizing why. Use this shape:
-  ```
-  ## Friction
+A loop-managed generation dispatches **exactly one `/temper` worker** —
+never two. The "loop" here is the relaunch loop across generations — not an
+in-session `for` loop over the whole queue. This cap mirrors
+`/forge`'s per [ADR-0002](../../../docs/adr/0002-concurrency-cap.md).
 
-  - Reviewer HIGH findings: <count> (titles: <comma-separated short titles, or "none">)
-  - Intent-match: <pass | fail — one-sentence reason>
-  ```
-  Emit `TEMPER:RESULT` with `status:"needs_human"`, `reason:"friction"`, and the same
-  summary in the `friction` field (single line, escape newlines if needed).
+Per generation:
 
-- **No friction (false).** Apply the `ready-for-seal` label:
-  ```bash
-  gh pr edit <PR> --add-label ready-for-seal
-  ```
-  Emit `TEMPER:RESULT` with `status:"success"`.
+1. **Resolve the next dispatch action.** Read the Execution-frontier
+   review queue from the injected continuation generation (or, in
+   generation 1, from the queue you just had approved). Pick the next
+   `pending` PR.
 
-No judgment call about whether the build "should have caught" a finding; no
-natural-language verdict mapping. Same diff + same issue body + same reviewer output +
-same intent-match verdict → same labels + same sentinel. The retry-stability
-property is checkable from logs — if a re-run produces a different label for the same
-inputs, that is a real bug. See ADR-0004 §Rationale.
+2. **Check session usage** (see [`/forge`'s SKILL.md §Session
+   rate-limit
+   awareness](../forge/SKILL.md#b-session-rate-limit-awareness-5-hour-rolling-account-budget)
+   — the rule is identical: 90% = warn, 95% = hard stop + `ScheduleWakeup`).
 
-### 7. Emit the result sentinel
+3. Note the start timestamp.
 
-Every `/temper` run ends by printing a short prose summary followed by **exactly one**
-`TEMPER:RESULT` JSON line. The JSON is the source of truth `/temper-overseer` parses; the
-prose is human-readability only.
+4. **Dispatch exactly one `/temper` worker as a subagent.** One worker per
+   generation — never two.
 
-Format: a single line beginning with `TEMPER:RESULT ` followed by a JSON object. No
-trailing text, no code fences around the line, no pretty-printing — one object on one
-line so `/temper-overseer` can parse it deterministically.
+   ```
+   Agent({
+     subagent_type: "general-purpose",
+     description: "temper PR #<PR>",
+     prompt: "Read .claude/skills/temper-worker/SKILL.md, then execute /temper-worker <N>.",
+     isolation: "worktree"
+   })
+   ```
+   Where `<N>` is the issue number parsed from the PR's branch name. The
+   worker resolves the PR from the issue per its own pre-gate.
 
-Schema is identical to `FORGE:RESULT` (see `docs/shared/pipeline.md`):
+   Each `/temper` worker can spawn up to 2 support agents (typically just
+   the `reviewer` on the PR diff) from `.claude/agents/`, for a maximum of
+   3 concurrent subagents total (1 temper + 2 support).
 
-```
-TEMPER:RESULT {"v":1,"status":"success","issue":95,"pr":110,"branch":"feat/#95-foo","tokens":null,"friction":null}
-```
+5. **On worker completion, handle the sentinel** (see "Sentinel Handling"
+   below) and **log tokens** (see "Token Logging").
 
-Required fields on every emission:
-- `v` — protocol version (integer). Currently `1`.
-- `status` — one of `success`, `continue`, `needs_human`, `fail`.
-- `issue` — issue number (integer).
-- `pr` — PR number (integer), or `null` if no PR could be resolved.
-- `branch` — branch name (string), or `null`.
-- `tokens` — always `null` from `/temper`. `/temper-overseer` fills this in via ccusage
-  after the run.
-- `friction` — `null` unless friction was flagged this run; otherwise the friction
-  text (string).
+6. **Hand off — write the next continuation generation and exit.** Run
+   `scripts/continuation.sh write` and fill its five sections — fold the
+   result of this generation's worker into the Execution frontier (mark
+   the reviewed PR `ready-for-seal` or `friction` per the sentinel),
+   restate the hard constraints verbatim, set the **Next concrete action**
+   to `dispatch /temper-worker for PR #<N>` (next pending) or `queue
+   drained — operator runs /seal next`. Emit **`OVERSEER_CONTINUE`** and
+   exit 0.
 
-Status-specific extra fields:
-- `status: "continue"` → add `continuation_file` with the path to the continuation file
-  (e.g. `".claude/temper-continue-95.md"`).
-- `status: "needs_human"` → add `reason` (string, short reason code — e.g.
-  `"friction"`, `"ci-not-green"`, `"friction-label-present"`, `"needs-human-label-present"`).
-- `status: "fail"` → add `reason` (string, short failure description).
+7. **Drained queue → emit `OVERSEER_COMPLETE`.** When the dispatch queue
+   has no PRs left, run the End-of-Phase handoff (see "End of Phase —
+   handoff to operator") and emit **`OVERSEER_COMPLETE`** as the final
+   `.result` line. The operator runs `/seal` next.
 
-Examples:
+This is an autonomous loop across generations — no user confirmation
+between PRs unless a `needs_human` sentinel fires.
 
-Success (no HIGHs, intent-match passes):
-```
-TEMPER:RESULT {"v":1,"status":"success","issue":95,"pr":110,"branch":"feat/#95-foo","tokens":null,"friction":null}
-```
+## `/temper` Does NOT (Anti-Patterns)
 
-Friction — reviewer flagged a HIGH:
-```
-TEMPER:RESULT {"v":1,"status":"needs_human","issue":95,"pr":110,"branch":"feat/#95-foo","tokens":null,"friction":"reviewer HIGH: missing null-check in cache invalidation; intent-match: pass","reason":"friction"}
-```
+`/temper` is a **dispatcher**, not a worker, and it dispatches
+**only `/temper` workers**. The orchestrator MUST NOT:
 
-Friction — intent-match failed:
-```
-TEMPER:RESULT {"v":1,"status":"needs_human","issue":95,"pr":110,"branch":"feat/#95-foo","tokens":null,"friction":"reviewer HIGHs: 0; intent-match: fail — diff adds caching but issue asked for invalidation API","reason":"friction"}
-```
+- **Dispatch `/forge` workers (the rework loop is operator-driven).** When
+  `/temper` marks a PR `friction`, `/temper` applies the
+  `needs-rework` label to the matching issue and stops there. The operator
+  decides when to re-run `/forge` per ADR-0005 §Decision.
+- **Dispatch `/seal` (inline or as a subagent).** The operator runs
+  `/seal` explicitly after `/temper` drains the review queue. No
+  auto-chain per ADR-0005 §Decision.
+- **Run review logic inline.** That's `/temper`'s job (reviewer agent +
+  inline intent-match + strict friction rule). `/temper` reads
+  the sentinel, applies labels, advances.
+- **Re-judge the worker's verdict.** The strict friction rule is
+  deterministic — same diff + same issue body + same reviewer output +
+  same intent-match → same labels (see ADR-0004 §Rationale).
+  `/temper` does not override or second-guess the worker's
+  decision.
+- **Self-estimate context %.** Handoff trigger is structural (one worker
+  per generation), not measured.
+- **Dispatch more than one worker per generation.** Exactly one.
+- **Read full PR diffs or commit histories.** The worker does that.
+  `/temper` reads sentinels, queue state, and short status output
+  only.
+- **Bulk-load `MISSION-CONTROL.md`, `lessons.md`, knowledge files, or
+  design docs.** `/temper` runs lean.
 
-PR pre-labeled friction by `/forge` — passed through unchanged:
-```
-TEMPER:RESULT {"v":1,"status":"needs_human","issue":95,"pr":110,"branch":"feat/#95-foo","tokens":null,"friction":"PR pre-labeled friction by /forge","reason":"friction"}
-```
+What `/temper` **does** do, and only this:
+1. (Generation 1 only) Parse the pre-flight review queue, get user
+   approval, write `gen-001.md`.
+2. Dispatch **one** `/temper` worker for the next pending PR.
+3. Parse the worker's `TEMPER:RESULT` sentinel.
+4. Apply the `needs-rework` label to the originating issue if the PR was
+   marked `friction` (the worker already labeled the PR; this is the
+   matching issue-side label).
+5. Log tokens.
+6. Write the next continuation generation.
+7. Emit `OVERSEER_CONTINUE` and exit 0 — or, on a drained queue, run the
+   end-of-phase handoff and emit `OVERSEER_COMPLETE`.
 
-CI not green at review time (unexpected — belt-and-suspenders):
-```
-TEMPER:RESULT {"v":1,"status":"needs_human","issue":95,"pr":110,"branch":"feat/#95-foo","tokens":null,"friction":null,"reason":"ci-not-green"}
-```
+If you find yourself doing anything else, stop — dispatch a subagent
+instead.
 
-### Label-the-PR rule for `status:needs_human`
+## Sentinel Handling
 
-Whenever `/temper` emits `status:"needs_human"` **and a PR is open**, it MUST apply the
-corresponding label to the PR **before** emitting the sentinel:
+`/temper` emits exactly one `TEMPER:RESULT {...}` JSON sentinel line at
+the end of every run. `/temper` parses that line — never the
+prose summary above it — to decide what happens next. Schema is defined
+in [`docs/shared/pipeline.md`](../../../docs/shared/pipeline.md) and
+[`CONTEXT.md#sentinel`](../../../CONTEXT.md#sentinel) — identical to
+`FORGE:RESULT` modulo the prefix.
 
-- `reason:"friction"` → apply the `friction` label (already covered by the strict
-  friction rule above and by the pre-gate's pre-labeled-friction pass-through).
-- Any other `reason` (e.g. `"ci-not-green"`) → apply the `needs-human` label:
-  `gh pr edit <PR> --add-label needs-human`.
+**Parsing:**
+1. Scan the worker subagent's output for the last line beginning with
+   `TEMPER:RESULT `.
+2. Strip the prefix and `JSON.parse` the remainder.
+3. Read `status`, `issue`, `pr`, `branch`, and (if present)
+   `continuation_file`, `reason`, `friction`. `tokens` is always `null`
+   from the worker — `/temper` fills it in via ccusage during
+   the token-logging step.
 
-Why: `/seal` classifies merge-vs-skip purely by PR labels. A `needs_human` sentinel
-that leaves no label means a broken PR can be auto-merged the moment CI happens to be
-green. The sentinel tells `/temper-overseer` to skip to the next PR in *this* batch; the
-label tells `/seal` to skip the PR at close-out. Both signals are required.
+**Action by `status`:**
 
-## Continuation files
+| `status` | `reason` | `/temper` action |
+|----------|----------|---------------------------|
+| `success` | — | Worker already applied `ready-for-seal` to the PR. Mark the PR `reviewed` in the queue. Hand off. |
+| `needs_human` | `friction` | Worker already applied `friction` to the PR. **Apply `needs-rework` to the originating issue:** `gh issue edit <N> --add-label needs-rework`. Mark the PR `skipped:friction`. Log the friction text. Hand off. |
+| `needs_human` | `ci-not-green` / `friction-label-present` / `needs-human-label-present` | Worker already applied the matching label (`needs-human` for ci-not-green; pass-through for the pre-labeled cases). Mark the PR `skipped:<reason>`. Hand off. |
+| `continue` | — | `/temper` needs another session. Record the PR as still `reviewing` (note the `continuation_file` path). The next generation re-dispatches a fresh `/temper`. Hand off. |
+| `fail` | — | Log `reason`. Retry once with a fresh `/temper`. On second `fail`, mark `skipped:fail` and apply `needs-human` to the PR. Hand off. |
 
-If `/temper` ever needs to hand off mid-run (rate-limit pressure, context, etc.) it
-writes `.claude/temper-continue-<N>.md` in the hardened five-section format described
-in `.claude/skills/forge/SKILL.md` §"Continuation file format". The typical `/temper`
-run is small enough that this should rarely trigger; the format alignment exists so a
-resuming `/temper` inherits a known shape.
+Whatever the sentinel status, the generation **always ends the same way**:
+fold the result into the next continuation generation and emit
+`OVERSEER_CONTINUE` (or `OVERSEER_COMPLETE` if the queue is drained).
+`/temper` never "keeps going" to a second worker within one
+generation.
 
-`/seal` deletes `.claude/temper-continue-*.md` (and `temper-summary-*.md`) during
-cleanup once the slice is merged.
+## Context Discipline
+
+Identical to [`/forge`'s discipline](../forge/SKILL.md#context-discipline)
+— structural one-worker-per-generation exit, no context-% self-estimation,
+relaunch loop's `budget_gate` is the real-token safety net, plus the
+5-hour session rate-limit awareness with `ScheduleWakeup` at 95%.
+
+## Continuation generations
+
+Identical structure to `/forge`'s — `.forge/continuation/<slug>/gen-NNN.md`
+written by `scripts/continuation.sh write`, the five mandatory sections
+(Hard constraints / Execution frontier / Conversation summary / Next
+concrete action / Notes), the `approved-queue: true` flag in
+hard-constraints, the `phase-scope: <id>` line if the run is phase-scoped.
+
+The one Execution-frontier difference: `/temper` carries a
+**Review queue** (not a Dispatch queue) with these columns:
+
+| # | PR | Branch | Issue | Slice | Status |
+|---|----|--------|-------|-------|--------|
+| 1 | #110 | feat/#95-derive-status | #95 | logic | reviewed (ready-for-seal) |
+| 2 | #111 | feat/#96-status-chip | #96 | ui | reviewing |
+| 3 | #112 | feat/#97-cache-invalidate | #97 | logic | pending |
+
+Status values: `pending`, `reviewing`, `reviewed`, `skipped:<reason>`,
+`failed:<reason>`.
+
+### Batch-level continuation file (`.claude/temper-continue.md`)
+
+If `/temper` is ever invoked **outside** the relaunch loop and
+needs to hand off mid-batch, it writes `.claude/temper-continue.md`
+(the batch-level [continuation file](../../../CONTEXT.md#continuation-file)
+owned by this overseer). This is rare — the loop is the normal case.
+`/seal` deletes `.claude/temper-continue.md` during cleanup once
+the review queue is empty.
+
+## Token Logging
+
+Identical to `/forge`'s — `npx ccusage@latest session --json`
+once per generation, append a row to `.claude/token-usage.jsonl` with
+`"worker":"temper"`, stamp the PR description with a token summary.
+
+## End of Phase — handoff to operator
+
+When the review queue is **drained** — every PR `reviewed`, `skipped`, or
+`failed` — the current generation runs the end-of-phase handoff:
+
+1. **Print summary** — PRs reviewed (`ready-for-seal`), PRs marked
+   `friction` (with their issues' new `needs-rework` labels), PRs skipped
+   for other reasons, total wall-clock time, total tokens.
+
+2. **List shippable PRs and friction-labelled PRs separately.** The
+   shippable list is what `/seal` will merge; the friction list is what
+   the operator decides about (re-enter Forge to rework, or close as
+   wontfix, or merge manually).
+
+3. **Print the next-phase recommendation.** Update
+   [`MISSION-CONTROL.md`](../../../CONTEXT.md#mission-controlmd-the-doc)'s
+   "Recommended next prompt" to `/seal`, then print the same line to the
+   user. The operator runs `/seal` next, in a fresh session, after
+   inspecting the friction PRs (if any).
+
+4. **Emit `OVERSEER_COMPLETE`** as the **final `.result` line** of the
+   generation and exit 0.
+
+No seal dispatch. No `/forge` dispatch. The operator runs the next phase.
 
 ## Rules
-
-- **No new branch.** `/temper` reviews the existing `/forge` PR.
-- **One `TEMPER:RESULT` line.** Exactly one, on its own line, at the end of the run.
-- **Label before emit.** If `status:needs_human`, the PR must carry the matching label
-  (`friction` or `needs-human`) before the sentinel is printed.
-- **Do not merge.** `/seal` merges. `/temper` only marks `ready-for-seal` or `friction`.
-- **Strict friction rule.** `(reviewer-HIGH-count > 0) OR (intent-match == fail)` →
-  friction. No "should the build have caught it?" filtering, no natural-language
-  verdict mapping. See ADR-0004 §Rationale.
-- **LLM judgment only.** Deterministic structural-integrity checks (template drift,
-  banner discipline, sentinel-protocol drift) belong in CI as `scripts/validate-*.sh`,
-  not as `/temper` lenses. If a future drift class becomes painful, file it as a CI
-  workflow addition.
-- **Support-agent cap = 2 concurrent** (matching `/forge`). Typical use is 1 — the
-  reviewer. The 2-agent cap exists so a future second lens (e.g. a security-focused
-  reviewer alongside the general reviewer) is a configuration change, not a cap change.
-- **HIGH count is the gate signal, not the verdict prose.** The reviewer's `Verdict`
-  line is human-readable context; the `#### [HIGH]` block count drives the friction
-  rule. See ADR-0004 §Rejected alternatives for why.
+- `/temper` is an autonomous, loop-managed loop — one `/temper`
+  worker per generation, hand off, relaunch, drain. The generation-1
+  pre-flight approval is the only required user touch-point.
+- **One operator command per phase.** No auto-chain into Seal — the
+  operator runs `/seal` explicitly per ADR-0005.
+- **The handoff trigger is structural, not measured.** A worker finished →
+  write the next `gen-NNN.md` → emit `OVERSEER_CONTINUE` → exit 0.
+- (Generation 1 only) Always present the review queue before dispatching.
+  Write `gen-001.md` immediately after approval.
+- Resumed generations read `approved-queue: true` and skip pre-flight.
+- Apply `needs-rework` to the originating issue on every `friction` PR —
+  that's how the rework loop feeds back into `/forge`.
+- Token logging is `/temper`'s responsibility, not the worker's.
+- Pause at 95% session usage; resume via `ScheduleWakeup`.
+- **`/temper` does NOT do work inline** — no inline review, no
+  inline seal, no `/forge` dispatch, no re-judging the worker's verdict.

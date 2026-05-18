@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # forge-loop.test.sh — tests for forge as a loop-managed session (issue #182, slice 1c-2).
 #
-# forge-overseer/SKILL.md was rewritten to Option B — one worker per generation. the overseer runs
+# forge/SKILL.md was rewritten to Option B — one worker per generation. the overseer runs
 # under scripts/relaunch-loop.sh: each `claude -p` generation dispatches exactly one
 # temper, writes the next gen-NNN.md via scripts/continuation.sh write, and emits a
 # sentinel as its final .result line:
@@ -9,7 +9,7 @@
 #   OVERSEER_CONTINUE  — clean per-generation handoff → the loop relaunches fresh.
 #   OVERSEER_COMPLETE  — the dispatch queue is drained → the loop breaks, exit 0.
 #
-# forge-overseer/SKILL.md is a markdown skill, not a shell script, so it has no direct unit
+# forge/SKILL.md is a markdown skill, not a shell script, so it has no direct unit
 # surface. What IS deterministically testable is the *contract* the rewritten skill
 # documents, exercised against the real relaunch loop + continuation substrate:
 #   - a generation that writes gen-NNN.md and emits OVERSEER_CONTINUE → the loop records
@@ -19,7 +19,7 @@
 # The claude stub (test/stubs/claude) stands in for a forge generation; the two
 # fixtures forge-generation-handoff.sh / forge-generation-complete.sh model the two
 # exits. The handoff fixture runs `continuation.sh write` as the generation's real
-# side effect, exactly as forge-overseer/SKILL.md's Dispatch Loop step 7 instructs.
+# side effect, exactly as forge/SKILL.md's Dispatch Loop step 7 instructs.
 #
 # Run via:  test/run-tests.sh test/forge-loop.test.sh
 #
@@ -29,7 +29,7 @@ source "$TEST_DIR/lib/assert.sh"
 
 LOOP="$REPO_ROOT/scripts/relaunch-loop.sh"
 CONTINUATION="$REPO_ROOT/scripts/continuation.sh"
-SKILL="$REPO_ROOT/.claude/skills/forge-overseer/SKILL.md"
+SKILL="$REPO_ROOT/.claude/skills/forge/SKILL.md"
 START_HOOK="$REPO_ROOT/.claude/hooks/overseer-session-start.sh"
 FIXTURES="$TEST_DIR/fixtures"
 
@@ -67,21 +67,21 @@ run_loop() {
 
 test_skill_documents_one_worker_per_generation() {
   assert_contains "$(cat "$SKILL")" "one worker per generation" \
-    "forge-overseer/SKILL.md must document the one-worker-per-generation structure"
+    "forge/SKILL.md must document the one-worker-per-generation structure"
 }
 
 test_skill_documents_overseer_continue_and_complete_sentinels() {
   local body
   body="$(cat "$SKILL")"
   assert_contains "$body" "OVERSEER_CONTINUE" \
-    "forge-overseer/SKILL.md must document the OVERSEER_CONTINUE per-generation handoff sentinel"
+    "forge/SKILL.md must document the OVERSEER_CONTINUE per-generation handoff sentinel"
   assert_contains "$body" "OVERSEER_COMPLETE" \
-    "forge-overseer/SKILL.md must document the OVERSEER_COMPLETE drained-queue sentinel"
+    "forge/SKILL.md must document the OVERSEER_COMPLETE drained-queue sentinel"
 }
 
 test_skill_writes_gen_files_via_continuation_sh() {
   assert_contains "$(cat "$SKILL")" "continuation.sh write" \
-    "forge-overseer/SKILL.md must write the next generation via scripts/continuation.sh write"
+    "forge/SKILL.md must write the next generation via scripts/continuation.sh write"
 }
 
 test_skill_uses_gen_nnn_continuation_substrate() {
@@ -90,11 +90,11 @@ test_skill_uses_gen_nnn_continuation_substrate() {
   local body
   body="$(cat "$SKILL")"
   assert_contains "$body" "gen-NNN.md" \
-    "forge-overseer/SKILL.md must reference the gen-NNN.md continuation substrate"
+    "forge/SKILL.md must reference the gen-NNN.md continuation substrate"
   assert_contains "$body" ".forge/continuation/" \
-    "forge-overseer/SKILL.md must reference the .forge/continuation/<slug>/ chain path"
-  assert_not_contains "$body" "writes \`.claude/forge-overseer-continue.md\` with" \
-    "forge-overseer/SKILL.md must not instruct writing a legacy single-file continue path"
+    "forge/SKILL.md must reference the .forge/continuation/<slug>/ chain path"
+  assert_not_contains "$body" "writes \`.claude/forge-continue.md\` with" \
+    "forge/SKILL.md must not instruct writing a legacy single-file continue path"
 }
 
 test_skill_removes_context_pct_self_estimation() {
@@ -103,14 +103,14 @@ test_skill_removes_context_pct_self_estimation() {
   local body
   body="$(cat "$SKILL")"
   assert_contains "$body" "structural" \
-    "forge-overseer/SKILL.md must describe the handoff trigger as structural, not measured"
+    "forge/SKILL.md must describe the handoff trigger as structural, not measured"
   assert_contains "$body" "does not self-measure context" \
-    "forge-overseer/SKILL.md must state the overseer does not self-measure context"
+    "forge/SKILL.md must state the overseer does not self-measure context"
 }
 
 test_skill_names_budget_gate_as_the_real_token_safety_net() {
   assert_contains "$(cat "$SKILL")" "budget_gate" \
-    "forge-overseer/SKILL.md must document the relaunch loop's budget_gate as the real-token safety net"
+    "forge/SKILL.md must document the relaunch loop's budget_gate as the real-token safety net"
 }
 
 # ── --phase charter wiring + --resume demotion (issue #184, slice 1c-4) ───────
@@ -126,11 +126,11 @@ test_skill_documents_charter_phase_wiring() {
   local body
   body="$(cat "$SKILL")"
   assert_contains "$body" "charter" \
-    "forge-overseer/SKILL.md must document the charter file as the --phase entry path"
+    "forge/SKILL.md must document the charter file as the --phase entry path"
   assert_contains "$body" "charter.md" \
-    "forge-overseer/SKILL.md must name the charter.md file"
+    "forge/SKILL.md must name the charter.md file"
   assert_contains "$body" "no prompt arg" \
-    "forge-overseer/SKILL.md must explain why --phase needs the charter (loop runs claude -p with no prompt args)"
+    "forge/SKILL.md must explain why --phase needs the charter (loop runs claude -p with no prompt args)"
 }
 
 test_skill_resolves_charter_as_hand_written() {
@@ -139,9 +139,9 @@ test_skill_resolves_charter_as_hand_written() {
   local body
   body="$(cat "$SKILL")"
   assert_contains "$body" "hand-written" \
-    "forge-overseer/SKILL.md must resolve the charter as operator-hand-written"
+    "forge/SKILL.md must resolve the charter as operator-hand-written"
   assert_contains "$body" "not setup-generated" \
-    "forge-overseer/SKILL.md must state the charter is not generated by a setup step"
+    "forge/SKILL.md must state the charter is not generated by a setup step"
 }
 
 test_skill_carries_phase_scope_into_gen_001() {
@@ -150,9 +150,9 @@ test_skill_carries_phase_scope_into_gen_001() {
   local body
   body="$(cat "$SKILL")"
   assert_contains "$body" "phase-scope:" \
-    "forge-overseer/SKILL.md must write phase-scope into the continuation hard-constraints"
+    "forge/SKILL.md must write phase-scope into the continuation hard-constraints"
   assert_contains "$body" "hard-constraints section" \
-    "forge-overseer/SKILL.md must put the phase scope in the verbatim hard-constraints section"
+    "forge/SKILL.md must put the phase scope in the verbatim hard-constraints section"
 }
 
 test_skill_demotes_resume_to_escape_hatch() {
@@ -161,9 +161,9 @@ test_skill_demotes_resume_to_escape_hatch() {
   local body
   body="$(cat "$SKILL")"
   assert_contains "$body" "escape hatch" \
-    "forge-overseer/SKILL.md must document /forge --resume as a manual escape hatch"
+    "forge/SKILL.md must document /forge --resume as a manual escape hatch"
   assert_contains "$body" "no auto-continuation" \
-    "forge-overseer/SKILL.md must document interactive /forge as the no-auto-continuation fallback"
+    "forge/SKILL.md must document interactive /forge as the no-auto-continuation fallback"
 }
 
 # ── Charter reaches generation 1 via the real SessionStart hook ──────────────

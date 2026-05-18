@@ -31,7 +31,7 @@ self-continuing autonomous loop, the Discord control plane, and the cross-projec
 |---|---|---|
 | **One-liner drop-in** | `light-the-forge.sh` — copies skills, scripts, templates, hooks, CI into any project repo | repo root |
 | **The base pipeline** | `ponder → forge → temper → seal` — four phases, each a session-scoped skill, handing off via on-disk artifacts | `.claude/skills/` |
-| **Structured orchestration** | `/forge-overseer` is a pure manager that dispatches `/forge <N>` worker subagents (one at a time, max 2 support agents); workers return a structured `FORGE:RESULT` JSON sentinel. `/temper-overseer` mirrors that shape for the review phase. | `.claude/skills/forge-overseer/`, `.claude/skills/temper-overseer/` |
+| **Structured orchestration** | `/forge` is a pure manager that dispatches `/forge-worker <N>` worker subagents (one at a time, max 2 support agents); workers return a structured `FORGE:RESULT` JSON sentinel. `/temper` mirrors that shape for the review phase. | `.claude/skills/forge/`, `.claude/skills/temper/` |
 | **Worktree isolation** | Each worker runs in an isolated git worktree so concurrent work doesn't conflict | `EnterWorktree` (Claude Code primitive) + `/scrub` |
 | **Single-session resilience** | Role-split context thresholds (orchestrator 40/50, worker 50/60), continuation files (`gen-NNN.md` five-section format), thrash circuit breaker, `launchd` keep-alive, liveness watchdog | `.forge/`, `scripts/relaunch-loop.sh`, `scripts/liveness-watchdog.sh` |
 | **Project ledger** | `MISSION-CONTROL.md` — pipeline-maintained flat-ledger state buckets; row markers (`<!-- mc:open=N,N -->`) drive seal reconciliation and a SessionStart drift hook | repo root |
@@ -67,8 +67,8 @@ each is optional for users who don't need it.
 ### 1. Shipped today — autonomous within a batch
 
 You type `/ponder`, grill out the idea, run `/inscribe` to file the slices, then
-`/forge-overseer` dispatches every worker, watches sentinels, advances the queue.
-`/temper-overseer` reviews each green-CI PR and marks it ready-for-seal (or
+`/forge` dispatches every worker, watches sentinels, advances the queue.
+`/temper` reviews each green-CI PR and marks it ready-for-seal (or
 friction). `/seal` merges every shippable PR. You walk away during the autonomous
 stretches. The batch finishes and waits for you.
 
@@ -76,7 +76,7 @@ stretches. The batch finishes and waits for you.
 
 After `/seal`, the orchestrator looks at `MISSION-CONTROL.md`, decides what's
 next, surfaces clarifying questions if needed, and starts the next `/ponder` →
-`/forge-overseer` → `/temper-overseer` → `/seal` cycle on its own. The human
+`/forge` → `/temper` → `/seal` cycle on its own. The human
 re-enters the loop *only* when the system genuinely needs a decision. This is
 the piece that turns "autonomous within a batch" into "autonomous between
 batches" — the same orchestrator, re-entrant.

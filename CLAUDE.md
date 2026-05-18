@@ -1,6 +1,6 @@
 # The Forge
 
-A markdown- and bash-driven pipeline for running Claude Code projects end-to-end: ponder → forge → temper → seal (the Forge and Temper phases each run an orchestrator inside them — `/forge-overseer` and `/temper-overseer`). Skills, scripts, and templates that other repos clone into themselves via `light-the-forge.sh`.
+A markdown- and bash-driven pipeline for running Claude Code projects end-to-end: ponder → forge → temper → seal (the Forge and Temper phases each run an orchestrator inside them — `/forge` and `/temper`). Skills, scripts, and templates that other repos clone into themselves via `light-the-forge.sh`.
 
 **Dev mode:** balanced
 
@@ -18,8 +18,8 @@ A markdown- and bash-driven pipeline for running Claude Code projects end-to-end
 [`CONTEXT.md`](./CONTEXT.md) is the canonical glossary (single source of truth per [ADR-0006](./docs/adr/0006-naming-discipline.md)). The load-bearing seven, with anchor links into CONTEXT.md for full definitions:
 
 - [**Ponder**](./CONTEXT.md#ponder) — the planning phase: grill the idea, write the PRD, file + triage issues.
-- [**Forge phase**](./CONTEXT.md#forge-phase) — the build phase, second of four. Runs [`/forge-overseer`](./CONTEXT.md#forge-overseer) as orchestrator and [`/forge <N>`](./CONTEXT.md#forge) as the per-slice worker.
-- [**Temper**](./CONTEXT.md#temper) — the review-and-harden phase, third of four. Runs [`/temper-overseer`](./CONTEXT.md#temper-overseer) as orchestrator and `/temper <PR>` as the per-PR worker (reviewer agent + inline intent-match + strict friction rule per [ADR-0004](./docs/adr/0004-temper-review-boundary.md)).
+- [**Forge phase**](./CONTEXT.md#forge-phase) — the build phase, second of four. Runs [`/forge`](./CONTEXT.md#forge) as orchestrator and [`/forge-worker <N>`](./CONTEXT.md#forge) as the per-slice worker.
+- [**Temper**](./CONTEXT.md#temper) — the review-and-harden phase, third of four. Runs [`/temper`](./CONTEXT.md#temper) as orchestrator and `/temper-worker <PR>` as the per-PR worker (reviewer agent + inline intent-match + strict friction rule per [ADR-0004](./docs/adr/0004-temper-review-boundary.md)).
 
 - [**Seal**](./CONTEXT.md#seal) — the closer phase: approves + squash-merges every `ready-for-seal` PR in the batch, then reconciles `MISSION-CONTROL.md`. No internal orchestrator per ADR-0005.
 - [**Slice**](./CONTEXT.md#slice) — a single triaged issue. Slice labels (`slice:logic` / `slice:ui` / `slice:mixed`) drive how `/forge` builds it.
