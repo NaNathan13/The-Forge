@@ -1,14 +1,11 @@
 #!/usr/bin/env bash
-# reconcile-mc.test.sh — tests for scripts/reconcile-mc.sh.
+# reconcile-mc.test.sh — tests for scripts/reconcile-mc.sh (flat-ledger shape).
 #
 # The script's sole writes target MISSION-CONTROL.md inside a git repo, with
 # `gh` calls for issue state and `git commit` + `git push` at the end. These
 # tests stage a synthetic git repo with a fixture MC, stub `gh` to return
 # canned state, and either skip the push (via `--dry-run`) or stub `git push`
 # to a no-op.
-#
-# Tests target the NEW 6-column schema (issue #236):
-#   `# | Sub-phase | Status | Blocked by | PRD | Issues`
 #
 # Run via:  test/run-tests.sh test/reconcile-mc.test.sh
 #
@@ -23,14 +20,9 @@ setup() {
   STUBDIR="$WORKDIR/stubs"
   mkdir -p "$STUBDIR" "$WORKDIR/scripts"
 
-  # Copy the real script + derive-progress into a `scripts/` sibling of the
-  # synthetic repo, so SCRIPT_DIR resolution inside reconcile-mc.sh sees the
-  # synthetic repo as its REPO_ROOT.
   cp "$REPO_ROOT/scripts/reconcile-mc.sh" "$WORKDIR/scripts/reconcile-mc.sh"
-  cp "$REPO_ROOT/scripts/derive-progress.sh" "$WORKDIR/scripts/derive-progress.sh"
-  chmod +x "$WORKDIR/scripts/reconcile-mc.sh" "$WORKDIR/scripts/derive-progress.sh"
+  chmod +x "$WORKDIR/scripts/reconcile-mc.sh"
 
-  # Init synthetic git repo.
   (cd "$WORKDIR" && git init -q && git config user.email t@t && git config user.name t)
 }
 
@@ -44,437 +36,192 @@ write_mc() {
   (cd "$WORKDIR" && git add MISSION-CONTROL.md && git commit -q -m "init MC")
 }
 
-# stub_gh <issue-state-json-map>  e.g. stub_gh '1:CLOSED 2:OPEN 3:CLOSED'
-# Creates a `gh` shim on PATH that returns the canned state for `gh issue view N --json state -q .state`
-# and an empty list for `gh pr list ...` / `gh issue list ...`.
+# stub_gh <issue-state-json-map> — e.g. stub_gh '1:CLOSED 2:OPEN 3:CLOSED'
 stub_gh() {
-  local mapping="$1"
-  local lines=""
-  for pair in $mapping; do
-    local n="${pair%%:*}"
-    local s="${pair##*:}"
-    lines+="    $n) echo \"$s\"; exit 0 ;;"$'\n'
-  done
+  local map="$1"
   cat > "$STUBDIR/gh" <<EOF
 #!/usr/bin/env bash
-# canned gh stub for reconcile-mc tests
-case "\$1 \$2" in
-  "issue view")
-    case "\$3" in
-$lines
-      *) echo "OPEN"; exit 0 ;;
-    esac
+case "\$1" in
+  issue)
+    if [[ "\$2" == "view" ]]; then
+      n="\$3"
+      for pair in $map; do
+        k="\${pair%%:*}"
+        v="\${pair##*:}"
+        if [[ "\$k" == "\$n" ]]; then
+          echo "\$v"
+          exit 0
+        fi
+      done
+      exit 1
+    fi
+    if [[ "\$2" == "list" ]]; then
+      echo "0"
+      exit 0
+    fi
     ;;
-  "pr list") echo ""; exit 0 ;;
-  "issue list") echo ""; exit 0 ;;
-  *) exit 0 ;;
+  pr)
+    if [[ "\$2" == "list" ]]; then
+      echo ""
+      exit 0
+    fi
+    ;;
 esac
+exit 0
 EOF
   chmod +x "$STUBDIR/gh"
 }
 
-# stub_git_push  — replace `git push` with a no-op via PATH (wrap real git).
-stub_git_push() {
-  cat > "$STUBDIR/git" <<'EOF'
-#!/usr/bin/env bash
-# git shim — pass through to real git except for `push`, which is a no-op.
-if [[ "${1:-}" == "push" ]]; then
-  echo "stub: git push skipped"
-  exit 0
-fi
-exec /usr/bin/env -i HOME="$HOME" PATH="/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin" git "$@"
-EOF
-  # Note: the env -i above strips PATH so the shim itself isn't re-invoked.
-  chmod +x "$STUBDIR/git"
-}
-
-# run_script  — runs reconcile-mc.sh with stubs on PATH. Captures stdout/stderr.
+# run_script <args...>
 run_script() {
   RC=0
-  local out_file err_file
-  out_file="$(mktemp)"
-  err_file="$(mktemp)"
-  (
-    export PATH="$STUBDIR:$PATH"
-    cd "$WORKDIR"
-    bash "$WORKDIR/scripts/reconcile-mc.sh" "$@"
-  ) >"$out_file" 2>"$err_file" || RC=$?
-  OUT="$(cat "$out_file")"
-  ERR="$(cat "$err_file")"
-  rm -f "$out_file" "$err_file"
+  OUT="$(cd "$WORKDIR" && PATH="$STUBDIR:$PATH" bash scripts/reconcile-mc.sh "$@" 2>&1)" || RC=$?
 }
 
-# ── Test: a row whose mc:open issues are all CLOSED advances. ────────────────
+# ── Tests ────────────────────────────────────────────────────────────────────
 
-test_shipped_row_advances() {
+test_removes_row_when_all_issues_closed() {
   write_mc '# MC
-
-## 🛰️ Telemetry — right now
-
-**Phase:** P0 ▓░ 1/2
-**In flight:** 1
 
 **Recommended next prompt:**
 
 ```
-/temper 2
+/forge-overseer
 ```
 
-## 🪐 Phase progress
+## 🚧 In flight
 
-### P0 ▓░ 1/2
-
-| # | Sub-phase | Status | Blocked by | PRD | Issues |
-| --- | --- | --- | --- | --- | --- |
-| 0a | thing one | ✅ shipped | — | — | #1 <!-- mc:done=1 --> |
-| 0b | thing two | 🚧 in-progress | #0a | — | #2 <!-- mc:open=2 --> |
-
+| # | Title | Status |
+| --- | --- | --- |
+| 1 | Foo | 🚧 in-progress <!-- mc:open=1,2 --> |
+| 3 | Bar | ⏳ queued <!-- mc:open=3 --> |
 '
-  stub_gh '1:CLOSED 2:CLOSED'
-  stub_git_push
+  stub_gh '1:CLOSED 2:CLOSED 3:OPEN'
   run_script --dry-run
-
-  assert_exit_code 0 "$RC" "script should exit 0 on success"
-  # Read the rewritten MC.
-  local mc
-  mc="$(cat "$WORKDIR/MISSION-CONTROL.md")"
-  assert_contains "$mc" "| 0b | thing two | ✅ shipped" "0b should advance to ✅ shipped"
-  assert_contains "$mc" "mc:done=2" "marker should switch to mc:done"
-  assert_not_contains "$mc" "mc:open=2" "old mc:open marker must be gone"
-  # Blocked-by on the advanced row should be `—`.
-  assert_contains "$mc" "| 0b | thing two | ✅ shipped | — |" "Blocked by should be — on shipped row"
+  assert_eq 0 "$RC" "exit code"
+  # The diff should show the shipped row removed.
+  assert_contains "$OUT" "Foo" "diff mentions shipped row"
+  assert_contains "$OUT" "-| 1 |" "shipped row removed from diff"
 }
 
-# ── Test: a prd-ready row whose mc:open issues are all CLOSED advances. ──────
-# The all-closed mc:open set is the shipped signal; the prior status emoji is
-# informational only. The normal forge-auto flow closes issues without ever
-# flipping the MC row to 🚧 in-progress, so the script must advance from
-# 📝 prd-ready and ⏳ queued too — not just from 🚧 in-progress.
-
-test_prd_ready_row_advances() {
+test_keeps_row_when_any_issue_still_open() {
   write_mc '# MC
-
-## 🛰️ Telemetry — right now
-
-**Phase:** P0 ▓░ 1/2
-**In flight:** —
 
 **Recommended next prompt:**
 
 ```
-/forge
+/forge-overseer
 ```
 
-## 🪐 Phase progress
+## 🚧 In flight
 
-### P0 ▓░ 1/2
-
-| # | Sub-phase | Status | Blocked by | PRD | Issues |
-| --- | --- | --- | --- | --- | --- |
-| 0a | thing one | ✅ shipped | — | — | #1 <!-- mc:done=1 --> |
-| 0b | thing two | 📝 prd-ready | — | — | #2, #3 <!-- mc:open=2,3 --> |
-
+| # | Title | Status |
+| --- | --- | --- |
+| 1 | Foo | 🚧 in-progress <!-- mc:open=1,2 --> |
 '
-  stub_gh '1:CLOSED 2:CLOSED 3:CLOSED'
-  stub_git_push
+  stub_gh '1:CLOSED 2:OPEN'
   run_script --dry-run
-
-  assert_exit_code 0 "$RC" "script should exit 0 on success"
-  local mc
-  mc="$(cat "$WORKDIR/MISSION-CONTROL.md")"
-  assert_contains "$mc" "| 0b | thing two | ✅ shipped" "0b should advance from 📝 prd-ready to ✅ shipped"
-  assert_not_contains "$mc" "📝 prd-ready" "old prd-ready glyph must be gone"
-  assert_contains "$mc" "mc:done=2,3" "marker should switch to mc:done"
+  assert_eq 0 "$RC" "exit code"
+  assert_not_contains "$OUT" "-| 1 | Foo" "row preserved when not all issues closed"
 }
 
-test_queued_row_advances() {
+test_ignores_marker_examples_in_legend_html_comment_block() {
+  # Legend doc block contains example markers — must NOT trigger gh calls.
   write_mc '# MC
-
-## 🛰️ Telemetry — right now
-
-**Phase:** P0 ▓░ 1/2
-**In flight:** —
 
 **Recommended next prompt:**
 
 ```
-/forge
+/forge-overseer
 ```
 
-## 🪐 Phase progress
+## 🚧 In flight
 
-### P0 ▓░ 1/2
+| # | Title | Status |
+| --- | --- | --- |
+| 1 | Foo | 🚧 <!-- mc:open=1 --> |
 
-| # | Sub-phase | Status | Blocked by | PRD | Issues |
-| --- | --- | --- | --- | --- | --- |
-| 0a | thing one | ✅ shipped | — | — | #1 <!-- mc:done=1 --> |
-| 0b | thing two | ⏳ queued | — | — | #2 <!-- mc:open=2 --> |
+## Legend
 
+<!--
+  Example markers:
+    mc:open=99,100
+-->
 '
-  stub_gh '1:CLOSED 2:CLOSED'
-  stub_git_push
+  stub_gh '1:OPEN'
   run_script --dry-run
-
-  assert_exit_code 0 "$RC" "script should exit 0 on success"
-  local mc
-  mc="$(cat "$WORKDIR/MISSION-CONTROL.md")"
-  assert_contains "$mc" "| 0b | thing two | ✅ shipped" "0b should advance from ⏳ queued to ✅ shipped"
-  assert_not_contains "$mc" "⏳ queued" "old queued glyph must be gone"
-  assert_contains "$mc" "mc:done=2" "marker should switch to mc:done"
+  assert_eq 0 "$RC" "exit code"
+  # No "gh issue view 99 failed" or similar in OUT.
+  assert_not_contains "$OUT" "gh issue view 99 failed" "no false marker parse"
+  assert_not_contains "$OUT" "gh issue view 100 failed" "no false marker parse"
 }
 
-# ── Test: a partially-closed row does NOT advance. ───────────────────────────
-
-test_partial_close_does_not_advance() {
+test_ignores_backtick_wrapped_marker_examples() {
+  # The Legend body shows the marker grammar wrapped in backticks.
   write_mc '# MC
-
-## 🛰️ Telemetry — right now
-
-**Phase:** P0 ▓░ 1/2
-**In flight:** 1
 
 **Recommended next prompt:**
 
 ```
-/temper 2
+/forge-overseer
 ```
 
-## 🪐 Phase progress
+## 🚧 In flight
 
-### P0 ▓░ 1/2
+| # | Title | Status |
+| --- | --- | --- |
+| 1 | Foo | 🚧 <!-- mc:open=1 --> |
 
-| # | Sub-phase | Status | Blocked by | PRD | Issues |
-| --- | --- | --- | --- | --- | --- |
-| 0a | thing | 🚧 in-progress | — | — | #2, #3 <!-- mc:open=2,3 --> |
+## Legend
 
+- `<!-- mc:open=N,N -->` — issue numbers tracked as open.
 '
-  stub_gh '2:CLOSED 3:OPEN'
-  stub_git_push
+  stub_gh '1:OPEN'
   run_script --dry-run
-
-  assert_exit_code 0 "$RC"
-  local mc
-  mc="$(cat "$WORKDIR/MISSION-CONTROL.md")"
-  assert_contains "$mc" "🚧 in-progress" "row should stay in-progress"
-  assert_contains "$mc" "mc:open=2,3" "marker should remain mc:open"
+  assert_eq 0 "$RC" "exit code"
+  assert_not_contains "$OUT" "gh issue view N failed" "no false marker parse"
 }
 
-# ── Test: progress bars are recomputed from the rows. ────────────────────────
-
-test_progress_bars_recomputed() {
+test_dry_run_leaves_working_tree_clean() {
   write_mc '# MC
-
-## 🛰️ Telemetry — right now
-
-**Phase:** P0 ▓░ 1/2
-**In flight:** 1
 
 **Recommended next prompt:**
 
 ```
-/temper 2
+/forge-overseer
 ```
 
-## 🪐 Phase progress
+## 🚧 In flight
 
-### P0 Foundations ░░ 0/2
-
-| # | Sub-phase | Status | Blocked by | PRD | Issues |
-| --- | --- | --- | --- | --- | --- |
-| 0a | thing one | ✅ shipped | — | — | #1 <!-- mc:done=1 --> |
-| 0b | thing two | 🚧 in-progress | — | — | #2 <!-- mc:open=2 --> |
-
+| # | Title | Status |
+| --- | --- | --- |
+| 1 | Foo | 🚧 <!-- mc:open=1 --> |
 '
-  stub_gh '1:CLOSED 2:CLOSED'
-  stub_git_push
-  run_script --dry-run
-
-  assert_exit_code 0 "$RC"
-  local mc
-  mc="$(cat "$WORKDIR/MISSION-CONTROL.md")"
-  # After advancing 0b, the bar should read 2/2.
-  assert_contains "$mc" "### P0 Foundations ▓▓ 2/2" "phase bar should be recomputed to 2/2"
-}
-
-# ── Test: Telemetry banner — In flight count is recomputed. ──────────────────
-
-test_telemetry_in_flight_count() {
-  write_mc '# MC
-
-## 🛰️ Telemetry — right now
-
-**Phase:** P0 ▓░ 1/3
-**In flight:** 99
-
-**Recommended next prompt:**
-
-```
-/temper 2
-```
-
-## 🪐 Phase progress
-
-### P0 ▓░ 1/3
-
-| # | Sub-phase | Status | Blocked by | PRD | Issues |
-| --- | --- | --- | --- | --- | --- |
-| 0a | thing one | ✅ shipped | — | — | #1 <!-- mc:done=1 --> |
-| 0b | thing two | 🚧 in-progress | — | — | #2 <!-- mc:open=2 --> |
-| 0c | thing three | 🚧 in-progress | — | — | #3 <!-- mc:open=3 --> |
-
-'
-  stub_gh '1:CLOSED 2:OPEN 3:OPEN'
-  stub_git_push
-  run_script --dry-run
-
-  assert_exit_code 0 "$RC"
-  local mc
-  mc="$(cat "$WORKDIR/MISSION-CONTROL.md")"
-  assert_contains "$mc" "**In flight:** 2" "in-flight count should reflect 2 🚧 rows"
-}
-
-# ── Test: Telemetry banner — In flight `—` when zero. ────────────────────────
-
-test_telemetry_in_flight_dash_when_zero() {
-  write_mc '# MC
-
-## 🛰️ Telemetry — right now
-
-**Phase:** P0 ▓ 1/1
-**In flight:** 5
-
-**Recommended next prompt:**
-
-```
-/seal
-```
-
-## 🪐 Phase progress
-
-### P0 ▓ 1/1
-
-| # | Sub-phase | Status | Blocked by | PRD | Issues |
-| --- | --- | --- | --- | --- | --- |
-| 0a | thing one | ✅ shipped | — | — | #1 <!-- mc:done=1 --> |
-
-'
+  local before
+  before="$(cat "$WORKDIR/MISSION-CONTROL.md")"
   stub_gh '1:CLOSED'
-  stub_git_push
   run_script --dry-run
-
-  assert_exit_code 0 "$RC"
-  local mc
-  mc="$(cat "$WORKDIR/MISSION-CONTROL.md")"
-  assert_contains "$mc" "**In flight:** —" "in-flight should be — when 0 rows in flight"
+  assert_eq 0 "$RC" "exit code"
+  local after
+  after="$(cat "$WORKDIR/MISSION-CONTROL.md")"
+  assert_eq "$before" "$after" "MC unchanged after dry-run"
 }
 
-# ── Test: Recommended next prompt — /ponder <id> when only queued rows remain. ──
-
-test_recommended_next_prompt_ponder() {
+test_noop_when_no_open_markers() {
   write_mc '# MC
-
-## 🛰️ Telemetry — right now
-
-**Phase:** P0
-**In flight:** 1
 
 **Recommended next prompt:**
 
 ```
-/temper 1
+/forge-overseer
 ```
 
-## 🪐 Phase progress
+## 🚧 In flight
 
-### P0 ▓ 1/2
-
-| # | Sub-phase | Status | Blocked by | PRD | Issues |
-| --- | --- | --- | --- | --- | --- |
-| 0a | thing one | ✅ shipped | — | — | #1 <!-- mc:done=1 --> |
-| 0b | thing two | ⏳ queued | — | — | <!-- mc:none --> |
-
+| # | Title | Status |
+| --- | --- | --- |
 '
-  stub_gh '1:CLOSED'
-  stub_git_push
+  stub_gh ''
   run_script --dry-run
-
-  assert_exit_code 0 "$RC"
-  local mc
-  mc="$(cat "$WORKDIR/MISSION-CONTROL.md")"
-  assert_contains "$mc" "/ponder 0b" "recommended next prompt should be /ponder 0b"
-}
-
-# ── Test: Diff-empty case prints in-sync note and exits 0 without commit. ────
-
-test_no_diff_exits_cleanly() {
-  write_mc '# MC
-
-## 🛰️ Telemetry — right now
-
-**Phase:** P0 ▓ 1/1
-**In flight:** —
-
-**Recommended next prompt:**
-
-```
-_All features shipped or in motion. No recommendation._
-```
-
-## 🪐 Phase progress
-
-### P0 ▓ 1/1
-
-| # | Sub-phase | Status | Blocked by | PRD | Issues |
-| --- | --- | --- | --- | --- | --- |
-| 0a | thing one | ✅ shipped | — | — | #1 <!-- mc:done=1 --> |
-
-'
-  stub_gh '1:CLOSED'
-  stub_git_push
-  run_script
-
-  assert_exit_code 0 "$RC"
-  # If reconcile produced changes the recommended-next-prompt block re-wrote;
-  # whatever the diff state is, the run should at least exit 0 and the script
-  # not error. (Idempotence — second run of same content — is tested below.)
-}
-
-# ── Test: Idempotence — running twice produces no second diff. ───────────────
-
-test_idempotent_second_run() {
-  write_mc '# MC
-
-## 🛰️ Telemetry — right now
-
-**Phase:** P0
-**In flight:** —
-
-**Recommended next prompt:**
-
-```
-_All features shipped or in motion. No recommendation._
-```
-
-## 🪐 Phase progress
-
-### P0 Foundations ▓ 1/1
-
-| # | Sub-phase | Status | Blocked by | PRD | Issues |
-| --- | --- | --- | --- | --- | --- |
-| 0a | thing one | ✅ shipped | — | — | #1 <!-- mc:done=1 --> |
-
-'
-  stub_gh '1:CLOSED'
-  stub_git_push
-
-  # First run normalises everything (telemetry phase header, etc).
-  run_script
-  # Commit whatever the first run produced so the second run starts from a
-  # clean tree.
-  (cd "$WORKDIR" && git add MISSION-CONTROL.md && git commit -q -m "first reconcile" 2>/dev/null || true)
-
-  # Second run should be a no-op diff.
-  run_script
-  assert_exit_code 0 "$RC"
-  assert_contains "$OUT" "already in sync" "second run should report in-sync"
+  assert_eq 0 "$RC" "exit code"
 }
