@@ -1,8 +1,6 @@
 # `.forge/` — P2 single-session resilience substrate
 
-This directory is the on-disk substrate for **P2 — single-session resilience**
-(see [`docs/design/p2-single-session-resilience.md`](../docs/design/p2-single-session-resilience.md)
-§2 / §Q1 / §Q3 and [`docs/prds/p2-single-session-resilience-build.md`](../docs/prds/p2-single-session-resilience-build.md)).
+This directory is the on-disk substrate for single-session resilience.
 It holds one committed config file plus two gitignored runtime directories.
 
 ## Layout

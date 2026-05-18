@@ -34,9 +34,8 @@ set -uo pipefail
 # The `gh issue view <N>` calls below are the only GitHub-specific operations
 # in this validator: one to fetch the issue body (when invoked with an issue
 # number rather than `--body-file`), and one per referenced `#N` to check
-# existence + state. A future VCS-abstraction phase (P4-era WHJ v2 work, per
-# `docs/prds/improvements-3a-validation.md` non-goals) will replace these
-# calls with an abstraction layer. Until then, this is the seam.
+# existence + state. A future VCS-abstraction layer will replace these calls.
+# Until then, this is the seam.
 #
 # Search for `# GITHUB-SEAM` to find the call sites.
 # ────────────────────────────────────────────────────────────────────────────

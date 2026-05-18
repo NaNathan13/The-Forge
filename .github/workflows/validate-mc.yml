@@ -7,8 +7,6 @@ name: validate-mc
 # Security note: this workflow does not consume any untrusted event payloads
 # (no issue/PR titles/bodies in run: commands). The only secret read is
 # GITHUB_TOKEN, surfaced to `gh` via env, never interpolated into shell.
-#
-# Source: docs/prds/improvements-3a-validation.md slice #4 (issue #195).
 
 on:
   pull_request:
