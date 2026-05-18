@@ -3,6 +3,8 @@
 **Status:** Accepted
 **Date:** 2026-05-17
 
+> **Amended 2026-05-18 by [ADR-0008](./0008-operator-surface-naming.md):** the orchestrator and worker names referenced throughout this ADR have been renamed — `/forge-overseer` → `/forge`, `/temper-overseer` → `/temper`, `/forge <N>` → `/forge-worker <N>`, `/temper <PR>` → `/temper-worker <PR>`. The skill directory paths `.claude/skills/forge-overseer/` and `.claude/skills/temper-overseer/` no longer exist; their content lives at `.claude/skills/forge/` and `.claude/skills/temper/`. The original prose below is preserved verbatim — the **structure** it decided (per-phase orchestrators, one operator command per phase, label-based rework loop) is unchanged; only the names were superseded. Read the names as the renamed pair when interpreting current behaviour.
+
 ## Context
 
 The build/review pipeline named three roles — an orchestrator that dispatched workers, a per-slice builder, and a per-PR reviewer — and the natural framing of the workflow listed all three plus the planning and seal phases as `Ponder → <Orchestrator> → Build → Review → Seal`, treating the orchestrator as a fifth phase. That framing left two structural issues unaddressed:

@@ -322,8 +322,8 @@ Per generation:
       append its PR to last-completed PRs on a successful `/forge`),
       restate the hard constraints verbatim, and set the **Next concrete
       action** appropriately:
-      `dispatch /forge for issue #<N>` for the next pending slice, or
-      `queue drained — operator runs /temper next` if every slice
+      `dispatch /forge-worker for issue #<N>` for the next pending slice,
+      or `queue drained — operator runs /temper next` if every slice
       is built/skipped/failed.
    3. Print a short prose summary, then emit **`OVERSEER_CONTINUE`** as the
       **final `.result` line** of the generation and **exit 0**.
@@ -547,8 +547,8 @@ generation.
 
 Exactly **one** unambiguous next step:
 
-- `dispatch /forge for issue #<N>` — the next pending slice.
-- `re-dispatch /forge for issue #<N> with continuation context from <path>`.
+- `dispatch /forge-worker for issue #<N>` — the next pending slice.
+- `re-dispatch /forge-worker for issue #<N> with continuation context from <path>`.
 - `print end-of-phase handoff — queue drained, emit OVERSEER_COMPLETE`.
 - `resume the dispatch loop — paused at 95% session usage, re-check usage first`.
 

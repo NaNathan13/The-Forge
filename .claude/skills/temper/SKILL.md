@@ -176,8 +176,9 @@ Per generation:
    result of this generation's worker into the Execution frontier (mark
    the reviewed PR `ready-for-seal` or `friction` per the sentinel),
    restate the hard constraints verbatim, set the **Next concrete action**
-   to `dispatch /temper for PR #<N>` (next pending) or `queue drained —
-   operator runs /seal next`. Emit **`OVERSEER_CONTINUE`** and exit 0.
+   to `dispatch /temper-worker for PR #<N>` (next pending) or `queue
+   drained — operator runs /seal next`. Emit **`OVERSEER_CONTINUE`** and
+   exit 0.
 
 7. **Drained queue → emit `OVERSEER_COMPLETE`.** When the dispatch queue
    has no PRs left, run the End-of-Phase handoff (see "End of Phase —

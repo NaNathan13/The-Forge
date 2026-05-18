@@ -105,7 +105,7 @@ Operator approved the build queue above at the generation-1 pre-flight.
 
 ## Next concrete action
 
-dispatch /forge for issue #95
+dispatch /forge-worker for issue #95
 
 ## Notes / scratch
 
@@ -258,6 +258,6 @@ test_resumed_generation_carries_next_concrete_action() {
   ctx="$(injected_context)"
   assert_contains "$ctx" "Next concrete action" \
     "the re-injected continuation must carry the Next-concrete-action field"
-  assert_contains "$ctx" "dispatch /forge for issue #95" \
+  assert_contains "$ctx" "dispatch /forge-worker for issue #95" \
     "the resumed generation must pick up at the first pending slice, not at pre-flight"
 }
