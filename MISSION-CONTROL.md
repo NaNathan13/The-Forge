@@ -9,17 +9,12 @@
 
 **Recommended next prompt:**
 
-```
-/forge --phase 4f
-```
-
-> Build all 4f slices
+_All caught up — no open PRs, no triaged work in the queue._
 
 ## 🚧 In flight
 
 | # | Title | Status |
 | --- | --- | --- |
-| 4f | Operator-facing rename — `/forge` + `/temper` as orchestrator entry points; current workers become `/forge-worker` / `/temper-worker` | 🚧 in-progress · #282 <!-- mc:open=282 --> |
 
 ## ⏳ Queued
 
