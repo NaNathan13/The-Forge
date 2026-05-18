@@ -6,12 +6,12 @@ set -uo pipefail
 # After sub-phase 4b's pipeline rename, two skills emit sentinels with the same
 # JSON shape — only the prefix differs:
 #
-#     FORGE:RESULT <json-object>   — emitted by /forge (the builder)
-#     TEMPER:RESULT <json-object>  — emitted by /temper (the review skill)
+#     FORGE:RESULT <json-object>   — emitted by /forge-worker (the builder)
+#     TEMPER:RESULT <json-object>  — emitted by /temper-worker (the review skill)
 #
-# the overseer parses the matching line to decide what to do next. Today the
-# schema is enforced only by prose in `.claude/skills/forge/SKILL.md`,
-# `.claude/skills/temper/SKILL.md`, and `docs/shared/pipeline.md`.
+# the orchestrator parses the matching line to decide what to do next. Today the
+# schema is enforced only by prose in `.claude/skills/forge-worker/SKILL.md`,
+# `.claude/skills/temper-worker/SKILL.md`, and `docs/shared/pipeline.md`.
 # This validator is the code-level check those documents asked for — a thin
 # `jq`-driven shape test that catches malformed sentinels at write time (in
 # tests, fixtures, and future CI hooks) rather than at the orchestrator at
@@ -60,12 +60,12 @@ set -uo pipefail
 #               sub-phase will make `v` required and pin the accepted values.
 #
 # See `docs/shared/pipeline.md` §"Sentinel protocol" for the canonical schema
-# and `.claude/skills/temper/SKILL.md` §"Emit the result sentinel" for the
+# and `.claude/skills/temper-worker/SKILL.md` §"Emit the result sentinel" for the
 # emission rules.
 
 # Two sentinel prefixes share the same schema after the 4b rename:
-#   FORGE:RESULT — emitted by /forge (the builder), build outcome.
-#   TEMPER:RESULT — emitted by /temper (the review skill), review outcome.
+#   FORGE:RESULT — emitted by /forge-worker (the builder), build outcome.
+#   TEMPER:RESULT — emitted by /temper-worker (the review skill), review outcome.
 # Both carry an identical JSON object shape; this validator accepts either
 # prefix. The build sentinel (FORGE:RESULT) is checked first because it is the
 # load-bearing one the overseer parses for every shipped slice.

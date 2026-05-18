@@ -1,6 +1,6 @@
 # Lessons learned
 
-> **Naming context:** historical entries below may use pre-rename role names (`/forgemaster` as the orchestrator, `/forge` as the builder, no `/temper` role). The current role names are `/forge-overseer` (Forge-phase orchestrator), `/temper-overseer` (Temper-phase orchestrator), `/forge` (per-slice builder), and `/temper` (per-PR reviewer). See [ADR-0005](../docs/adr/0005-pipeline-orchestrator-structure.md) for the orchestrator structure and [ADR-0006](../docs/adr/0006-naming-discipline.md) for the canonical-glossary discipline.
+> **Naming context:** historical entries below may use pre-rename role names (`/forgemaster` as the original single orchestrator, `/forge`/`/temper` as the workers before ADR-0008, `/forge-overseer`/`/temper-overseer` as the pre-ADR-0008 orchestrator names). The current role names (per [ADR-0008](../docs/adr/0008-operator-surface-naming.md)) are `/forge` (Forge-phase orchestrator), `/temper` (Temper-phase orchestrator), `/forge-worker` (per-slice builder), and `/temper-worker` (per-PR reviewer). See [ADR-0005](../docs/adr/0005-pipeline-orchestrator-structure.md) for the orchestrator structure and [ADR-0006](../docs/adr/0006-naming-discipline.md) for the canonical-glossary discipline.
 
 
 Append-only log of failed-then-fixed patterns. Read at the start of every temper session **only when you hit a wall** — not bulk-loaded at startup. Each entry = a wall we hit, how we got past it, and a rule to avoid hitting it again.

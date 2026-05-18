@@ -1,370 +1,647 @@
 ---
 name: forge
-description: Build a triaged slice end-to-end — branch, implement, test, PR, green CI. Stops at green CI and emits FORGE:RESULT; does NOT merge (that's /seal's job). Invoked as /forge <N> where N is the issue number; usually dispatched by /forge-overseer during a batch.
+description: The Forge-phase orchestrator — dispatches /forge-worker <N> workers per slice, watches FORGE:RESULT sentinels, advances the build queue. Invoked as /forge after /ponder has triaged all slices. Does no temper dispatch, no seal chain — one operator command per phase per ADR-0005.
 ---
 
-# Forge — Build a Slice
+# /forge — Orchestrator of the Forge Phase
 
-Build issue #<N> from branch to merged PR. Forge is context-disciplined: start lean,
-stay lean, hand off to fresh sessions when context grows.
-
-## Inputs
-- Issue number from argument
-- Read the GitHub issue for spec and acceptance criteria
-- Check slice label: `slice:logic`, `slice:ui`, or `slice:mixed`
-
-## Workflow
-
-### 1. Setup
-- **If resuming from a continuation file** (forge dispatched you with a `continuation_file` path, or `.claude/forge-continue-<N>.md` exists for this issue): read it first. It is the hardened five-section format (see "Continuation file format" below) — start from its **Next concrete action**, honour its verbatim **Hard constraints**, and reuse its **Branch**/**Open PR** rather than creating new ones. Skip the branch/kanban steps that the continuation file shows are already done.
-- Create branch: `feat/#<N>-short-description`
-- Move issue to In Progress: `.claude/scripts/kanban-move.sh <N> in-progress`. If the script exits with code **78** ("project IDs not configured"), the user hasn't run `setup-kanban.sh` yet — log a one-line note (`kanban: skipped (not configured)`) and continue. Do **not** abort or treat this as friction. Any other non-zero exit is a real failure.
-- **Read the dev mode line** from `CLAUDE.md` (see "Dev mode resolution" below). This decides whether to write tests, treat the check command as a hard gate, and whether to dispatch a reviewer agent pre-PR.
-- Do NOT bulk-load `.claude/lessons.md` or any `.claude/knowledge/*.md` file. Consult them reactively if you hit a wall — read the lessons.md index first, then load specific knowledge files only when an entry matches your error.
-
-### 2. Build
-- Implement the feature per the issue spec
-- For `slice:ui` and `slice:mixed`: rely on any auto-loaded design-system rule under `.claude/rules/`; only read project-wide design docs if you need detail beyond the rule
-- **Tests and check command depend on dev mode** (see "Mode-conditional behavior" below). The default — `balanced` — matches the historical workflow: write tests after implementation, run the check command as the PR gate.
-- For `mode=tdd`, drive the build through `superpowers:test-driven-development` (red→green→refactor) from the start, not after.
-- For `mode=fast`, skip writing tests; still run the check command for information but don't block on its result.
-- Run the project's check command (configure in `CLAUDE.md`, e.g. `npm test`, `pnpm check-all`, `cargo test`)
-- Fix any failures before proceeding **unless `mode=fast`** — fast mode treats failures as advisory, not blocking.
-
-### 3. Visual review (UI/mixed slices only)
-- Default tool: **Playwright**. Dispatch a Playwright-driven subagent (or use the Playwright MCP directly) to drive the running app and capture screenshots.
-- Screenshots go to `screenshots/issue-<N>/`
-- Verify both light and dark mode (or whatever theme variants the project supports)
-- For non-web projects, swap Playwright for the project's equivalent visual harness (e.g. simulator driver, snapshot tester) and document the swap in `CLAUDE.md`
-
-### 4. Pre-PR reviewer (mode=tdd only)
-- For `mode=tdd`, dispatch the `reviewer` support-agent on the diff **before** opening the PR (see "Rules" for dispatch protocol).
-- Address blocking findings in-place, then re-run the check command. If a finding can't be addressed cleanly, surface it as friction on the PR after opening it.
-- For `mode=fast` and `mode=balanced`, skip this step.
-
-### 5. Open PR
-- **Check-command gate.** Before opening the PR:
-  - `mode=tdd` — hard gate. Check command must be green; if not, fix and re-run before pushing. No PR until green.
-  - `mode=balanced` — current behavior. Check command must be green before opening the PR.
-  - `mode=fast` — check result is advisory only. Open the PR even if the check command fails; note the failure in the PR body.
-- Commit all changes with `feat(scope): description (#<N>)`
-- Push the branch via `git push -u origin <branch>`, then open the PR via `gh pr create`
-- PR body includes `closes #<N>`, summary, and test plan
-- Move issue: `.claude/scripts/kanban-move.sh <N> in-review` (exit-78 = not configured → warn-and-continue, same as the in-progress move in step 1)
-- If UI/mixed: post PR comment with screenshot image refs
-
-### 6. Wait for CI
-- Use Monitor tool to watch `gh pr checks <PR> --watch` — zero token cost while waiting
-- If CI fails: read only the failure log (not the full run), fix, push, re-monitor
-- Max 2 fix cycles. If still failing: apply the `needs-human` label to the PR (`gh pr edit <PR> --add-label needs-human`) **before** emitting the sentinel, then emit `FORGE:RESULT` with `"status":"needs_human","reason":"ci-stuck"`. The label is what tells `/seal` to skip the PR — without it, a PR with green-but-stuck CI (or a flake that briefly goes green) can be auto-merged by `/seal --auto`.
-
-### 7. Stop at green CI
-
-Once CI is green, **emit a structured-result sentinel and stop**. Do not merge.
-
-Merging is `/seal`'s job — it runs after the whole batch and approves + squash-merges each
-shippable PR in one pass, then reconciles `MISSION-CONTROL.md`. Forge opening but not
-merging keeps the build queue uniform: every slice ends in the same state (PR open, CI
-green) so seal can act on them as a batch.
-
-If you've written a `.claude/forge-summary-<N>.md` file during the run, leave it — `/seal`
-deletes it as part of cleanup once the slice is merged.
-
-### 8. Emit the result sentinel
-
-Every forge run — success, continuation, needs-human, or fail — ends by printing a
-short prose summary (for the human reading the transcript) followed by **exactly one**
-`FORGE:RESULT` JSON line. The JSON is the source of truth Forge parses; the prose is
-human-readability only.
-
-Format: a single line beginning with `FORGE:RESULT ` followed by a JSON object. No
-trailing text, no code fences around the line, no pretty-printing — one object on one
-line so Forge can parse it deterministically.
+`/forge` is the orchestrator that runs **inside the Forge phase** of the
+pipeline. It is not itself a phase. See [`CONTEXT.md#forge-phase`](../../../CONTEXT.md#forge-phase)
+and [ADR-0005](../../../docs/adr/0005-pipeline-orchestrator-structure.md) for the
+four-phase shape:
 
 ```
-FORGE:RESULT {"v":1,"status":"success","issue":3,"pr":42,"branch":"feat/#3-foo","tokens":null,"friction":null}
+Ponder → Forge → Temper → Seal
 ```
 
-Required fields on every emission:
-- `v` — protocol version (integer). Currently `1`. Always emit it. (Absent is
-  accepted by `validate-sentinel.sh` as a back-compat legacy case for one
-  release, but new forge emissions must include it.)
-- `status` — one of `success`, `continue`, `needs_human`, `fail`
-- `issue` — issue number (integer)
-- `branch` — branch name (string), or `null` if branch was never created
-- `pr` — PR number (integer), or `null` if no PR was opened
-- `tokens` — always `null` from forge. Forge fills this in via ccusage after the run.
-- `friction` — `null` unless friction was flagged this run; otherwise the friction text
-  (string, same content as the PR `## Friction` comment)
+The operator types `/ponder`, then `/forge`, then `/temper`,
+then `/seal` — **one command per phase**, no auto-chain. `/forge`
+finishes when every slice in its queue has reached "PR open + CI green or
+needs-human"; the operator inspects state, then runs `/temper` next.
 
-Status-specific extra fields:
-- `status: "continue"` → add `continuation_file` with the path to the continuation file
-  (e.g. `".claude/forge-continue-3.md"`)
-- `status: "needs_human"` → add `reason` (string, short reason code — e.g.
-  `"ci-stuck"`, `"friction"`)
-- `status: "fail"` → add `reason` (string, short failure description)
+`/forge` is an **autonomous, loop-managed dispatch loop**. It pulls
+slices from the build queue, dispatches a `/forge-worker <N>` worker for each slice,
+monitors progress, handles results, advances to the next slice — repeating
+until the queue is drained. It does **not** dispatch `/temper` workers
+(that's `/temper`'s job per ADR-0005) and it does **not** invoke
+`/seal` (the operator runs `/seal` explicitly).
 
-Examples:
+`/forge` runs as a **loop-managed session** under
+`scripts/relaunch-loop.sh` (the external relaunch loop). Each `claude -p`
+generation the loop launches dispatches **exactly one worker** (one `/forge
+<N>`), writes the next continuation generation, and exits. The loop then
+relaunches `claude` fresh so every generation starts with an empty context
+window. This is **one worker per generation**: the handoff trigger is
+**structural ("a worker finished"), not measured**. `/forge` never
+self-estimates context %.
 
-Success:
+Ponder plans the work; `/forge` executes the build. Each slice
+flows through `/forge` (branch → implement → test → PR → green CI). When
+the queue is drained, the operator runs `/temper` to review every
+batch PR, then `/seal` to merge them.
+
+## Rework loop (sourced from `/temper`)
+
+When the operator's prior `/temper` run marked one or more issues
+[`needs-rework`](../../../CONTEXT.md#needs-rework), **prefer them over fresh
+[`ready-for-agent`](../../../CONTEXT.md#ready-for-agent) issues** in the
+build queue. The rework loop preserves the phase boundary per
+ADR-0005 §Decision — `/temper` does not dispatch a forge worker
+inline; the operator decides when to re-enter the Forge phase, and
+`/forge` drains `needs-rework` first.
+
+## Invocation
+
+`/forge` is normally started **by the relaunch loop**, not by a
+human typing a slash command. The loop runs plain `claude -p` with no prompt
+args; generation 1 reads its scope (and any `--phase` filter) from the
+session charter — see "Running under the relaunch loop" below.
+
 ```
-FORGE:RESULT {"v":1,"status":"success","issue":21,"pr":58,"branch":"feat/#21-forge-sentinel-json","tokens":null,"friction":null}
+/forge                    # interactive escape hatch — no auto-continuation across generations
+/forge --phase <id>       # interactive, scope to one sub-phase (e.g. 2a)
+/forge --resume           # manual escape hatch — resume from the latest continuation generation
 ```
 
-Continuation (context or rate-limit hand-off):
-```
-FORGE:RESULT {"v":1,"status":"continue","issue":21,"pr":null,"branch":"feat/#21-forge-sentinel-json","tokens":null,"friction":null,"continuation_file":".claude/forge-continue-21.md"}
-```
+The slash-command forms are a **documented manual fallback** for when you
+are not running under the loop. Interactive `/forge` works, but it
+does not auto-continue across generations: when context fills, it stops at
+the end of the current generation and you restart it by hand. The loop + the
+SessionStart hook are the primary resume mechanism.
 
-Needs human (CI stuck after retries):
-```
-FORGE:RESULT {"v":1,"status":"needs_human","issue":21,"pr":58,"branch":"feat/#21-forge-sentinel-json","tokens":null,"friction":null,"reason":"ci-stuck"}
-```
+## Running under the relaunch loop
 
-Friction flagged but resolved enough to land a PR for human review:
-```
-FORGE:RESULT {"v":1,"status":"needs_human","issue":21,"pr":58,"branch":"feat/#21-forge-sentinel-json","tokens":null,"friction":"flaky test in CI — retried twice, still intermittent; left PR open for review","reason":"friction"}
-```
+`scripts/relaunch-loop.sh` owns `/forge`'s lifecycle. Per
+generation it launches a fresh `claude -p`, exports `OVERSEER_LOOP_MANAGED=1`
+into its environment, and inspects the generation's final `.result` line for
+a sentinel:
 
-Unrecoverable failure:
-```
-FORGE:RESULT {"v":1,"status":"fail","issue":21,"pr":null,"branch":"feat/#21-forge-sentinel-json","tokens":null,"friction":null,"reason":"branch creation blocked by hook"}
-```
+- `OVERSEER_CONTINUE` → clean handoff. The loop records the generation, runs
+  its thrash circuit breaker and **`budget_gate`**, then relaunches `claude`
+  fresh.
+- `OVERSEER_COMPLETE` → work done. The loop breaks and exits 0.
+- non-zero exit → crash. The loop propagates the exit code to `launchd`; it
+  does not respin.
+- exit 0 with no sentinel → fault. The loop exits non-zero rather than
+  spinning.
 
-## Dev mode resolution
+The SessionStart hook (`.claude/hooks/overseer-session-start.sh`) re-injects
+the latest continuation generation (`.forge/continuation/<slug>/latest`) as
+the fresh session's opening context. So every generation after the first
+starts already knowing its hard constraints, execution frontier, conversation
+summary, and next concrete action.
 
-Forge reads the project's dev mode from `CLAUDE.md` at the start of every run.
-The line looks like:
+The same `OVERSEER_*` sentinel/env-var names are used by `/temper`
+when it runs under the loop — the loop wraps **whichever overseer is
+currently running** per ADR-0005 §Consequences.
+
+**The loop's `budget_gate` is the real-token safety net — `/forge`
+does not self-measure context.** The structural one-worker-per-generation
+exit replaces every measured checkpoint. `relaunch-loop.sh` parses each
+generation's `.usage` block, turns it into a percentage of the context
+window, and stops the loop if the session crossed its hard threshold.
+`/forge` itself never reads a context percentage and never estimates
+one: the structural "one worker per generation" exit keeps each generation
+small enough that the budget gate is a backstop, not the primary control.
+If `/forge` ever finds itself reaching for a context-% estimate,
+that is a bug — the exit trigger is structural.
+
+### `--phase` via the charter
+
+The relaunch loop runs `claude -p` with **no prompt arguments** — there is no
+CLI path for `--phase`. A phase-scoped run reaches generation 1 through the
+**charter file**: `.forge/continuation/<slug>/charter.md` (the SessionStart
+hook injects it on a genuine first launch, when no continuation generation
+exists yet — see `.claude/hooks/overseer-session-start.sh`). Generation 1
+reads the charter, runs pre-flight scoped to that phase, and writes the
+phase scope into `gen-001.md`'s hard-constraints section so it carries
+forward across every generation.
+
+**The charter is operator-hand-written, not setup-generated.**
+`light-the-forge.sh` ships the *substrate* — `continuation.sh`, the
+SessionStart hook, the `gen-NNN.md` template — but it does **not** generate
+a charter. The charter is per-run intent: the operator writes it once,
+immediately before starting `relaunch-loop.sh`, to scope that run. It lives
+under `.forge/continuation/<slug>/`, which is **gitignored runtime state**
+(see `.forge/README.md`) — so it is correctly *not* a committed,
+setup-generated file. A run with no charter is the unscoped default:
+generation 1 runs pre-flight across the whole `ready-for-agent` queue.
+
+**Charter format.** A short free-form Markdown file. The one load-bearing
+line `/forge` parses is a `phase:` scope directive — generation 1
+scans the injected charter for a line matching `phase: <id>`
+(case-insensitive, leading whitespace allowed) and treats `<id>` as the
+`--phase` scope. Everything else in the charter is prose context for
+generation 1. Minimal example:
 
 ```markdown
-**Dev mode:** fast | balanced | tdd
+# /forge charter — phase <id>
+
+phase: <id>
+
+Run /forge scoped to the named sub-phase. Approve the queue, then go autonomous.
 ```
 
-Resolution procedure:
+If no `phase:` line is present, the run is unscoped — same as no charter at
+all. Once `gen-001.md` is written the charter is never read again: the
+resolved `phase-scope` lives in the continuation chain's hard-constraints
+section from that point on, and `overseer-session-start.sh`'s charter-fallback
+path is unreachable (a `gen-NNN.md` always wins over the charter).
 
-1. Read `CLAUDE.md`. Look for a line whose leading literal (ignoring surrounding
-   whitespace) is `**Dev mode:**`. Take the first match.
-2. Lowercase and trim the value. Match against `fast`, `balanced`, `tdd`.
-3. **Default to `balanced`** if any of the following hold:
-   - `CLAUDE.md` does not exist or cannot be read.
-   - No `**Dev mode:**` line is present.
-   - The line is malformed (e.g. no value, multiple values, wrong delimiter).
-   - The value doesn't match one of the three recognized modes.
-4. When defaulting, emit exactly **one** prose line to the transcript:
-   `dev-mode: defaulted to balanced (<reason>)` — where `<reason>` is one of
-   `missing line`, `malformed line`, or `unrecognized value: <raw>`.
-5. When the line resolves cleanly, no note is required; the mode is just used.
+Human-typed `/forge --resume` is a **documented manual escape
+hatch**: it reads the latest continuation generation directly and resumes
+from it. Under the loop you never need it — the SessionStart hook does the
+re-injection automatically.
 
-The resolved mode applies to the entire forge run. Do not re-read mid-run.
+## Pre-flight: Build Queue Preview
 
-## Mode-conditional behavior
+**Pre-flight runs in generation 1 only.** It is the single required human
+touch-point. Resumed generations skip it (see "Skipping pre-flight on
+resumed generations" below).
 
-The resolved mode gates three things and only three things. Visual review,
-sentinel emission, PR conventions, context discipline, and friction handling are
-identical across all modes.
+Before dispatching any workers:
 
-| Concern | `fast` | `balanced` *(default)* | `tdd` |
-|---|---|---|---|
-| Tests written | Skip entirely | After implementation | Drive via `superpowers:test-driven-development` (red→green→refactor, first) |
-| Check command (e.g. `pnpm check-all`) | Run for info; advisory only — does **not** block PR | Must be green before PR (current behavior) | **Hard gate** — must be green before PR; re-run after reviewer fixes |
-| Reviewer support-agent pre-PR | Skip | Skip | Required — dispatch `reviewer` on the diff; address blocking findings or surface as friction |
+1. **Query open `needs-rework` and `ready-for-agent` issues.**
+   ```bash
+   gh issue list --label needs-rework --state open --json number,title,labels,body
+   gh issue list --label ready-for-agent --state open --json number,title,labels,body
+   ```
+   `needs-rework` issues sort to the front of the queue per ADR-0005's
+   rework loop. If an issue carries both labels, treat it as `needs-rework`.
 
-Notes:
+2. **Resolve the phase scope from the charter.** If the SessionStart hook
+   injected a charter (genuine first launch, no `gen-NNN.md` yet), scan it
+   for a `phase: <id>` line (case-insensitive, leading whitespace allowed).
+   If one is present, the run is scoped: filter the issue list to issues
+   carrying the `phase:<id>` label. If no charter was injected, or it has
+   no `phase:` line, the run is unscoped — keep the whole queue.
 
-- The visual-review step (Playwright / equivalent) for `slice:ui` and `slice:mixed`
-  runs identically in all modes. Mode never disables visual review.
-- For `mode=fast`, if the check command fails, note the failure in the PR body
-  ("Check command failed — fast mode, not blocking") so the human reviewer sees it.
-- For `mode=tdd`, the reviewer agent counts toward forge's 2-agent concurrent
-  cap. If you also need visual review, sequence them (reviewer first, then visual,
-  or vice versa) rather than running three agents at once.
-- If the reviewer flags a `HIGH` issue you can't address cleanly, open the PR
-  anyway, apply the `friction` label, and post a `## Friction` comment per the
-  Friction-flagging section below. Emit `FORGE:RESULT` with
-  `"status":"needs_human","reason":"friction"` and the friction text.
+3. **Validate queue artifacts (shape checks).** Before parsing the
+   dependency graph, run shape checks against every issue in the resolved
+   queue. This is the ponder→forge analogue of "CI must be green
+   before merge" — it catches malformed issues at queue time so a worker
+   is never dispatched on something `/triage` couldn't have produced
+   cleanly. For each issue, run these three checks:
 
-## Context discipline
+   - **`slice:*` label present.** The issue must carry exactly one of:
+     `slice:logic`, `slice:ui`, `slice:mixed`, `slice:docs`, `slice:script`,
+     `slice:skill`.
+   - **`## Acceptance` section present and non-empty.** `## Acceptance
+     criteria` also matches the same heading family; the section's body
+     must contain at least one non-whitespace character.
+   - **`## Blocked by` section parseable.** Body is one of: literal `None`
+     (optionally followed by prose), empty / whitespace-only, or one or more
+     `#N` references in a comma- or newline-separated list. Free prose with
+     no `None` and no `#N` references is malformed.
 
-Two distinct concerns. Guard both.
+   **On failure:** print one line per offending issue with the issue number
+   and the specific check that failed, then refuse to proceed — do **not**
+   present a build queue, do **not** write `gen-001.md`. The operator must
+   fix the issues and re-launch `/forge`.
 
-### A. Context-window (per-session token budget)
+   **On success (all issues pass):** proceed to step 4 with no behavior
+   change.
 
-Forge subagents are the biggest token cost in the pipeline.
+4. **Parse the dependency graph.** For each issue, scan the body for a
+   `## Blocked by` section. Possible values:
+   - `None - can start immediately` → no dependencies
+   - `#42, #43` (or any comma/newline-separated list of issue numbers) →
+     blocked by those issues
+   - `#42 (logic), #43 (db schema)` → also valid; parse out the `#N` tokens
+   Issues whose blockers are NOT in the current build queue are treated as
+   unblocked (those blockers presumably already shipped on `main`).
 
-- **Read your context usage from the statusline** — the `ctx N%` figure rendered by `.claude/statusline/budget-mirror.sh`. Do not estimate; the statusline is the source of truth.
-- **At warn (`ctx N% ^`, default 40%) — finish the current phase** (build/verify/PR), then hand off. **Near-done override:** if the slice is within one concrete action of done, finish it — a 95%-complete slice that hands off mid-flight is worse than a slightly-over-warn slice that ships.
-- **At hard (`ctx N% !`, default 50%) — hard stop, no exceptions.** Write a continuation file and emit `FORGE:RESULT` with `"status":"continue"` immediately. The override does NOT apply here.
-- **Don't load heavy docs proactively.** No MISSION-CONTROL.md, WORKFLOW.md, or knowledge files at startup.
-- **Use the knowledge library only when stuck.** Read `.claude/lessons.md` (the cheap index). If an entry's error signature matches what you're seeing, load `.claude/knowledge/<slug>.md` for the fix. Don't load knowledge files speculatively.
-- **CI failure fix sessions.** If CI fails after PR is opened, forge dispatches a fresh subagent with just the branch name, PR number, and failure log — minimal context for a targeted fix.
+5. **Topo-sort the queue.** Within each "stratum" of the DAG (issues whose
+   blockers are all earlier in the queue), put `needs-rework` issues first
+   (preserving relative order), then apply the slice-type secondary sort:
+   `slice:logic` first, `slice:mixed` second, `slice:ui` third. Within each
+   group, sort by issue number ascending (stable).
 
-### B. Session rate-limit (5-hour rolling account budget)
+6. **Detect cycles or stranded slices.** If any issue's blockers create a
+   cycle, or if a blocker isn't in the queue AND isn't already merged on
+   `main`, flag it to the user. Don't proceed with an inconsistent graph.
 
-If your session-usage observation (via ccusage or equivalent) reads >90%, finish the current step you're on (build, test, PR, or CI poll) and then emit `FORGE:RESULT` with `"status":"continue"` and a continuation file. Forge will pause the queue and resume when the rate-limit window rotates. Don't push through past 95% — work past that point will fail outright.
+7. **Present the build queue as a numbered table** with `Blocked by` and
+   `Rework?` columns:
 
-### Continuation file format (`.claude/forge-continue-<N>.md`)
+   | # | Issue | Title | Slice | Blocked by | Rework? | Summary |
+   |---|-------|-------|-------|------------|---------|---------|
+   | 1 | #95  | logic: derive-status function | logic | — | — | … |
+   | 2 | #96  | ui: status chip on cards | ui | #95 | — | … |
+   | 3 | #97  | logic: fix derive-status edge case | logic | — | yes | (from `/temper`'s last run) |
 
-When forge hands off (context hard-stop or rate-limit), it writes
-`.claude/forge-continue-<N>.md` — one file per issue, owned by forge, deleted by
-`/seal` once the slice is merged. This is **not** the `.forge/continuation/<slug>/`
-chain: that chain belongs to loop-managed sessions (forge), keyed by session slug.
-Forge is a subagent — it has no session slug, writes no `gen-NNN.md`, and does not
-call `scripts/continuation.sh`. What forge *does* share with `gen-NNN.md` is the
-**format**: the same hardened five-section structure (the continuation-gen
-schema — `templates/continuation-gen.md`), so a resuming forge inherits a
-known shape.
+8. **Ask the user to approve, reorder, or remove slices.** Show the
+   dependency edges and rework annotations explicitly. If the user reorders
+   into something that violates a dependency, warn and either re-sort or
+   accept (with their explicit OK).
 
-Write the file with these five sections, in this order, all mandatory:
+9. **On approval, write `gen-001.md` immediately — before dispatching
+   anything.** Run `scripts/continuation.sh write` to create the first
+   continuation generation and fill its five sections. The approved queue
+   table goes in the Execution-frontier **Dispatch queue** field;
+   `approved-queue: true` goes in the verbatim **hard-constraints** section.
+   **If the charter set a phase scope, also write `phase-scope: <id>` into
+   that verbatim hard-constraints section.** Writing `gen-001.md` *before*
+   the first dispatch means a crash between approval and the first dispatch
+   cannot re-prompt the human — the SessionStart hook will find
+   `gen-001.md` and resume from it instead of falling back to the charter.
 
-```markdown
-# Forge continuation — issue #<N> — handoff <N-th>
-<!-- written: <ISO timestamp> · role: worker · issue: #<N> -->
+10. Begin the autonomous dispatch loop.
 
-## Hard constraints (RESTATED VERBATIM — do not summarize)
+### Skipping pre-flight on resumed generations
 
-<!-- The non-negotiable rules this forge runs under, copied verbatim every
-     handoff — never summarized. Restated so a constraint cannot be lost down a
-     handoff chain. Carries: the issue's acceptance criteria, the resolved dev
-     mode, the slice label, the branch-naming + `closes #<N>` PR rule, and "do
-     not merge — stop at green CI". If a constraint changed, mark it CHANGED. -->
+Any generation after the first starts with the previous generation's
+`gen-NNN.md` re-injected as context. That file's hard-constraints section
+carries `approved-queue: true` — the signal that the human already approved
+this batch in generation 1. **A resumed generation reads that flag and
+skips pre-flight entirely**: it goes straight to the dispatch loop,
+picking up from the Execution-frontier dispatch queue. The pre-flight
+build-queue approval is a generation-1-only event; it is never re-prompted.
 
-## Execution frontier
+## Dispatch Loop
 
-- **Branch:** <branch name, or n/a if not yet created>
-- **Open PR:** <number + state, or n/a>
-- **Last sentinel:** <the most recent FORGE:RESULT observed, verbatim, or n/a>
-- **Build state:** <what is implemented, what is left — by file/criterion ref>
-- **Mid-flight state:** <anything started-but-not-finished: a half-written file,
-  a check-command run pending, a CI poll awaiting result>
+A loop-managed generation dispatches **exactly one `/forge` worker** —
+never two. The "loop" here is the relaunch loop across generations — not an
+in-session `for` loop over the whole queue. This cap is a deliberate trade
+— see [ADR-0002](../../../docs/adr/0002-concurrency-cap.md) for the
+rationale and revisit precondition.
 
-## Conversation summary
+Per generation:
 
-<!-- Durable context the fresh forge inherits: the issue spec as understood,
-     decisions made mid-build, anything learned from the knowledge library.
-     Updated — never blind-replaced — each handoff. -->
+1. **Resolve the next dispatch action from the dispatch queue.** Read the
+   Execution-frontier dispatch queue from the injected continuation
+   generation (or, in generation 1, from the queue you just had approved).
+   Pick the next `pending` slice and dispatch `/forge` for it (subject to
+   dependencies; see step 2).
 
-## Next concrete action
+2. **Respect the dependency graph.** Before dispatching a `/forge` for
+   issue `N`, confirm all of its blockers are either (a) already merged on
+   `main`, or (b) already built this batch by a slice whose `/forge`
+   emitted `FORGE:RESULT` with `"status":"success"` (PR open, CI green —
+   recorded in the continuation's "last-completed PRs"). If a blocker is
+   still unbuilt, pick the next unblocked slice instead; if nothing is
+   unblocked, that is a stranded-graph fault — flag it and emit
+   `OVERSEER_COMPLETE` with a note.
 
-<!-- ONE unambiguous next step — not a plan. The fresh forge starts here.
-     E.g. "run the check command, then commit and push" or "re-poll CI on PR
-     #<N> — paused at 96% session usage, re-check usage first". -->
+   **Cross-phase blockers are out of scope for this overseer.** A blocker
+   that needs `/temper` review before its consumer can build is a
+   batch-shape issue the operator handles by splitting the run: build the
+   blockers, run `/temper`, run `/seal`, then re-enter Forge for
+   the consumers.
 
-## Notes / scratch
+3. **Check session usage** (see "Session rate-limit awareness" below). If
+   usage is ≥95%, do NOT dispatch — write the next continuation generation,
+   use `ScheduleWakeup` to resume later, and emit `OVERSEER_CONTINUE`.
 
-<!-- Lossy-safe. Friction observations, scratch reasoning, anything else. The
-     only section safe to lose. -->
+4. Note the start timestamp.
+
+5. **Dispatch exactly one `/forge` worker as a subagent.** One worker per
+   generation — never two.
+
+   ```
+   Agent({
+     subagent_type: "general-purpose",
+     description: "forge #<N>",
+     prompt: "Read .claude/skills/forge-worker/SKILL.md, then execute /forge-worker <N>.",
+     isolation: "worktree"
+   })
+   ```
+   Each `/forge` worker can spawn up to 2 [support agents](../../../CONTEXT.md#support-agent)
+   (researcher, reviewer, builder) from `.claude/agents/`, for a maximum of
+   3 concurrent subagents total (1 forge + 2 support).
+
+6. **On worker completion, handle the sentinel** (see "Sentinel Handling"
+   below) and **log tokens** (see "Token Logging").
+
+7. **Hand off — write the next continuation generation and exit.** This is
+   the structural handoff trigger: a worker finished, so this generation is
+   done.
+   1. Run `scripts/continuation.sh write` to create the next `gen-NNN.md`.
+   2. Fill its five sections — fold the result of this generation's worker
+      into the Execution frontier (update the dispatched slice's status,
+      append its PR to last-completed PRs on a successful `/forge`),
+      restate the hard constraints verbatim, and set the **Next concrete
+      action** appropriately:
+      `dispatch /forge for issue #<N>` for the next pending slice, or
+      `queue drained — operator runs /temper next` if every slice
+      is built/skipped/failed.
+   3. Print a short prose summary, then emit **`OVERSEER_CONTINUE`** as the
+      **final `.result` line** of the generation and **exit 0**.
+   The relaunch loop reads `OVERSEER_CONTINUE`, runs its thrash + budget
+   gates, and relaunches `claude` fresh. The SessionStart hook re-injects
+   the `gen-NNN.md` you just wrote.
+
+8. **Drained queue → emit `OVERSEER_COMPLETE`.** When the dispatch queue
+   has no slices left to advance (every slice is `built`, `skipped`, or
+   `failed`), this generation does not dispatch a worker. Instead it runs
+   the End-of-Phase handoff (see "End of Phase — handoff to operator") and
+   then emits **`OVERSEER_COMPLETE`** as the final `.result` line and exits
+   0. The relaunch loop reads `OVERSEER_COMPLETE` and breaks — the Forge
+   phase is done. The operator runs `/temper` next.
+
+This is an autonomous loop across generations — no user confirmation between
+slices unless a `needs_human` sentinel fires.
+
+## `/forge` Does NOT (Anti-Patterns)
+
+`/forge` is a **dispatcher**, not a worker, and it dispatches
+**only `/forge` workers**. Every minute it spends doing actual work inline
+is a minute its context is bloating and the dispatch loop is starving. The
+orchestrator MUST NOT:
+
+- **Dispatch `/temper` workers.** That is `/temper`'s job per
+  ADR-0005. The Forge phase ends when every slice has reached PR-open +
+  CI-green or needs-human; the operator runs `/temper` next.
+- **Dispatch `/seal` (inline or as a subagent).** The operator runs
+  `/seal` explicitly after `/temper` drains the review queue. No
+  auto-chain per ADR-0005 §Decision.
+- **Self-estimate context %.** `/forge` never reads or guesses a
+  context-window percentage. The handoff trigger is structural — one worker
+  per generation — and the relaunch loop's `budget_gate` is the real-token
+  safety net. If you reach for a context estimate, stop: the exit is "a
+  worker finished", not "context looks full".
+- **Dispatch more than one worker per generation.** Exactly one. The
+  generation ends when that worker finishes.
+- **Run any build, review, or merge logic inline.** That's `/forge`,
+  `/temper`, and `/seal`'s job. Even pre-PR checks live inside the workers.
+- **Resolve merge conflicts inline.** If a `/forge` PR hits a conflict,
+  dispatch a fresh subagent (`general-purpose`, worktree-isolated) to
+  rebase and resolve. `/forge` waits for the sentinel; it does
+  not open the file.
+- **Read full file bodies, log dumps, or knowledge files.**
+  `/forge` reads sentinels, queue state, and short status output
+  only.
+- **Bulk-load `MISSION-CONTROL.md`, `lessons.md`, knowledge files, or
+  design docs.** `/forge` runs lean.
+
+What `/forge` **does** do, and only this:
+1. (Generation 1 only) Parse the pre-flight queue, get user approval,
+   write `gen-001.md`.
+2. Dispatch **one** `/forge` worker for the next pending slice, respecting
+   the dependency graph.
+3. Parse the worker's `FORGE:RESULT` sentinel.
+4. Log tokens (a single ccusage call + one jsonl append).
+5. Write the next continuation generation via `scripts/continuation.sh
+   write`.
+6. Emit `OVERSEER_CONTINUE` and exit 0 — or, on a drained queue, run the
+   end-of-phase handoff and emit `OVERSEER_COMPLETE`.
+
+If you find yourself doing anything else, stop — dispatch a subagent
+instead.
+
+## Sentinel Handling
+
+`/forge` emits exactly one `FORGE:RESULT {...}` JSON sentinel line at the
+end of every run. `/forge` parses that line — never the prose
+summary above it — to decide what happens next. Schema is defined in
+[`docs/shared/pipeline.md`](../../../docs/shared/pipeline.md) and
+[`CONTEXT.md#sentinel`](../../../CONTEXT.md#sentinel).
+
+**Parsing:**
+1. Scan the worker subagent's output for the last line beginning with
+   `FORGE:RESULT `.
+2. Strip the prefix and `JSON.parse` the remainder.
+3. Read `status`, `issue`, `pr`, `branch`, and (if present)
+   `continuation_file`, `reason`, `friction`. `tokens` is always `null`
+   from the worker — `/forge` fills it in via ccusage during the
+   token-logging step.
+4. Read the protocol-version field `v` if present. Current emitters set
+   `"v": 1`; future schema bumps will branch on `v` so old and new emitters
+   can coexist during a migration.
+5. If no expected sentinel line is found, treat the run as `status: "fail"`
+   with reason `"no result sentinel"` and apply the fail branch below.
+
+**Action by `status`:**
+
+| `status` | `/forge` action |
+|----------|---------------------------|
+| `success` | Build is green — PR open, CI green. Use `pr` and `branch`. Log tokens, mark the slice `built` in the dispatch queue. Hand off (next generation dispatches the next pending slice). |
+| `continue` | `/forge` itself needs another session. Record the slice as still `building` (note the `continuation_file` path). The next `/forge` generation re-dispatches a fresh `/forge` with that continuation context. Hand off. |
+| `needs_human` | Log `reason` (and `friction` text if present), mark the slice `skipped:<reason>`. **Belt-and-suspenders:** if `pr` is non-null, ensure the PR carries the matching label so `/seal` skips it — `friction` reason → `friction` label; any other reason → `needs-human` label. `/forge` re-applies (`gh pr edit <PR> --add-label <label>`) to defend against the case where the worker crashed between label and emit. Hand off. |
+| `fail` | Log `reason`. Retry once with a fresh `/forge`. On second `fail`, mark `skipped:fail` and apply the `needs-human` label if a PR is open. Hand off. |
+
+Whatever the sentinel status, the generation **always ends the same way**:
+fold the result into the next continuation generation and emit
+`OVERSEER_CONTINUE` (or `OVERSEER_COMPLETE` if that was the last action).
+`/forge` never "keeps going" to a second worker within one
+generation.
+
+## Context Discipline
+
+Two distinct constraints; both matter; manage both.
+
+### A. Context-window discipline — structural, not measured
+
+`/forge`'s context-window discipline is **the
+one-worker-per-generation structure itself**. A generation does a bounded
+amount of work — pull one action, dispatch one `/forge` worker, handle one
+sentinel, log tokens, write one continuation generation — and then exits.
+The relaunch loop relaunches `claude` fresh, so the next generation starts
+with an empty context window. Context can never bloat across the run
+because it is **reset every generation by construction**.
+
+Consequences:
+
+- **`/forge` does not self-estimate context %.** There is no
+  40%/50% checkpoint, no "context looks full" decision. The trigger is "a
+  worker finished", which is observable and deterministic, not an estimate.
+- **The relaunch loop's `budget_gate` is the real-token safety net.** It
+  measures real tokens; `/forge` does not duplicate it with an
+  estimate.
+- **Worker subagents still self-limit on context** — that is each worker's
+  concern. `/forge` handles the `continue` status by re-dispatching
+  a fresh worker in the next generation.
+- Workers start fresh (worktree isolation) and load only the issue +
+  auto-loaded rules.
+- If CI fails after a PR is opened, the `/forge` handling that slice
+  dispatches a **fresh subagent** with just the branch name, PR number,
+  and failure log.
+
+### B. Session rate-limit awareness (5-hour rolling account budget)
+
+Claude Code enforces per-account session usage limits on a rolling 5-hour
+window. This is a genuinely **time-based** constraint — unrelated to
+context-window pressure — and it keeps its existing
+[`ScheduleWakeup`](../../../CONTEXT.md#schedulewakeup) handling.
+`/forge` proactively monitors it:
+
+**Where to read usage:**
+```bash
+npx ccusage@latest session --json
+```
+Read it once per generation (during the token-logging step is fine) — not
+on every loop iteration.
+
+**Thresholds:**
+- **90% session usage — warning.** Finish the in-flight worker. Do not
+  dispatch a new one in the next generation.
+- **95% session usage — hard stop.** Write the next continuation generation
+  with the dispatch queue intact, set its **Next concrete action** to
+  "resume the dispatch loop — paused at 95% session usage", and use the
+  `ScheduleWakeup` tool (or equivalent) to resume in ~30 minutes. Emit
+  `OVERSEER_CONTINUE` and exit 0.
+
+**On wake-up (the resumed generation):**
+1. Re-check usage. If <80%, resume the dispatch loop from the continuation
+   generation.
+2. If still >80%, write another continuation generation, `ScheduleWakeup`
+   again, emit `OVERSEER_CONTINUE`.
+3. After 3 consecutive sleeps without recovery, ping the user.
+
+## Continuation generations (`.forge/continuation/<slug>/gen-NNN.md`)
+
+`/forge`'s continuation state lives in the relaunch-loop
+continuation substrate. Each handoff generation writes one immutable
+`gen-NNN.md` via:
+
+```bash
+scripts/continuation.sh write
 ```
 
-The five sections are the hardened continuation-gen schema (hard constraints restated verbatim,
-structured execution frontier, carried-forward conversation summary, exactly one
-next concrete action, lossy-safe notes) — identical in shape to what forge writes
-into `gen-NNN.md`, with forge's content. This is a format alignment only: forge's
-continuation *behavior* (when to hand off, the `status:"continue"` sentinel, the
-`continuation_file` field) is unchanged.
+`/forge` then fills the **five mandatory sections** of that file
+(the hardened continuation template):
 
-## Friction flagging
-When forge hits friction (unexpected failure, confusing spec, missing dependency, flaky test):
-1. Add the `friction` label to the PR
-2. Post a PR comment: `## Friction\n\n<what happened, what was tried, what worked or didn't>`
-3. If the friction was resolved, note how — this feeds the self-healing loop
-4. Unresolved friction → emit `FORGE:RESULT` with `"status":"needs_human"`, `"reason":"friction"`, and the friction text in the `friction` field
+### 1. Hard constraints (RESTATED VERBATIM — do not summarize)
 
-## Lesson write-back
+The non-negotiable rules this run operates under, copied **verbatim** every
+generation. Carries:
 
-End-of-run step. Runs after Friction flagging, before sentinel emission. Gated
-on outcome (see status table below). Best-effort: a failed write logs a note on
-the PR but does **not** block the success sentinel. This is distinct from
-`## Friction flagging` because an unindexed wall does not necessarily produce a
-`friction` label — any wall overcome is in scope.
+- `approved-queue: true` — the human approved this batch's build queue in
+  generation 1.
+- The `--phase <id>` scope, if the run is phase-scoped — e.g.
+  `phase-scope: 2a`.
+- The standing `/forge` rules a fresh generation must not lose
+  (one worker per generation; no `/temper` dispatch; no `/seal` chain; no
+  context-% self-estimation).
 
-### When this runs
+### 2. Execution frontier
 
-- `status:"success"` → run the write checklist.
-- `status:"needs_human"`, `reason:"friction"` **and** the friction was *partially*
-  resolved → run the write checklist (partial knowledge still beats no knowledge).
-- `status:"fail"` / unresolved-friction `needs_human` / `status:"continue"` → skip.
-  The wall wasn't overcome (fail / unresolved friction) or the next forge in the
-  chain will fire its own write-back (continue).
+Structured named fields:
 
-### Write checklist
+- **Branch:** n/a — `/forge` does not hold a branch; workers do.
+- **Open PR(s):** the PRs opened this batch and their state, e.g. `#110
+  (CI green, awaiting operator → /temper)`.
+- **Last sentinel:** the most recent `FORGE:RESULT {...}` observed,
+  verbatim.
+- **Dispatch queue:** the approved build queue, as a table, with a
+  per-slice status.
 
-1. **Indexed bump (mechanical).** Did you read any `.claude/knowledge/<slug>.md`
-   file this run? For each one: edit the matching line in `.claude/lessons.md`
-   — bump `Last seen` to today's date, and append the current PR number to the
-   `across PRs #...` list (sorted ascending, no duplicates). No judgment call:
-   if you read a knowledge file and got past the wall, you bump the line.
+  | # | Issue | Title | Slice | Blocked by | Status |
+  |---|-------|-------|-------|------------|--------|
+  | 1 | #95 | … | logic | — | built (PR #110, CI green) |
+  | 2 | #96 | … | ui | #95 | building |
+  | 3 | #97 | … | logic | — | pending |
 
-2. **Unindexed write (two-yes-no test).** Answer both, in order:
-   - Did you hit an error/blocker that took **more than one tool-call** to
-     resolve? (filters out typos and one-off mistakes)
-   - Could a future forge hitting the same error signature have avoided the
-     loop by reading a `knowledge/<slug>.md`? (filters out context-specific
-     bugs with no generalisable shape)
+  Status values: `pending`, `building`, `built`, `skipped:<reason>`,
+  `failed:<reason>`.
+- **Mid-flight state:** anything started-but-not-finished — a worker that
+  emitted `status:"continue"` and its continuation-file path, a CI re-run
+  pending, a conflict subagent dispatched.
 
-   Both YES → write a new `.claude/knowledge/<slug>.md` (≤80 lines; if the
-   natural write is longer, truncate at a sensible section boundary and append
-   `<!-- truncated; expand by hand if needed -->`) **and** append a one-line
-   index entry to `.claude/lessons.md` matching the existing format.
+### 3. Conversation summary
 
-3. **On failure.** If the write step errors (filesystem error, malformed
-   markdown, etc.): post a one-line note on the PR — `## Notes\n\nknowledge
-   write-back failed: <reason>` — and continue to sentinel emission. Do NOT
-   block the sentinel. Sentinel correctness > write completeness; the human
-   curation fallback in `.claude/lessons.md` is the recovery path.
+The durable chat-side context. Updated — never blind-replaced — each
+generation.
 
-See `.claude/lessons.md` for the index line format and the human curation
-fallback. See `.claude/knowledge/worktree-absolute-path-pinning.md` for the
-canonical detail-file shape (title, `Indexed from:`, `##` sections for Error
-signature / Why this happens / The fix / Rule).
+### 4. Next concrete action
 
-## Sentinels
+Exactly **one** unambiguous next step:
 
-The single canonical sentinel is `FORGE:RESULT {...}` (see "Emit the result sentinel"
-above). Forge parses the JSON object on that line — `status` selects the branch of the
-sentinel-handling table.
+- `dispatch /forge for issue #<N>` — the next pending slice.
+- `re-dispatch /forge for issue #<N> with continuation context from <path>`.
+- `print end-of-phase handoff — queue drained, emit OVERSEER_COMPLETE`.
+- `resume the dispatch loop — paused at 95% session usage, re-check usage first`.
 
-| `status` | Forge action |
-|---|---|
-| `success` | PR open, CI green — log tokens, advance the queue (seal merges later). |
-| `continue` | Read `continuation_file`, dispatch a fresh forge to resume. |
-| `needs_human` | Log `reason`, notify user, skip to the next slice. |
-| `fail` | Retry once with a fresh session; on second `fail`, mark needs-human and skip. |
+### 5. Notes / scratch
 
-The legacy prose sentinels (`FORGE:SUCCESS`, `FORGE:CONTINUE:<N>`,
-`FORGE:NEEDS_HUMAN:<reason>`, `FORGE:FAIL:<reason>`) are no longer emitted. The prose
-summary above the JSON line is for humans only — Forge does not parse it. If you find
-yourself reaching for a legacy sentinel string, emit `FORGE:RESULT` instead.
+Lossy-safe.
 
-### Label-the-PR rule for `status:needs_human`
+**Rules for these files:**
+- The continuation chain lives at `.forge/continuation/<slug>/`, written by
+  `scripts/continuation.sh write`, read by the next generation's
+  SessionStart hook. Each `gen-NNN.md` is **immutable**.
+- `/seal` deletes `forge-continue-*.md` (and equivalent `temper-continue-*.md`)
+  as part of cleanup once each slice is fully shipped.
 
-Whenever forge emits `status:"needs_human"` **and a PR is open** (the `pr` field on
-`FORGE:RESULT` is non-null), it MUST apply the corresponding label to the PR **before**
-emitting the sentinel:
+### Batch-level continuation file (`.claude/forge-continue.md`)
 
-- `reason:"friction"` → apply the `friction` label (already covered by the friction-flagging
-  steps above).
-- Any other `reason` (e.g. `"ci-stuck"`) → apply the `needs-human` label:
-  `gh pr edit <PR> --add-label needs-human`.
+If `/forge` is ever invoked **outside** the relaunch loop and needs
+to hand off mid-batch, it writes `.claude/forge-continue.md` (the
+batch-level [continuation file](../../../CONTEXT.md#continuation-file) owned
+by this overseer). This is rare — the loop is the normal case. `/seal`
+deletes `.claude/forge-continue.md` during cleanup once the
+`ready-for-agent` queue is empty.
 
-Why: `/seal` classifies merge-vs-skip purely by PR labels (see seal/SKILL.md step 2). A
-`needs_human` sentinel that leaves no label means a broken PR can be auto-merged by
-`/seal --auto` the moment CI happens to be green. The sentinel tells Forge to skip
-to the next slice in *this* batch; the label tells Seal to skip the PR at close-out.
-Both signals are required.
+## Sub-Agent Token Discipline
 
-If the PR was never opened (`pr` is `null`), no label step is needed — there's nothing for
-Seal to act on.
+- **No forced model.** Workers inherit the session's model (typically Opus).
+- **Poll the worker actively.** Check on the running worker every ~30s.
+- **Milestone reporting.** Workers communicate progress at key phases.
+  `/forge` relays milestones to the user.
+- **Lean context loading.** Workers read only the issue and auto-loaded
+  rules.
+- **Research via support agents.** `/forge` can dispatch researcher /
+  reviewer / builder agents (max 2 concurrent).
+
+## Token Logging
+
+After the generation's worker completes (before writing the continuation
+generation):
+1. Note the end timestamp.
+2. Pull `issue`, `pr`, and `branch` from the parsed sentinel JSON.
+3. Query [ccusage](../../../CONTEXT.md#ccusage) for sessions in the [start,
+   end] time window: `npx ccusage@latest session --json`
+4. Append a correlation row to `.claude/token-usage.jsonl`:
+   ```json
+   {"ts":"<end>","issue":<N>,"pr":<PR>,"branch":"feat/#<N>-...","worker":"forge","start":"<start>","end":"<end>","num_turns":<from_ccusage>}
+   ```
+5. Stamp the PR description with a token summary (edit via `gh pr edit`).
+
+## End of Phase — handoff to operator
+
+When the dispatch queue is **drained** — every slice `built`, `skipped`, or
+`failed` — the current generation runs the end-of-phase handoff instead of
+dispatching a worker:
+
+1. **Print summary** — slices built, slices skipped
+   ([`needs-human`](../../../CONTEXT.md#needs-human) /
+   [`friction`](../../../CONTEXT.md#friction) on the worker side), total
+   wall-clock time, total tokens.
+
+2. **List open PRs awaiting review.** Print the PRs that need
+   `/temper` to look at them. Friction-labelled PRs are NOT in
+   this list — they wait for human inspection.
+
+3. **Print the next-phase recommendation.** Update
+   [`MISSION-CONTROL.md`](../../../CONTEXT.md#mission-controlmd-the-doc)'s
+   "Recommended next prompt" to `/temper` (or `/temper
+   --phase <id>` if the Forge run was phase-scoped), then print the same
+   line to the user. The operator runs it next, in a fresh session, after
+   inspecting the PRs.
+
+4. **Emit `OVERSEER_COMPLETE`** as the **final `.result` line** of the
+   generation and exit 0.
+
+No seal dispatch. No `/temper` dispatch. The operator runs the next phase.
 
 ## Rules
-- **Support agents.** Forge (Worker A) can dispatch up to 2 support agents concurrently from the definitions in `.claude/agents/`:
-  - **Researcher** (`.claude/agents/researcher.md`) — read-only exploration; use when you need to understand unfamiliar code, find patterns, or gather external docs before implementing.
-  - **Reviewer** (`.claude/agents/reviewer.md`) — code review; use for a second opinion on code you've written, or to check a tricky change for bugs/security issues before PR.
-  - **Builder** (`.claude/agents/builder.md`) — parallel implementation; use when you have an independent sub-task (e.g. write tests while you finish the component) that won't conflict with your active edits.
-  To dispatch: read the agent definition file, include its content as system context in the `Agent` tool's `prompt`, and add your specific task question. Run support agents in the background (`run_in_background: true`) so you can continue building while they work.
-- **Slot release.** Release the support-agent slot when the agent exits (background or foreground), regardless of which agent it was. The 2-agent cap is concurrent — once a researcher/reviewer/builder/visual-review subagent has returned its result (or crashed), that slot is free for the next dispatch.
-- The visual-review worker for UI/mixed slices counts toward the 2-agent limit. If you need visual review and another support agent, wait for one to finish.
-- Rely on auto-loaded design-system rule for UI/mixed; only read deeper design docs for detail.
-- Only read MISSION-CONTROL.md if you need to understand project context (rare).
-- Keep commits atomic and well-scoped.
-- **Do not merge.** Stop when CI is green; `/seal` ships the batch.
-- Token logging is handled by forge after forge completes — forge does not log tokens.
+- `/forge` is an autonomous, loop-managed loop — one `/forge`
+  worker per generation, hand off, relaunch, drain. The generation-1
+  pre-flight approval is the only required user touch-point.
+- **One operator command per phase.** No auto-chain into Temper or Seal —
+  the operator runs the next phase explicitly per ADR-0005.
+- **The handoff trigger is structural, not measured.** A worker finished →
+  write the next `gen-NNN.md` → emit `OVERSEER_CONTINUE` → exit 0.
+  `/forge` never self-estimates context %.
+- (Generation 1 only) Always present the build queue before dispatching.
+  Write `gen-001.md` immediately after approval, before the first dispatch.
+- Resumed generations read `approved-queue: true` and skip pre-flight.
+- Respect the dependency graph; never dispatch a `/forge` whose blockers
+  haven't built (passed CI).
+- Prefer `needs-rework` issues over fresh `ready-for-agent` issues per
+  ADR-0005's rework loop.
+- Token logging is `/forge`'s responsibility, not the worker's.
+- Pause at 95% session usage; resume via `ScheduleWakeup`.
+- **`/forge` does NOT do work inline** — no conflict resolution,
+  no inline seal, no `/temper` dispatch, no validation, no context-%
+  self-estimation.

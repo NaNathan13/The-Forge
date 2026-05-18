@@ -1,6 +1,6 @@
 ---
 name: seal
-description: Close out a build batch — approve and merge every PR marked ready-for-seal (skipping any with friction or non-green CI), reconcile MISSION-CONTROL.md against GitHub state, then clean up runtime artifacts. Use after /temper-overseer drains the review queue, when the user types /seal, says "seal the batch", "close out the PRs", "wrap up", "ship it", or "mark this shipped".
+description: Close out a build batch — approve and merge every PR marked ready-for-seal (skipping any with friction or non-green CI), reconcile MISSION-CONTROL.md against GitHub state, then clean up runtime artifacts. Use after /temper drains the review queue, when the user types /seal, says "seal the batch", "close out the PRs", "wrap up", "ship it", or "mark this shipped".
 ---
 
 # Seal — close out the batch
@@ -15,7 +15,7 @@ Per [ADR-0005](../../../docs/adr/0005-pipeline-orchestrator-structure.md)
 §Decision, Seal stays **flat** — no internal orchestrator, no
 `/seal-overseer` — because per-PR merge work is small enough that subagent
 isolation buys nothing. The operator runs `/seal` explicitly after
-[`/temper-overseer`](../../../CONTEXT.md#temper-overseer) drains the review
+[`/temper`](../../../CONTEXT.md#temper) drains the review
 queue.
 
 Idempotent: running `/seal` twice in a row with no new work between produces no changes.
@@ -28,7 +28,7 @@ Idempotent: running `/seal` twice in a row with no new work between produces no 
                   #   Still skips PRs with friction / needs-human / non-green CI or no ready-for-seal label.
 ```
 
-`--auto` mode is for operators who want a non-interactive seal run (e.g. running `/seal` immediately after inspecting `/temper-overseer`'s end-of-phase summary). It is NOT auto-invoked by any other skill — per ADR-0005 §Decision, one operator command per phase; no auto-chain into Seal from any earlier phase.
+`--auto` mode is for operators who want a non-interactive seal run (e.g. running `/seal` immediately after inspecting `/temper`'s end-of-phase summary). It is NOT auto-invoked by any other skill — per ADR-0005 §Decision, one operator command per phase; no auto-chain into Seal from any earlier phase.
 
 ## Process
 
@@ -48,9 +48,9 @@ For each candidate PR, decide:
 |--------|--------|
 | CI green AND has `ready-for-seal` label AND no `friction` / `needs-human` label AND not draft | **ship** — approve + merge |
 | Missing `ready-for-seal` label | **skip** — note reason ("`/temper` has not marked this PR ready-for-seal yet"). `/temper` applies the label after review; without it, seal skips. |
-| CI red or pending | **skip** — note reason ("CI not green — wait for it to finish or re-run /forge <N>") |
+| CI red or pending | **skip** — note reason ("CI not green — wait for it to finish or re-run /forge-worker <N>") |
 | Has `friction` label | **skip** — note reason ("flagged for human review"). `/forge` applies this label whenever it emits `FORGE:RESULT` with `"status":"needs_human","reason":"friction"` and a PR is open. `/temper` also applies it if it discovers a friction-grade issue during review. |
-| Has `needs-human` label | **skip** — note reason ("worker emitted `<FORGE|TEMPER>:RESULT` with `status:\"needs_human\"`"). `/forge` applies this label whenever it emits `FORGE:RESULT` with `"status":"needs_human"` for any non-friction reason (e.g. `"ci-stuck"`) and a PR is open; the matching overseer (`/forge-overseer` or `/temper-overseer`) re-applies it on the final `fail` retry. `/temper` also applies it when its review surfaces blockers. The label is the only signal seal reads — sentinels route worker → overseer, labels route worker / overseer → seal. |
+| Has `needs-human` label | **skip** — note reason ("worker emitted `<FORGE|TEMPER>:RESULT` with `status:\"needs_human\"`"). `/forge` applies this label whenever it emits `FORGE:RESULT` with `"status":"needs_human"` for any non-friction reason (e.g. `"ci-stuck"`) and a PR is open; the matching overseer (`/forge` or `/temper`) re-applies it on the final `fail` retry. `/temper` also applies it when its review surfaces blockers. The label is the only signal seal reads — sentinels route worker → overseer, labels route worker / overseer → seal. |
 | Draft | **skip** — note reason ("PR is draft") |
 
 ### 3. Show the plan, get approval
@@ -162,10 +162,10 @@ for issue in <merged-issues>; do
 done
 
 # Overseer batch-level continuation files, only if the ready-for-agent queue is now empty
-# (and similarly the temper-overseer continuation, if either was written this batch):
+# (and similarly the temper continuation, if either was written this batch):
 if [[ -z "$(gh issue list --label ready-for-agent --state open --json number --jq '.[]')" ]]; then
-  rm -f .claude/forge-overseer-continue.md
-  rm -f .claude/temper-overseer-continue.md
+  rm -f .claude/forge-continue.md
+  rm -f .claude/temper-continue.md
 fi
 ```
 

@@ -83,8 +83,8 @@ if command -v gh >/dev/null 2>&1; then
 fi
 
 # ── Case (3): Recommended next prompt names a non-existent skill ──────────
-# Skipped — the flat-ledger recommended prompt is `/seal`, `/forge-overseer`,
-# `/temper-overseer`, or `/ponder`. We do not introspect; reconcile-mc.sh is
+# Skipped — the flat-ledger recommended prompt is `/seal`, `/forge`,
+# `/temper`, or `/ponder`. We do not introspect; reconcile-mc.sh is
 # authoritative for what gets written.
 
 # ── /examine nudge ─────────────────────────────────────────────────────────

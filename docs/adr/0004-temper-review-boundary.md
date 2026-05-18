@@ -5,7 +5,7 @@
 
 ## Context
 
-The Temper-orchestrator (`/temper-overseer`) dispatches `/temper <PR>` workers per PR in a batch. Each `/temper` worker is The Forge's review-and-harden gate between a green-CI PR and a `ready-for-seal` PR.
+The Temper-orchestrator (`/temper`) dispatches `/temper-worker <PR>` workers per PR in a batch. Each `/temper` worker is The Forge's review-and-harden gate between a green-CI PR and a `ready-for-seal` PR.
 
 In a markdown+bash repo with no application runtime, "review" can mean any of three things — and the cost of letting all three live in one place compounds as the pipeline accumulates checks:
 
@@ -58,5 +58,5 @@ These decisions are coupled — the strict friction rule is only audit-stable be
 - ADR-0005 — [Pipeline orchestrator structure](./0005-pipeline-orchestrator-structure.md) — names the orchestrator + worker structure inside Temper; this ADR fills in *what* `/temper` does inside that structure.
 - ADR-0003 — [Context-loading enforcement: defense in depth](./0003-context-loading-defense-in-depth.md) — referenced under §Rejected alternatives as the case where defense-in-depth is the right pattern; the contrast clarifies why it is not the right pattern here.
 - ADR-0001 — [Phase isolation: hand-offs only via on-disk artifacts](./0001-phase-isolation.md) — constraint: `/temper`'s LLM lenses produce labels + a sentinel; the hand-off to `/seal` remains label-only.
-- Skill: [`.claude/skills/temper/SKILL.md`](../../.claude/skills/temper/SKILL.md) — the concrete implementation of this ADR.
+- Skill: [`.claude/skills/temper-worker/SKILL.md`](../../.claude/skills/temper-worker/SKILL.md) — the concrete implementation of this ADR (the per-PR review worker dispatched by `/temper`).
 - Agent: [`.claude/agents/reviewer.md`](../../.claude/agents/reviewer.md) — its HIGH-only calibration is load-bearing for the strict friction rule above.

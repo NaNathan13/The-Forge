@@ -33,7 +33,7 @@ Five **state** roles:
 - `ready-for-human` — needs human implementation
 - `wontfix` — will not be actioned
 
-Three **slice** roles (consumed by `/temper <N>` to choose its build path):
+Three **slice** roles (consumed by `/temper-worker <N>` to choose its build path):
 
 - `slice:logic` — pure logic, API hooks, DB / schema, no user-facing surface
 - `slice:ui` — user-facing work + visual review (Playwright) + screenshots
@@ -133,7 +133,7 @@ Sub-phase issues use the title format `<sub-phase>/<slice-type>: <description>` 
 gh issue edit <N> --add-label phase:<sub-phase>
 ```
 
-**Unprefixed titles mean "no phase."** Standalone single-slice issues (filed by `/inscribe` Path B when the user answers `none` to the sub-phase prompt, or by `/prototype` for ad-hoc work) intentionally omit the `<sub-phase>/` prefix — e.g. `logic: signed-URL helper`. **Skip the phase label entirely** in that case; do not invent a phase. Inscribe's handoff drops `--phase` when the sub-phase is `none` (emitting `/temper <N>` for a single issue or unscoped `/forge` for multiple), so the unlabeled issue still flows correctly downstream.
+**Unprefixed titles mean "no phase."** Standalone single-slice issues (filed by `/inscribe` Path B when the user answers `none` to the sub-phase prompt, or by `/prototype` for ad-hoc work) intentionally omit the `<sub-phase>/` prefix — e.g. `logic: signed-URL helper`. **Skip the phase label entirely** in that case; do not invent a phase. Inscribe's handoff drops `--phase` when the sub-phase is `none` (emitting `/temper-worker <N>` for a single issue or unscoped `/forge` for multiple), so the unlabeled issue still flows correctly downstream.
 
 ## Quick state override
 

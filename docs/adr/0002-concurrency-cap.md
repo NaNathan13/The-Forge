@@ -5,7 +5,7 @@
 
 ## Context
 
-The Forge-orchestrator (`/forge-overseer`) and the Temper-orchestrator (`/temper-overseer`) each dispatch *exactly one* worker subagent at a time. The existing prose in the orchestrator SKILL.mds states this as a directive but does not record *why*. A future maintainer reading only that line would either have to re-derive the rationale from first principles or — worse — remove the cap under the assumption that it is incidental, expecting parallel dispatch to be a free throughput win.
+The Forge-orchestrator (`/forge`) and the Temper-orchestrator (`/temper`) each dispatch *exactly one* worker subagent at a time. The existing prose in the orchestrator SKILL.mds states this as a directive but does not record *why*. A future maintainer reading only that line would either have to re-derive the rationale from first principles or — worse — remove the cap under the assumption that it is incidental, expecting parallel dispatch to be a free throughput win.
 
 It is not free. The cap is a deliberate trade, made against measured token costs from real worker runs and the orchestrator's hard context checkpoints. This ADR records that trade so it cannot be silently undone.
 
@@ -47,5 +47,5 @@ Until both hold, the cap stays. A single condition (e.g. cheaper workers, but no
 ## Related
 
 - ADR-0001 — [Phase isolation: no shared session memory](./0001-phase-isolation.md) (sibling pipeline-contract ADR).
-- Forge-orchestrator dispatch loop: [`.claude/skills/forge-overseer/SKILL.md`](../../.claude/skills/forge-overseer/SKILL.md).
-- Temper-orchestrator dispatch loop: [`.claude/skills/temper-overseer/SKILL.md`](../../.claude/skills/temper-overseer/SKILL.md).
+- Forge-orchestrator dispatch loop: [`.claude/skills/forge/SKILL.md`](../../.claude/skills/forge/SKILL.md).
+- Temper-orchestrator dispatch loop: [`.claude/skills/temper/SKILL.md`](../../.claude/skills/temper/SKILL.md).

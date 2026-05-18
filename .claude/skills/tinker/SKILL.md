@@ -69,7 +69,7 @@ The tinker worked. Promote it into a real slice:
    - Salvageable changes get cherry-picked onto a fresh `feat/#<N>-<slug>` branch.
    - The tinker branch is deleted: `git branch -D tinker/<slug>`.
    - The scratch dir is removed: `rm -rf .tinker/<slug>/`.
-5. Print the handoff: "Slice #<N> filed and triaged. Run `/forge` or `/temper <N>` to build it."
+5. Print the handoff: "Slice #<N> filed and triaged. Run `/forge` or `/temper-worker <N>` to build it."
 
 ### Discarding a tinker
 

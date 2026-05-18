@@ -5,7 +5,7 @@
 
 ## 🛰️ Telemetry — right now
 
-**Workflow:** Ponder → Forge → Temper → Seal pipeline. See [`docs/workflow/`](docs/workflow/) for details. The Forge and Temper phases each run an orchestrator inside them — `/forge-overseer` and `/temper-overseer` — per [ADR-0005](docs/adr/0005-pipeline-orchestrator-structure.md). One operator command per phase; no auto-chain.
+**Workflow:** Ponder → Forge → Temper → Seal pipeline. See [`docs/workflow/`](docs/workflow/) for details. The Forge and Temper phases each run an orchestrator inside them — `/forge` and `/temper` — per [ADR-0005](docs/adr/0005-pipeline-orchestrator-structure.md). One operator command per phase; no auto-chain.
 
 **Recommended next prompt:**
 

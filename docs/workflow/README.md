@@ -7,8 +7,8 @@
 Four phases, one operator command each (no auto-chain) per [ADR-0005](../adr/0005-pipeline-orchestrator-structure.md):
 
 1. **Plan (Ponder phase)** — `/ponder` grills you on the feature, writes a PRD, files issues, triages them
-2. **Build (Forge phase)** — `/forge-overseer` shows the build queue (all slices, order, summaries). You approve or adjust. Then it runs an autonomous dispatch loop: one `/forge <N>` worker per slice — implement → test → PR → CI green.
-3. **Review (Temper phase)** — `/temper-overseer` shows the review queue (every batch PR with green CI). You approve. Then it runs an autonomous dispatch loop: one `/temper <PR>` worker per PR — reviewer agent + inline intent-match + strict friction rule. Each PR ends up `ready-for-seal` or `friction` (with the originating issue marked `needs-rework`).
+2. **Build (Forge phase)** — `/forge` shows the build queue (all slices, order, summaries). You approve or adjust. Then it runs an autonomous dispatch loop: one `/forge-worker <N>` worker per slice — implement → test → PR → CI green.
+3. **Review (Temper phase)** — `/temper` shows the review queue (every batch PR with green CI). You approve. Then it runs an autonomous dispatch loop: one `/temper-worker <PR>` worker per PR — reviewer agent + inline intent-match + strict friction rule. Each PR ends up `ready-for-seal` or `friction` (with the originating issue marked `needs-rework`).
 4. **Ship (Seal phase)** — `/seal` approves + squash-merges every `ready-for-seal` PR, reconciles MISSION-CONTROL.md, cleans up.
 
 ## Pipeline skills
@@ -16,10 +16,10 @@ Four phases, one operator command each (no auto-chain) per [ADR-0005](../adr/000
 | Skill | Role | Phase |
 |-------|------|-------|
 | `/ponder` | **Planning** — grill, write PRDs, file + triage issues. Sub-skills: `grill-me`, `inscribe`, `triage`. | Ponder |
-| `/forge-overseer` | **Forge orchestrator** — autonomous dispatch loop, monitor `/forge` workers, log tokens. | Forge |
-| `/forge <N>` | **Forge worker** — build one slice end-to-end (usually dispatched by `/forge-overseer`, can run standalone). | Forge |
-| `/temper-overseer` | **Temper orchestrator** — autonomous dispatch loop, monitor `/temper` workers, label PRs and issues. | Temper |
-| `/temper <N>` | **Temper worker** — review one built PR; reviewer-agent dispatch + inline intent-match + strict friction rule. | Temper |
+| `/forge` | **Forge orchestrator** — autonomous dispatch loop, monitor `/forge` workers, log tokens. | Forge |
+| `/forge-worker <N>` | **Forge worker** — build one slice end-to-end (usually dispatched by `/forge`, can run standalone). | Forge |
+| `/temper` | **Temper orchestrator** — autonomous dispatch loop, monitor `/temper` workers, label PRs and issues. | Temper |
+| `/temper-worker <N>` | **Temper worker** — review one built PR; reviewer-agent dispatch + inline intent-match + strict friction rule. | Temper |
 | `/seal` | **Closer** — approve and merge open `ready-for-seal` PRs, reconcile MISSION-CONTROL.md, clean up. | Seal |
 
 ## Other commands
@@ -36,12 +36,12 @@ Four phases, one operator command each (no auto-chain) per [ADR-0005](../adr/000
 
 ## Per-phase overseer cheatsheet
 
-`/forge-overseer` and `/temper-overseer` are autonomous dispatch loops. After you approve their respective queues, they run without intervention:
+`/forge` and `/temper` are autonomous dispatch loops. After you approve their respective queues, they run without intervention:
 - Dispatch workers as subagents — **one worker per generation** under the relaunch loop (see [ADR-0002](../adr/0002-concurrency-cap.md))
 - Workers may themselves dispatch up to 2 support agents (researcher / reviewer / builder)
 - Handle results: retry failures, spawn continuations, flag stuck slices
 - Log token usage per worker via [ccusage](../../CONTEXT.md#ccusage)
-- Print end-of-phase summary + the next-phase recommendation (`/temper-overseer` after Forge; `/seal` after Temper)
+- Print end-of-phase summary + the next-phase recommendation (`/temper` after Forge; `/seal` after Temper)
 
 ## Context discipline
 

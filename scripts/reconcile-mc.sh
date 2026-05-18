@@ -21,7 +21,7 @@ set -uo pipefail
 #      The row is removed from the table entirely.
 #   3. Recomputes the "Recommended next prompt" using the simple priority
 #      order: open PRs → /seal; otherwise open ready-for-agent issues with a
-#      slice:* label → /forge-overseer; otherwise → "All caught up" note.
+#      slice:* label → /forge; otherwise → "All caught up" note.
 #   4. Shows `git diff MISSION-CONTROL.md` on stdout.
 #   5. If the diff is non-empty: `git add MISSION-CONTROL.md` + commit + push.
 #      Commit message: `chore(mc): reconcile YYYY-MM-DD — <summary>`.
@@ -206,7 +206,7 @@ done
 # ── Phase 2: recompute Recommended next prompt ───────────────────────────────
 # Priority order:
 #   1. Open feat/#*-* PRs                              → `/seal`
-#   2. Any open ready-for-agent + slice:* issue        → `/forge-overseer`
+#   2. Any open ready-for-agent + slice:* issue        → `/forge`
 #   3. Otherwise                                       → "All caught up" note
 
 REC_PROMPT=""
@@ -219,7 +219,7 @@ fi
 if [[ -z "$REC_PROMPT" ]]; then
   ready_count="$(gh issue list --state open --label ready-for-agent --json labels --jq '[.[] | select(.labels | map(.name) | any(. | startswith("slice:")))] | length' 2>/dev/null || echo 0)"
   if [[ -n "$ready_count" && "$ready_count" != "0" && "$ready_count" != "null" ]]; then
-    REC_PROMPT="/forge-overseer"
+    REC_PROMPT="/forge"
   fi
 fi
 

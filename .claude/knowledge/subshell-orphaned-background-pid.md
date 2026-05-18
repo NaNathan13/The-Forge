@@ -1,6 +1,6 @@
 # subshell-orphaned-background-pid
 
-> **Naming context:** historical entries below may use pre-rename role names. Current roles: `/forge-overseer` (Forge-phase orchestrator), `/temper-overseer` (Temper-phase orchestrator), `/forge` (per-slice builder), `/temper` (per-PR reviewer). See [ADR-0005](../../docs/adr/0005-pipeline-orchestrator-structure.md) and [ADR-0006](../../docs/adr/0006-naming-discipline.md).
+> **Naming context:** historical entries below may use pre-rename role names. Current roles (per [ADR-0008](../../docs/adr/0008-operator-surface-naming.md)): `/forge` (Forge-phase orchestrator), `/temper` (Temper-phase orchestrator), `/forge-worker` (per-slice builder), `/temper-worker` (per-PR reviewer). See [ADR-0005](../../docs/adr/0005-pipeline-orchestrator-structure.md) and [ADR-0006](../../docs/adr/0006-naming-discipline.md) for the underlying structural and naming-discipline decisions.
 
 
 **Indexed from:** `.claude/lessons.md`

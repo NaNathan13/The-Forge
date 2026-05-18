@@ -22,12 +22,12 @@ workflow that takes a project from idea to shipped code. The pipeline is four ph
 orchestrator inside them:
 
 ```
-/ponder  →  /forge-overseer  →  /temper-overseer  →  /seal
+/ponder  →  /forge  →  /temper  →  /seal
 ```
 
 - `/ponder` — grill the idea, write the PRD, file the issues
-- `/forge-overseer` — dispatch a `/forge <N>` worker per triaged slice
-- `/temper-overseer` — dispatch a `/temper <PR>` worker per batch PR (review)
+- `/forge` — dispatch a `/forge-worker <N>` worker per triaged slice
+- `/temper` — dispatch a `/temper-worker <PR>` worker per batch PR (review)
 - `/seal` — approve and merge the batch, reconcile mission control
 
 One operator command per phase — no auto-chain between phases. See [`WORKFLOW.md`](./WORKFLOW.md) for the full cheat-sheet and [`CLAUDE.md`](./CLAUDE.md) for the project's tech stack and conventions.

@@ -53,7 +53,7 @@ hand-off-via-disk pattern is audited in
 [`docs/audit/phased-pipeline.md`](audit/phased-pipeline.md).
 
 ```
-/ponder  →  /forge-overseer  →  /temper-overseer  →  /seal
+/ponder  →  /forge  →  /temper  →  /seal
  plan       Forge phase           Temper phase         merge the
  the work   (dispatches /forge)   (dispatches /temper) batch
 ```
@@ -95,12 +95,12 @@ Ponder leans on **triage** (below) to drive issues to `ready-for-agent`.
 
 The Forge phase has two pieces: an **overseer** that orchestrates and a **worker** that builds.
 
-`/forge-overseer` (`.claude/skills/forge-overseer/SKILL.md`) is the
+`/forge` (`.claude/skills/forge/SKILL.md`) is the
 **autonomous dispatch loop**. It queries open `ready-for-agent` issues,
 parses their `## Blocked by` sections into a dependency graph, topo-sorts
 the queue (with a `slice:logic` → `slice:mixed` → `slice:ui` secondary
 sort), presents the build queue for approval, then dispatches **one
-`/forge <N>` worker per slice** as a fresh subagent in an isolated
+`/forge-worker <N>` worker per slice** as a fresh subagent in an isolated
 worktree. It watches each worker's `FORGE:RESULT` sentinel, handles the
 result (advance / retry / escalate), and moves to the next slice until
 the queue drains.
@@ -115,12 +115,12 @@ the disk-only phase-isolation rule that makes it safe is recorded in
 dispatch model and worktree isolation are audited in
 [`docs/audit/subagent-orchestration.md`](audit/subagent-orchestration.md).
 
-`/forge <N>` (`.claude/skills/forge/SKILL.md`) is the **per-slice worker**.
+`/forge-worker <N>` (`.claude/skills/forge-worker/SKILL.md`) is the **per-slice worker**.
 It builds a single slice end-to-end: create the branch
 (`feat/#<N>-short-description`), implement per the issue spec, run the
 project's check command, open a PR with `closes #<N>`, and wait for CI.
 **The worker stops at green CI — it does not merge.** It ends every run by
-emitting exactly one `FORGE:RESULT` JSON line that `/forge-overseer`
+emitting exactly one `FORGE:RESULT` JSON line that `/forge`
 parses.
 
 The worker's behavior is gated by the project's **dev mode** (`fast` /
@@ -140,12 +140,12 @@ thresholds and handoff discipline in
 
 ### Temper — the review-and-harden phase
 
-`/temper-overseer` (`.claude/skills/temper-overseer/SKILL.md`) is the
-Temper-phase orchestrator, symmetric in shape to `/forge-overseer`. It
+`/temper` (`.claude/skills/temper/SKILL.md`) is the
+Temper-phase orchestrator, symmetric in shape to `/forge`. It
 queries open `feat/#*-*` PRs with green CI awaiting review, presents a
-queue, and dispatches one `/temper <PR>` worker per PR.
+queue, and dispatches one `/temper-worker <PR>` worker per PR.
 
-`/temper <PR>` (`.claude/skills/temper/SKILL.md`) is the **per-PR
+`/temper-worker <PR>` (`.claude/skills/temper-worker/SKILL.md`) is the **per-PR
 reviewer**. It dispatches a `reviewer` support agent on the diff, runs an
 inline **intent-match** against the issue body, and applies a strict
 friction rule: any reviewer HIGH finding **or** an intent-match failure

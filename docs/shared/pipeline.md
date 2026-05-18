@@ -7,8 +7,8 @@ The Forge runs a four-phase pipeline. Both modes (Dev and WHJ) share this shape 
 ## The four phases
 
 1. **[Ponder](../../CONTEXT.md#ponder)** — Grill the user on the feature, write a PRD, file issues/tasks, triage them into slices.
-2. **[Forge phase](../../CONTEXT.md#forge-phase)** — `/forge-overseer` shows the build queue (all slices, order, summaries). User approves or adjusts. Then run an autonomous dispatch loop: one `/forge <N>` worker per slice — implement, test, PR, wait for CI.
-3. **[Temper](../../CONTEXT.md#temper)** — `/temper-overseer` shows the review queue (every batch PR with green CI). User approves. Then run an autonomous dispatch loop: one `/temper <PR>` worker per PR — reviewer-agent dispatch + inline intent-match + strict friction rule. Each PR ends up `ready-for-seal` (success) or `friction` (with the originating issue marked `needs-rework`).
+2. **[Forge phase](../../CONTEXT.md#forge-phase)** — `/forge` shows the build queue (all slices, order, summaries). User approves or adjusts. Then run an autonomous dispatch loop: one `/forge-worker <N>` worker per slice — implement, test, PR, wait for CI.
+3. **[Temper](../../CONTEXT.md#temper)** — `/temper` shows the review queue (every batch PR with green CI). User approves. Then run an autonomous dispatch loop: one `/temper-worker <PR>` worker per PR — reviewer-agent dispatch + inline intent-match + strict friction rule. Each PR ends up `ready-for-seal` (success) or `friction` (with the originating issue marked `needs-rework`).
 4. **[Seal](../../CONTEXT.md#seal)** — Close out the batch: approve and merge every `ready-for-seal` PR, reconcile project state, clean up runtime artifacts.
 
 ## Invariants
@@ -18,7 +18,7 @@ These hold in both modes. If a future change wants to touch any of the below, th
 - Phases communicate only via on-disk artifacts — see [ADR-0001](../adr/0001-phase-isolation.md).
 - The four-phase shape (Ponder, Forge, Temper, Seal) is identical.
 - The dependency-aware queue (topo-sort by blockers) is identical — only how blockers are parsed differs (issue body vs task frontmatter).
-- The dispatch-loop logic inside `/forge-overseer` and `/temper-overseer` is identical — only the queue source differs (`needs-rework`/`ready-for-agent` issues for the Forge phase, open `feat/#*-*` PRs for the Temper phase).
+- The dispatch-loop logic inside `/forge` and `/temper` is identical — only the queue source differs (`needs-rework`/`ready-for-agent` issues for the Forge phase, open `feat/#*-*` PRs for the Temper phase).
 - One operator command per phase. No auto-chain between phases — see [ADR-0005](../adr/0005-pipeline-orchestrator-structure.md).
 - The knowledge library pattern (`.claude/lessons.md` index + `.claude/knowledge/<slug>.md` details) is identical.
 
@@ -109,7 +109,7 @@ update atomically.
 
 ### Overseer dispatch table
 
-The matching overseer (`/forge-overseer` for `FORGE:RESULT`, `/temper-overseer`
+The matching overseer (`/forge` for `FORGE:RESULT`, `/temper`
 for `TEMPER:RESULT`) acts as follows:
 
 | `status` | Overseer action |
