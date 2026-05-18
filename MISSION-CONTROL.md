@@ -9,12 +9,17 @@
 
 **Recommended next prompt:**
 
-_All caught up — no open PRs, no triaged work in the queue._
+```
+/forge-overseer --phase 4f
+```
+
+> Build all 4f slices
 
 ## 🚧 In flight
 
 | # | Title | Status |
 | --- | --- | --- |
+| 4f | Operator-facing rename — `/forge` + `/temper` as orchestrator entry points; current workers become `/forge-worker` / `/temper-worker` | 🚧 in-progress · #282 <!-- mc:open=282 --> |
 
 ## ⏳ Queued
 
@@ -40,6 +45,7 @@ _All caught up — no open PRs, no triaged work in the queue._
 - [`0005-pipeline-orchestrator-structure.md`](docs/adr/0005-pipeline-orchestrator-structure.md) — Pipeline is four phases (`Ponder → Forge → Temper → Seal`); the orchestrator runs inside a phase, not as a phase; Forge and Temper carry symmetric `<phase>-overseer` orchestrators; one operator command per phase (no auto-chain); rework loops via `friction` / `needs-rework` labels + operator re-runs Forge; Seal stays flat.
 - [`0006-naming-discipline.md`](docs/adr/0006-naming-discipline.md) — CONTEXT.md is the canonical glossary single-source-of-truth; living docs anchor-link to `CONTEXT.md#term`; `/inscribe` hard-gates PRD filing on a `Terms used` section; `<phase>-overseer` is the orchestrator naming pattern; `/forgemaster` is reserved for a future cross-project Claude session manager.
 - [`0007-v1-cleanup-ratchet.md`](docs/adr/0007-v1-cleanup-ratchet.md) — No phase IDs in living-doc prose; MISSION-CONTROL.md restructured to flat state-buckets (`🛰️ Telemetry`, `🚧 In flight`, `⏳ Queued`, `⏸ Deferred`, `📡 ADRs`, `🌑 Out of scope`) with three MC-coupled scripts rewritten or deleted in lockstep; historical PRDs + the pre-renumber ADR-0001 + the pre-renumber ADR-0005 + docs/audit/design/research all deleted; surviving ADRs renumbered to a contiguous 0001–0007 sequence.
+- [`0008-operator-surface-naming.md`](docs/adr/0008-operator-surface-naming.md) — Operator-surface naming: the short (bare-slash) skill name belongs to whatever the operator types most often; `/forge` and `/temper` are the phase orchestrators (symmetric with `/ponder` and `/seal`); the subagent-dispatched workers carry the `<phase>-worker` suffix; supersedes ADR-0006 §Decision §3.
 
 ## 🌑 Out of scope
 
