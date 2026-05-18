@@ -1,13 +1,13 @@
 ---
 name: forge-overseer
-description: The Forge-phase orchestrator — dispatches /forge <N> workers per slice, watches FORGE:RESULT sentinels, advances the build queue. Invoked as /forge-overseer after /ponder has triaged all slices. Does no temper dispatch, no seal chain — one operator command per phase per ADR-0007.
+description: The Forge-phase orchestrator — dispatches /forge <N> workers per slice, watches FORGE:RESULT sentinels, advances the build queue. Invoked as /forge-overseer after /ponder has triaged all slices. Does no temper dispatch, no seal chain — one operator command per phase per ADR-0005.
 ---
 
 # Forge-overseer — Orchestrator of the Forge Phase
 
 `/forge-overseer` is the orchestrator that runs **inside the Forge phase** of the
 pipeline. It is not itself a phase. See [`CONTEXT.md#forge-phase`](../../../CONTEXT.md#forge-phase)
-and [ADR-0007](../../../docs/adr/0007-pipeline-orchestrator-structure.md) for the
+and [ADR-0005](../../../docs/adr/0005-pipeline-orchestrator-structure.md) for the
 four-phase shape:
 
 ```
@@ -23,7 +23,7 @@ needs-human"; the operator inspects state, then runs `/temper-overseer` next.
 slices from the build queue, dispatches a `/forge <N>` worker for each slice,
 monitors progress, handles results, advances to the next slice — repeating
 until the queue is drained. It does **not** dispatch `/temper` workers
-(that's `/temper-overseer`'s job per ADR-0007) and it does **not** invoke
+(that's `/temper-overseer`'s job per ADR-0005) and it does **not** invoke
 `/seal` (the operator runs `/seal` explicitly).
 
 `/forge-overseer` runs as a **loop-managed session** under
@@ -47,7 +47,7 @@ When the operator's prior `/temper-overseer` run marked one or more issues
 [`needs-rework`](../../../CONTEXT.md#needs-rework), **prefer them over fresh
 [`ready-for-agent`](../../../CONTEXT.md#ready-for-agent) issues** in the
 build queue. The rework loop preserves the phase boundary per
-ADR-0007 §Decision — `/temper-overseer` does not dispatch a forge worker
+ADR-0005 §Decision — `/temper-overseer` does not dispatch a forge worker
 inline; the operator decides when to re-enter the Forge phase, and
 `/forge-overseer` drains `needs-rework` first.
 
@@ -94,7 +94,7 @@ summary, and next concrete action.
 
 The same `OVERSEER_*` sentinel/env-var names are used by `/temper-overseer`
 when it runs under the loop — the loop wraps **whichever overseer is
-currently running** per ADR-0007 §Consequences.
+currently running** per ADR-0005 §Consequences.
 
 **The loop's `budget_gate` is the real-token safety net — `/forge-overseer`
 does not self-measure context.** The structural one-worker-per-generation
@@ -167,7 +167,7 @@ Before dispatching any workers:
    gh issue list --label needs-rework --state open --json number,title,labels,body
    gh issue list --label ready-for-agent --state open --json number,title,labels,body
    ```
-   `needs-rework` issues sort to the front of the queue per ADR-0007's
+   `needs-rework` issues sort to the front of the queue per ADR-0005's
    rework loop. If an issue carries both labels, treat it as `needs-rework`.
 
 2. **Resolve the phase scope from the charter.** If the SessionStart hook
@@ -264,7 +264,7 @@ build-queue approval is a generation-1-only event; it is never re-prompted.
 A loop-managed generation dispatches **exactly one `/forge` worker** —
 never two. The "loop" here is the relaunch loop across generations — not an
 in-session `for` loop over the whole queue. This cap is a deliberate trade
-— see [ADR-0003](../../../docs/adr/0003-concurrency-cap.md) for the
+— see [ADR-0002](../../../docs/adr/0002-concurrency-cap.md) for the
 rationale and revisit precondition.
 
 Per generation:
@@ -351,11 +351,11 @@ is a minute its context is bloating and the dispatch loop is starving. The
 orchestrator MUST NOT:
 
 - **Dispatch `/temper` workers.** That is `/temper-overseer`'s job per
-  ADR-0007. The Forge phase ends when every slice has reached PR-open +
+  ADR-0005. The Forge phase ends when every slice has reached PR-open +
   CI-green or needs-human; the operator runs `/temper-overseer` next.
 - **Dispatch `/seal` (inline or as a subagent).** The operator runs
   `/seal` explicitly after `/temper-overseer` drains the review queue. No
-  auto-chain per ADR-0007 §Decision.
+  auto-chain per ADR-0005 §Decision.
 - **Self-estimate context %.** `/forge-overseer` never reads or guesses a
   context-window percentage. The handoff trigger is structural — one worker
   per generation — and the relaunch loop's `budget_gate` is the real-token
@@ -629,7 +629,7 @@ No seal dispatch. No `/temper` dispatch. The operator runs the next phase.
   worker per generation, hand off, relaunch, drain. The generation-1
   pre-flight approval is the only required user touch-point.
 - **One operator command per phase.** No auto-chain into Temper or Seal —
-  the operator runs the next phase explicitly per ADR-0007.
+  the operator runs the next phase explicitly per ADR-0005.
 - **The handoff trigger is structural, not measured.** A worker finished →
   write the next `gen-NNN.md` → emit `OVERSEER_CONTINUE` → exit 0.
   `/forge-overseer` never self-estimates context %.
@@ -639,7 +639,7 @@ No seal dispatch. No `/temper` dispatch. The operator runs the next phase.
 - Respect the dependency graph; never dispatch a `/forge` whose blockers
   haven't built (passed CI).
 - Prefer `needs-rework` issues over fresh `ready-for-agent` issues per
-  ADR-0007's rework loop.
+  ADR-0005's rework loop.
 - Token logging is `/forge-overseer`'s responsibility, not the worker's.
 - Pause at 95% session usage; resume via `ScheduleWakeup`.
 - **`/forge-overseer` does NOT do work inline** — no conflict resolution,

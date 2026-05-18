@@ -31,7 +31,7 @@
 #
 # This is a CALLABLE HELPER, not a CI gate. The /inscribe hard gate runs the
 # same logic inline and prompts the operator. CI does NOT run this script —
-# see ADR-0008 §Rejected alternatives for why glossary-lint is deferred.
+# see ADR-0006 §Rejected alternatives for why glossary-lint is deferred.
 
 set -uo pipefail
 

@@ -4,7 +4,7 @@ Detailed reference for The Forge development workflow. For the overview, see [RE
 
 ## Pipeline
 
-Four phases (`Ponder → Forge → Temper → Seal`), with one operator command per phase. The Forge and Temper phases each run an orchestrator inside them, per [ADR-0007](../adr/0007-pipeline-orchestrator-structure.md):
+Four phases (`Ponder → Forge → Temper → Seal`), with one operator command per phase. The Forge and Temper phases each run an orchestrator inside them, per [ADR-0005](../adr/0005-pipeline-orchestrator-structure.md):
 
 ```
 /ponder (interactive)
@@ -12,7 +12,7 @@ Four phases (`Ponder → Forge → Temper → Seal`), with one operator command 
         → /forge <N>    (subagent worker, 1 concurrent, max 2 support agents)
    → /temper-overseer (Temper-phase orchestrator — autonomous dispatch loop)
         → /temper <PR>  (subagent worker, 1 concurrent, max 2 support agents typical 1)
-   → /seal             (closer phase — no internal orchestrator per ADR-0007 §Decision)
+   → /seal             (closer phase — no internal orchestrator per ADR-0005 §Decision)
 ```
 
 Each phase runs in its own Claude session. No session-memory continuity between phases — handoff is via on-disk artifacts (issues, PRDs, PR bodies, labels, kanban state). No auto-chain — the operator runs each phase explicitly.
@@ -116,7 +116,7 @@ GitHub Projects board (one per repo — fill in the IDs in `.claude/scripts/kanb
 ## Branching
 
 - Branch per issue: `feat/#<N>-short-description`
-- Commit messages: `feat(scope): description (#<N>)` — `feat(forge-overseer):` / `feat(temper-overseer):` for orchestrator changes; `feat(forge):` / `feat(temper):` for worker changes (per ADR-0007 §Consequences)
+- Commit messages: `feat(scope): description (#<N>)` — `feat(forge-overseer):` / `feat(temper-overseer):` for orchestrator changes; `feat(forge):` / `feat(temper):` for worker changes (per ADR-0005 §Consequences)
 - PR body includes `closes #<N>`
 - Push branches with plain `git push -u origin <branch>`
 

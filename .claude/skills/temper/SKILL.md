@@ -16,7 +16,7 @@ Ponder → Forge → Temper → Seal
 [`/forge-overseer`](../../../CONTEXT.md#forge-overseer) and
 [`/temper-overseer`](../../../CONTEXT.md#temper-overseer) — that dispatches
 the per-slice / per-PR worker. The four-phase shape above is the operator's
-mental model per [ADR-0007](../../../docs/adr/0007-pipeline-orchestrator-structure.md).)
+mental model per [ADR-0005](../../../docs/adr/0005-pipeline-orchestrator-structure.md).)
 
 `/forge` shaped the part (branch → implement → test → PR → green CI). `/temper`
 applies two LLM lenses to what was shipped — a reviewer-agent code-quality pass and an
@@ -27,7 +27,7 @@ marks the PR [`ready-for-seal`](../../../CONTEXT.md#ready-for-seal) (or labels i
 Deterministic structural-integrity gating (template drift, banner discipline, sentinel
 protocol drift, etc.) is **not** `/temper`'s job — those live in CI (`bash -n`,
 `scripts/validate-*.sh`, the bash test harness) and gate `/forge` before a green-CI PR
-exists. See [ADR-0006](../../../docs/adr/0006-temper-review-boundary.md) for the locked
+exists. See [ADR-0004](../../../docs/adr/0004-temper-review-boundary.md) for the locked
 LLM-judgment-vs-CI boundary and the strict-friction-rule rationale.
 
 ## Inputs
@@ -68,7 +68,7 @@ before doing any review work.
 4. **No pre-existing `friction` / `needs-human` labels.** If either is already present,
    pass the PR through unchanged — the upstream worker has already flagged it —
    and emit `TEMPER:RESULT` with `status:"needs_human"`, `reason:"<label>"`. The
-   `friction` label semantics are unified at the `/seal` consumer (see ADR-0006); a
+   `friction` label semantics are unified at the `/seal` consumer (see ADR-0004); a
    pre-labeled PR is `/seal`'s problem to skip, not `/temper`'s problem to re-judge.
 
 These checks are deliberately preserved verbatim from the 4b stub — the pre-gate is the
@@ -113,7 +113,7 @@ Parse the reviewer's output for:
 
 - The **HIGH-findings list** under `### Findings` (count the `#### [HIGH]` blocks).
 - The **Verdict** line under `### Summary`. The verdict is human-readable context only —
-  it is NOT the gate signal. The HIGH count is. (See ADR-0006 §Rationale for why the
+  it is NOT the gate signal. The HIGH count is. (See ADR-0004 §Rationale for why the
   verdict's natural language is rejected as a gate input.)
 
 If the reviewer agent errors or returns no parseable findings block, treat that as
@@ -186,7 +186,7 @@ No judgment call about whether the build "should have caught" a finding; no
 natural-language verdict mapping. Same diff + same issue body + same reviewer output +
 same intent-match verdict → same labels + same sentinel. The retry-stability
 property is checkable from logs — if a re-run produces a different label for the same
-inputs, that is a real bug. See ADR-0006 §Rationale.
+inputs, that is a real bug. See ADR-0004 §Rationale.
 
 ### 7. Emit the result sentinel
 
@@ -284,7 +284,7 @@ cleanup once the slice is merged.
 - **Do not merge.** `/seal` merges. `/temper` only marks `ready-for-seal` or `friction`.
 - **Strict friction rule.** `(reviewer-HIGH-count > 0) OR (intent-match == fail)` →
   friction. No "should the build have caught it?" filtering, no natural-language
-  verdict mapping. See ADR-0006 §Rationale.
+  verdict mapping. See ADR-0004 §Rationale.
 - **LLM judgment only.** Deterministic structural-integrity checks (template drift,
   banner discipline, sentinel-protocol drift) belong in CI as `scripts/validate-*.sh`,
   not as `/temper` lenses. If a future drift class becomes painful, file it as a CI
@@ -294,4 +294,4 @@ cleanup once the slice is merged.
   reviewer alongside the general reviewer) is a configuration change, not a cap change.
 - **HIGH count is the gate signal, not the verdict prose.** The reviewer's `Verdict`
   line is human-readable context; the `#### [HIGH]` block count drives the friction
-  rule. See ADR-0006 §Rejected alternatives for why.
+  rule. See ADR-0004 §Rejected alternatives for why.

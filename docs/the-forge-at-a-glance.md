@@ -214,7 +214,7 @@ artifact-validation step** so a temper never inherits a broken handoff.
 **§ Context loading** contract: the layer table, the explicit human-only
 list, the **Enforcement** paragraph documenting the 3g defense-in-depth
 pair (static `permissions.deny` block + `read-human-only-guard.sh`
-`PreToolUse` hook — see ADR-0004), and the **Observability** paragraph
+`PreToolUse` hook — see ADR-0003), and the **Observability** paragraph
 documenting the `instructions-loaded.sh` JSONL log at
 `.claude/instructions-loaded.jsonl`. `CONTEXT.md` is the glossary read
 reactively; `MISSION-CONTROL.md` is the project-state ledger reconciled

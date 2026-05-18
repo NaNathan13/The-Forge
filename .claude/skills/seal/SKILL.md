@@ -11,7 +11,7 @@ each PR and marks it [`ready-for-seal`](../../../CONTEXT.md#ready-for-seal);
 `/seal` approves them, merges them, reconciles `MISSION-CONTROL.md`, and
 cleans up.
 
-Per [ADR-0007](../../../docs/adr/0007-pipeline-orchestrator-structure.md)
+Per [ADR-0005](../../../docs/adr/0005-pipeline-orchestrator-structure.md)
 §Decision, Seal stays **flat** — no internal orchestrator, no
 `/seal-overseer` — because per-PR merge work is small enough that subagent
 isolation buys nothing. The operator runs `/seal` explicitly after
@@ -28,7 +28,7 @@ Idempotent: running `/seal` twice in a row with no new work between produces no 
                   #   Still skips PRs with friction / needs-human / non-green CI or no ready-for-seal label.
 ```
 
-`--auto` mode is for operators who want a non-interactive seal run (e.g. running `/seal` immediately after inspecting `/temper-overseer`'s end-of-phase summary). It is NOT auto-invoked by any other skill — per ADR-0007 §Decision, the pre-4e auto-chain into Seal is removed; one operator command per phase.
+`--auto` mode is for operators who want a non-interactive seal run (e.g. running `/seal` immediately after inspecting `/temper-overseer`'s end-of-phase summary). It is NOT auto-invoked by any other skill — per ADR-0005 §Decision, the pre-4e auto-chain into Seal is removed; one operator command per phase.
 
 ## Process
 
@@ -71,7 +71,7 @@ Proceed? (yes / no)
 
 Default `yes` on enter. If the user says no, stop without changes.
 
-**`--auto` mode behavior:** Print the same summary for visibility, but **skip the approval prompt** and proceed directly to step 4. The friction/needs-human/CI-red filter (step 2) still applies — `--auto` doesn't override those skips, it just removes the human confirmation. (Per ADR-0007 the operator runs `/seal` explicitly; `--auto` is a low-friction operator option, not an auto-invocation from another skill.)
+**`--auto` mode behavior:** Print the same summary for visibility, but **skip the approval prompt** and proceed directly to step 4. The friction/needs-human/CI-red filter (step 2) still applies — `--auto` doesn't override those skips, it just removes the human confirmation. (Per ADR-0005 the operator runs `/seal` explicitly; `--auto` is a low-friction operator option, not an auto-invocation from another skill.)
 
 ### 4. Ship each shippable PR
 

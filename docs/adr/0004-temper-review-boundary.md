@@ -1,0 +1,62 @@
+# ADR 0004 — Temper review boundary: LLM judgment vs CI structural gating
+
+**Status:** Accepted
+**Date:** 2026-05-17
+
+## Context
+
+The Temper-orchestrator (`/temper-overseer`) dispatches `/temper <PR>` workers per PR in a batch. Each `/temper` worker is The Forge's review-and-harden gate between a green-CI PR and a `ready-for-seal` PR.
+
+In a markdown+bash repo with no application runtime, "review" can mean any of three things — and the cost of letting all three live in one place compounds as the pipeline accumulates checks:
+
+1. **Generic code-quality lens** via the reviewer agent — bug/convention/security findings on the diff.
+2. **Forge-specific structural-integrity checks** — template drift between root `CLAUDE.md` and `templates/CLAUDE.md`, missing `> **Audience:** humans only` banner on line 1 of a protected file, sentinel string changed in one parser but not another, skill ↔ scaffold consistency.
+3. **Durability/extended testing** — mutation, fuzz, integration.
+
+And once "what to check" is settled, a friction rule has to govern how findings map to PR labels and sentinels — a strict deterministic rule, a filtered "should the build have caught it" rule, or trust-the-reviewer's natural-language verdict.
+
+These decisions together draw the boundary between `/temper` and CI for the lifetime of the pipeline. Drawing it wrong leaks structural integrity into a slow LLM step, or leaks LLM judgment into a deterministic gate — both forms of misplacement compound.
+
+## Decision
+
+The boundary between `/temper` and CI is locked along two axes:
+
+- **Responsibility split.** `/temper`'s job is **LLM judgment**: dispatch the reviewer agent on `gh pr diff <PR>` for the code-quality lens, plus an **inline intent-match** step where `/temper` itself reads `(diff + issue body)` and produces a verdict on whether the diff satisfies the issue's acceptance criteria. Two lenses, both LLM-based, both consumed by the friction decision. **Deterministic structural-integrity gating lives in CI**, not in `/temper` — when a check can be expressed as a bash script that returns non-zero on drift, it ships as `scripts/validate-*.sh` and runs in `.github/workflows/`, gating `/forge` *before* a green-CI PR exists for `/temper` to look at.
+- **Friction rule.** Strict and deterministic: **any HIGH finding from the reviewer agent OR an intent-match failure → apply the `friction` label and emit `TEMPER:RESULT` with `status:"needs_human"`, `reason:"friction"`**. Otherwise → apply `ready-for-seal` and emit `status:"success"`. No judgment call about whether the build "should have caught" a finding; no natural-language verdict mapping. Same PR, same outcome on retry.
+
+These decisions are coupled — the strict friction rule is only audit-stable because the lenses feeding it are LLM-judgment-only. If structural integrity were also a `/temper` responsibility, the friction rule would have to distinguish "structural drift `/forge` could have caught" from "LLM finding that emerged at review time," and the deterministic rule would degrade into the filtered rule the grill rejected.
+
+## Rationale
+
+**Determinism belongs in the cheapest, fastest, mandatory gate.** CI is that gate. Structural-integrity checks for this repo (template drift between root `CLAUDE.md` and `templates/CLAUDE.md`, missing `> **Audience:** humans only` banner on line 1 of a protected file, sentinel string changed in one parser but not another) are deterministic by construction — same input, same output. Pushing them into `/temper` makes a slow LLM step responsible for what a 200ms bash check can do, and lets the drift ride along in a "green-CI PR" until `/temper` happens to look. The natural home for each such check is `scripts/validate-*.sh` (matching the existing `validate-mc.sh` / `validate-sentinel.sh` pattern) plus a workflow line in `.github/workflows/`.
+
+**Sharp `/temper` identity.** With deterministic gating in CI, `/temper`'s value-add is exactly what CI cannot do: read the diff with an LLM lens (calibrated HIGH-only findings from the reviewer agent) and check the diff against the issue's stated intent (a context-aware judgment a generic linter cannot make). Two lenses, distinct in what they catch: reviewer covers bugs/conventions/security; intent-match covers "did `/forge` actually solve the issue or just produce green CI on a tangent?" Both are work that requires either the diff in context or the slice's intent in context — exactly the shape LLMs are good at and CI is not.
+
+**Strict friction rule preserves audit-stability.** A pipeline gate must produce the same outcome on retry. The strict any-HIGH rule does that: identical inputs (diff + issue body + reviewer output + intent-match verdict) yield identical labels and sentinels. The filtered rule ("only HIGHs the build should have caught") asks `/temper` to classify each finding — a judgment call that varies run-to-run and can't be reproduced from logs. Trusting the reviewer's verbal "ship it / fix before merging / needs discussion" verdict has the same variance problem, plus it conflates two layers (HIGH-finding count and human-readable summary) that should stay separate. The strict rule keeps the gate logic auditable and the calibration concern isolated to the reviewer agent's prompt — if HIGHs over-fire, that is a reviewer-prompt calibration question, not a `/temper` redesign.
+
+**Cheap surface for future structural checks.** Locating structural integrity in CI gives any future Forge-specific drift check a natural home: write `scripts/validate-<concern>.sh`, wire it into the workflow, and `/forge` immediately starts gating on it. No `/temper` changes, no new agent definitions, no friction-rule revisions. The boundary is the contract; future work compounds against it rather than re-litigating it.
+
+## Rejected alternatives
+
+- **`/temper`-only structural integrity.** Putting the deterministic checks (template drift, banner discipline, sentinel-protocol drift) inside `/temper`'s workflow rather than CI. Rejected for two compounding reasons: (1) `/temper` is the slowest gate in the pipeline — pushing deterministic checks into it inflates latency and lets drift ride along in a green-CI PR until review; (2) the friction rule would then have to be the *filtered* form (distinguish drift-caught-by-LLM-judgment from drift-`/forge`-should-have-caught), which fails the audit-stability test. The two `/temper`-only rejections share a root cause.
+- **Defense-in-depth — script canonical, CI gates, `/temper` re-runs.** Run the structural-check scripts in CI as a hard gate AND have `/temper` re-run them as a redundant pre-seal check. The defense-in-depth pattern that ADR-0003 (context-loading banner enforcement) explicitly endorses. Rejected here because the failure mode is different. ADR-0003's defense-in-depth covers a *person doing the wrong thing*; the two layers (static permissions + dynamic hook scan) cover disjoint failure modes. For structural integrity the failure mode is a *script behaving deterministically* — one well-tested script in one location is enough, and adding a redundant `/temper` invocation buys belt-and-suspenders against a class of failure that doesn't exist (the script "silently failing in CI but succeeding in `/temper`" or vice versa would itself be a bug worth investigating, not a routine pipeline state). The defense-in-depth pattern is a tool for specific risk profiles; mis-applying it adds maintenance cost without proportional value.
+- **Filtered friction rule — only HIGHs the build should have caught → friction.** Asks `/temper` to classify each HIGH as build-caught vs ambient-repo-state. Rejected for variance: the "should the build have caught it?" question is itself a judgment call (the answer is almost always "yes, with enough work"), so the filtered rule degrades into the strict rule in practice but with extra cognitive overhead and non-reproducible run-to-run outcomes. Audit-stability matters more here than nuance.
+- **Trust the reviewer's natural-language verdict — map "ship it" / "fix before merging" / "needs discussion" to label outcomes.** Effectively delegates the friction decision to the reviewer agent's prose summary. Rejected because the verbal verdict is LLM-emitted natural language downstream of the HIGH-findings list — using it as the gate signal conflates the underlying data (HIGH count) with its summary (verdict prose), and the verdict's wording can drift run-to-run even when the underlying findings don't. The HIGH-findings list is the cleaner signal.
+- **Durability / mutation / fuzz testing inside `/temper`.** Layer extended testing (mutation tests on bash, fuzz harnesses, integration scenarios) on top of the LLM-judgment lenses. Rejected because bash mutation testing has poor tooling and the repo's risk profile doesn't justify building it now; rejected as a permanent `/temper` responsibility because — like structural checks — durability tests are deterministic when they exist and belong in CI, not in the LLM gate. If durability ever materializes as a need, it ships as CI workflows, not as a `/temper` lens.
+
+## Consequences
+
+- **`/temper`'s SKILL.md describes LLM judgment only.** Structural-check work goes to CI or gets filed as a separate concern when it materializes.
+- **Future structural-integrity drift checks file as CI workflow additions, not `/temper` slices.** When a new class of drift becomes painful (e.g. "another root-doc rename broke `templates/` again"), the natural fix is a new `scripts/validate-<concern>.sh` plus a workflow line. No `/temper` design revision required.
+- **The reviewer agent's HIGH-only calibration is load-bearing for the pipeline gate.** If the reviewer over-fires HIGHs, every `/temper` friction-labels and the operator gets review fatigue. The existing agent definition's calibration language ("Default to reporting only issues you're genuinely confident about. Don't pad the report with medium/low findings unless explicitly asked") is the right setting; this ADR relies on it. If empirical experience shows over-firing, the fix is a calibration grill on the reviewer agent's prompt — *not* a re-introduction of the filtered friction rule.
+- **Retry-stability is a checkable property of the gate.** Same diff + same issue body + same reviewer output + same intent-match verdict → same labels and sentinel. Logs are sufficient to reproduce the outcome. If a `/temper` re-run produces a different label for the same inputs, that is a real bug, not an acceptable LLM variance.
+- **The `friction` label semantics are unified at `/temper`.** `/forge` already applies `friction` for build-time issues (per its friction-flagging protocol); `/temper` applies the same label for review-time HIGHs and intent-match failures. `/seal` consumes the label uniformly — one signal, one consumer, one outcome (skip the PR until human review). No new label classes needed.
+- **A future `/seal`-level gate would be an ADR-amending decision.** `/seal` continues to trust `ready-for-seal` blindly (gating only on label + green CI + absence of friction/needs-human). Re-introducing a `/seal`-level review check would re-open this ADR's responsibility split and require an amendment rather than a quiet addition.
+
+## Related
+
+- ADR-0005 — [Pipeline orchestrator structure](./0005-pipeline-orchestrator-structure.md) — names the orchestrator + worker structure inside Temper; this ADR fills in *what* `/temper` does inside that structure.
+- ADR-0003 — [Context-loading enforcement: defense in depth](./0003-context-loading-defense-in-depth.md) — referenced under §Rejected alternatives as the case where defense-in-depth is the right pattern; the contrast clarifies why it is not the right pattern here.
+- ADR-0001 — [Phase isolation: hand-offs only via on-disk artifacts](./0001-phase-isolation.md) — constraint: `/temper`'s LLM lenses produce labels + a sentinel; the hand-off to `/seal` remains label-only.
+- Skill: [`.claude/skills/temper/SKILL.md`](../../.claude/skills/temper/SKILL.md) — the concrete implementation of this ADR.
+- Agent: [`.claude/agents/reviewer.md`](../../.claude/agents/reviewer.md) — its HIGH-only calibration is load-bearing for the strict friction rule above.

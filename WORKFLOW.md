@@ -4,7 +4,7 @@
 
 ## Pipeline
 
-The four-phase shape, locked by [ADR-0007](./docs/adr/0007-pipeline-orchestrator-structure.md):
+The four-phase shape, locked by [ADR-0005](./docs/adr/0005-pipeline-orchestrator-structure.md):
 
 ```
 /ponder
@@ -17,10 +17,10 @@ The four-phase shape, locked by [ADR-0007](./docs/adr/0007-pipeline-orchestrator
    ↓                ↓ per PR
                   /temper <PR>  (worker — reviewer agent + inline intent-match, strict friction rule; up to 2 support agents, typical 1)
    ↓
-/seal  (closer phase — no internal orchestrator per ADR-0007 §Decision)
+/seal  (closer phase — no internal orchestrator per ADR-0005 §Decision)
 ```
 
-**One operator command per phase. No auto-chain between phases.** The operator inspects state between phases per ADR-0007.
+**One operator command per phase. No auto-chain between phases.** The operator inspects state between phases per ADR-0005.
 
 ## Planning phase
 `/ponder` → grill → `/inscribe` (PRD → issues → triage) → all slices labelled [`ready-for-agent`](./CONTEXT.md#ready-for-agent).
@@ -35,12 +35,12 @@ When the queue is drained, the operator runs `/temper-overseer` next.
 ## Temper phase
 `/temper-overseer` presents the review queue (every open `feat/#*-*` PR with green CI, no `ready-for-seal`/`friction`/`needs-human` label yet) → user approves → autonomous dispatch loop begins. Per PR:
 
-- `/temper <PR>`: pre-gate (PR open + CI green + no pre-existing friction/needs-human) → dispatch `reviewer` agent on `gh pr diff <PR>` → inline [intent-match](./CONTEXT.md#intent-match) between diff and issue body → strict friction rule (any HIGH OR intent-match fail → [`friction`](./CONTEXT.md#friction); else [`ready-for-seal`](./CONTEXT.md#ready-for-seal)) → emit `TEMPER:RESULT`. See [ADR-0006](./docs/adr/0006-temper-review-boundary.md) for the LLM-judgment-vs-CI boundary.
+- `/temper <PR>`: pre-gate (PR open + CI green + no pre-existing friction/needs-human) → dispatch `reviewer` agent on `gh pr diff <PR>` → inline [intent-match](./CONTEXT.md#intent-match) between diff and issue body → strict friction rule (any HIGH OR intent-match fail → [`friction`](./CONTEXT.md#friction); else [`ready-for-seal`](./CONTEXT.md#ready-for-seal)) → emit `TEMPER:RESULT`. See [ADR-0004](./docs/adr/0004-temper-review-boundary.md) for the LLM-judgment-vs-CI boundary.
 
-When a worker flags `friction`, `/temper-overseer` also applies [`needs-rework`](./CONTEXT.md#needs-rework) to the originating issue. The next `/forge-overseer` run prefers those issues first — that's the rework loop per ADR-0007.
+When a worker flags `friction`, `/temper-overseer` also applies [`needs-rework`](./CONTEXT.md#needs-rework) to the originating issue. The next `/forge-overseer` run prefers those issues first — that's the rework loop per ADR-0005.
 
 ## Seal phase
-`/seal` is operator-run after the Temper phase finishes. `/seal --auto` is an optional non-interactive mode; it is NOT auto-invoked by any other skill (auto-chain removed in 4e per ADR-0007).
+`/seal` is operator-run after the Temper phase finishes. `/seal --auto` is an optional non-interactive mode; it is NOT auto-invoked by any other skill (auto-chain removed in 4e per ADR-0005).
 
 Seal:
 - Lists open PRs from `/forge`-produced branches
@@ -109,7 +109,7 @@ The loop layer that wraps the overseer (`scripts/relaunch-loop.sh`) reads its ow
 sentinels — `OVERSEER_CONTINUE` (clean per-generation handoff) and
 `OVERSEER_COMPLETE` (queue drained, exit). Workers do not emit these; only the
 active overseer does. The loop wraps **whichever overseer is currently running**
-per ADR-0007 §Consequences.
+per ADR-0005 §Consequences.
 
 Example:
 

@@ -6,7 +6,7 @@
 
 ## Context
 
-Sub-phase 4e shipped the four-phase pipeline in its intended final shape: Ponder → Forge → Temper → Seal, with symmetric `/forge-overseer` and `/temper-overseer` orchestrators (ADR-0007), CONTEXT.md as the canonical glossary SSOT, and `/inscribe`'s hard gate on PRD "Terms used" sections (ADR-0008). The pipeline-build journey is over; The Forge is at v1 of its workflow.
+Sub-phase 4e shipped the four-phase pipeline in its intended final shape: Ponder → Forge → Temper → Seal, with symmetric `/forge-overseer` and `/temper-overseer` orchestrators (ADR-0005), CONTEXT.md as the canonical glossary SSOT, and `/inscribe`'s hard gate on PRD "Terms used" sections (ADR-0006). The pipeline-build journey is over; The Forge is at v1 of its workflow.
 
 The phase scaffolding that drove the build journey persists across the project as three categories of artifact:
 
@@ -16,7 +16,7 @@ The phase scaffolding that drove the build journey persists across the project a
 
 A future reader — the operator's next product project, a teammate cloning The Forge via `light-the-forge.sh`, the agent itself reading current state — does not benefit from the phase scaffolding. They benefit from a single coherent v1 vocabulary, a live state ledger, and ADRs/PRDs that describe the current architecture without archaeological notes about which Sub-phase produced what.
 
-This sub-phase ratchets the project to v1: scrub all phase IDs from living-doc prose, restructure MC to a flat state-bucket ledger, delete historical PRDs and past-purpose doc directories, rewrite surviving ADRs v1-clean, and mirror everything into `templates/` so new projects ship with the v1 shape. ADR-0009 (this PRD's ADR, renumbered to ADR-0007 in slice 3) records the coupled decisions with their rejected alternatives.
+This sub-phase ratchets the project to v1: scrub all phase IDs from living-doc prose, restructure MC to a flat state-bucket ledger, delete historical PRDs and past-purpose doc directories, rewrite surviving ADRs v1-clean, and mirror everything into `templates/` so new projects ship with the v1 shape. ADR-0007 (this PRD's ADR, renumbered to ADR-0005 in slice 3) records the coupled decisions with their rejected alternatives.
 
 ## Decision
 
@@ -82,28 +82,28 @@ The Forge's own `MISSION-CONTROL.md` is The Forge's working development ledger; 
 
 ---
 
-### Slice 3 — ADR rewrite + renumber + new ADR-0007 (slice:logic)
+### Slice 3 — ADR rewrite + renumber + new ADR-0005 (slice:logic)
 
-**What:** Rewrite the six surviving ADRs v1-clean, renumber them sequentially 0001–0006, and rename ADR-0009 to ADR-0007 (already on disk as part of this `/inscribe` run).
+**What:** Rewrite the six surviving ADRs v1-clean, renumber them sequentially 0001–0006, and rename ADR-0007 to ADR-0005 (already on disk as part of this `/inscribe` run).
 
 **Rewrite each surviving ADR v1-clean:**
 - Strip the `**Phase:** P<n> — <phase-name> · sub-phase <id>` header from every ADR.
 - Strip every sub-phase callout from Context, Decision, Rationale, Rejected alternatives, Revisit precondition, Consequences, Related.
-- Strip amendment-date phase pins (e.g. ADR-0004's "Amended 2026-05-17 (sub-phase 4a)" — rewrite as plain amendment language without phase context).
+- Strip amendment-date phase pins (e.g. ADR-0003's "Amended 2026-05-17 (sub-phase 4a)" — rewrite as plain amendment language without phase context).
 - Rewrite sentences whose grammar depends on a phase ID — current-tense framing, no "shipped in", no "the X run produced".
 - Prune rejected-alternatives sections to v1-relevant alternatives only (drop alts that referenced a now-historical phase shape).
 - Update Related cross-references to use the new renumbered IDs.
 
 **Renumber mapping (file rename + every cross-ref updated repo-wide):**
-- 0002-phase-isolation.md → **0001-phase-isolation.md**
-- 0003-concurrency-cap.md → **0002-concurrency-cap.md**
-- 0004-context-loading-defense-in-depth.md → **0003-context-loading-defense-in-depth.md**
-- 0006-temper-review-boundary.md → **0004-temper-review-boundary.md**
-- 0007-pipeline-orchestrator-structure.md → **0005-pipeline-orchestrator-structure.md**
-- 0008-naming-discipline.md → **0006-naming-discipline.md**
-- 0009-v1-cleanup-ratchet.md → **0007-v1-cleanup-ratchet.md** (and rewrite v1-clean — strip its own Phase header and the explanatory `>` block about the renumber-pending state).
+- 0001-phase-isolation.md → **0001-phase-isolation.md**
+- 0002-concurrency-cap.md → **0002-concurrency-cap.md**
+- 0003-context-loading-defense-in-depth.md → **0003-context-loading-defense-in-depth.md**
+- 0004-temper-review-boundary.md → **0004-temper-review-boundary.md**
+- 0005-pipeline-orchestrator-structure.md → **0005-pipeline-orchestrator-structure.md**
+- 0006-naming-discipline.md → **0006-naming-discipline.md**
+- 0007-v1-cleanup-ratchet.md → **0007-v1-cleanup-ratchet.md** (and rewrite v1-clean — strip its own Phase header and the explanatory `>` block about the renumber-pending state).
 
-**Cross-reference update:** every reference to ADR-0001 through ADR-0009 across the repo updated to the new numbers. Includes:
+**Cross-reference update:** every reference to ADR-0001 through ADR-0007 across the repo updated to the new numbers. Includes:
 - All ADR bodies' Related sections.
 - `CLAUDE.md`, `CONTEXT.md`, `MISSION-CONTROL.md`, `README.md`, `WORKFLOW.md` (though these are also rewritten in slice 4 — slice 3 may leave them for slice 4 to handle, but the slice 3 PR should at least leave them consistent).
 - Every `.claude/skills/*/SKILL.md` (slice 5 will scrub these — slice 3 may defer).
@@ -115,7 +115,7 @@ The Forge's own `MISSION-CONTROL.md` is The Forge's working development ledger; 
 - [ ] No ADR body contains a sub-phase ID, phase-progress reference, or amendment-date phase pin.
 - [ ] Renumbered Related cross-references inside each ADR resolve to existing files.
 - [ ] Repo-wide grep for `ADR-000[19]` returns zero hits (the deleted 0001 and the renumber-pending 0009 are gone).
-- [ ] `docs/adr/0007-v1-cleanup-ratchet.md` carries the v1-clean rewrite of ADR-0009's content with the `>` explanatory block and any phase callouts removed.
+- [ ] `docs/adr/0007-v1-cleanup-ratchet.md` carries the v1-clean rewrite of ADR-0007's content with the `>` explanatory block and any phase callouts removed.
 - [ ] PR passes CI; no production-code changes.
 
 **Blocked by:** Slice 2.
@@ -128,7 +128,7 @@ The Forge's own `MISSION-CONTROL.md` is The Forge's working development ledger; 
 
 **Root docs rewrite (v1-clean, current-tense, no phase IDs):**
 - `CLAUDE.md` — scrub every sub-phase callout (P2 onward, sub-phase 4a, sub-phase 3g, etc.). Reframe the Context-loading enforcement section without amendment-date phase context. Reframe the Observability section without "originally scoped as 3h" framing. Update Key terms anchor links to reference the renumbered ADRs.
-- `CONTEXT.md` — scrub the `**Sub-phase**` glossary entry's phase examples (or rewrite to describe Sub-phase as an optional planning primitive rather than the organizing one). Scrub pre-4e references. Scrub the `/forgemaster` entry's "Retired per ADR-0007 §Consequences and ADR-0008 §Decision §4" phase callouts — rewrite as "retired per ADR-0005 §Consequences and ADR-0006 §Decision §4" using the renumbered IDs.
+- `CONTEXT.md` — scrub the `**Sub-phase**` glossary entry's phase examples (or rewrite to describe Sub-phase as an optional planning primitive rather than the organizing one). Scrub pre-4e references. Scrub the `/forgemaster` entry's "Retired per ADR-0005 §Consequences and ADR-0006 §Decision §4" phase callouts — rewrite as "retired per ADR-0005 §Consequences and ADR-0004 §Decision §4" using the renumbered IDs.
 - `README.md` — scrub any phase callouts in the project overview prose.
 - `WORKFLOW.md` — scrub "After the 4b rename there are two structured sentinel lines" and "the pre-4b TEMPER:RESULT" framings. Reframe to current-tense.
 
@@ -229,15 +229,15 @@ The Forge's own `MISSION-CONTROL.md` is The Forge's working development ledger; 
 
 ## Related
 
-- ADR-0009 — [v1 cleanup ratchet](../adr/0009-v1-cleanup-ratchet.md) — this sub-phase's coupled decisions with rejected alternatives and revisit precondition. (Renumbered to ADR-0007 in slice 3.)
-- ADR-0007 — [Pipeline orchestrator structure](../adr/0007-pipeline-orchestrator-structure.md) — the structural decision the v1 vocabulary is built around. (Renumbered to ADR-0005 in slice 3.)
-- ADR-0008 — [Naming discipline](../adr/0008-naming-discipline.md) — the canonical-glossary-as-SSOT contract; this sub-phase retires ADR-0008's "ADRs and historical PRDs exempt from anchor-link discipline" carve-out by deleting the exempt class. (Renumbered to ADR-0006 in slice 3.)
+- ADR-0007 — [v1 cleanup ratchet](../adr/0007-v1-cleanup-ratchet.md) — this sub-phase's coupled decisions with rejected alternatives and revisit precondition.
+- ADR-0005 — [Pipeline orchestrator structure](../adr/0005-pipeline-orchestrator-structure.md) — the structural decision the v1 vocabulary is built around.
+- ADR-0006 — [Naming discipline](../adr/0006-naming-discipline.md) — the canonical-glossary-as-SSOT contract this sub-phase applies uniformly to all surviving docs.
 - `MISSION-CONTROL.md` `## 🪐 Phase progress` — the section deleted by slice 4.
 - `docs/audit/4d-cleanup-audit.md` — the ephemeral findings doc slice 1 writes and slice 2 deletes.
 
 ## Terms used
 
-> Validated against [`CONTEXT.md`](../../CONTEXT.md) by `/inscribe`'s hard gate per [ADR-0008](../adr/0008-naming-discipline.md) §Decision §2. Canon terms anchor-link into the glossary; non-canon entries carry a one-line reason. Term-strings below match the literal `**<term>**:` headers in CONTEXT.md so the strict-grep gate resolves; the bodies clarify which command/label this covers.
+> Validated against [`CONTEXT.md`](../../CONTEXT.md) by `/inscribe`'s hard gate per [ADR-0006](../adr/0006-naming-discipline.md) §Decision §2. Canon terms anchor-link into the glossary; non-canon entries carry a one-line reason. Term-strings below match the literal `**<term>**:` headers in CONTEXT.md so the strict-grep gate resolves; the bodies clarify which command/label this covers.
 
 - **Ponder**: see [`CONTEXT.md#ponder`](../../CONTEXT.md#ponder) — the planning phase; covers the `/ponder` command.
 - **`/forge`**: non-canon — the CONTEXT.md header carries an inline qualifier (`(with leading slash)`) that defeats the strict `**\`/forge\`**:` grep; the semantic entry exists at [`CONTEXT.md#forge`](../../CONTEXT.md#forge) and remains the canonical reference for the per-slice builder worker command.

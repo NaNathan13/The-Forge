@@ -4,7 +4,7 @@
 
 ## How it works
 
-Four phases, one operator command each (no auto-chain) per [ADR-0007](../adr/0007-pipeline-orchestrator-structure.md):
+Four phases, one operator command each (no auto-chain) per [ADR-0005](../adr/0005-pipeline-orchestrator-structure.md):
 
 1. **Plan (Ponder phase)** — `/ponder` grills you on the feature, writes a PRD, files issues, triages them
 2. **Build (Forge phase)** — `/forge-overseer` shows the build queue (all slices, order, summaries). You approve or adjust. Then it runs an autonomous dispatch loop: one `/forge <N>` worker per slice — implement → test → PR → CI green.
@@ -37,7 +37,7 @@ Four phases, one operator command each (no auto-chain) per [ADR-0007](../adr/000
 ## Per-phase overseer cheatsheet
 
 `/forge-overseer` and `/temper-overseer` are autonomous dispatch loops. After you approve their respective queues, they run without intervention:
-- Dispatch workers as subagents — **one worker per generation** under the relaunch loop (see [ADR-0003](../adr/0003-concurrency-cap.md))
+- Dispatch workers as subagents — **one worker per generation** under the relaunch loop (see [ADR-0002](../adr/0002-concurrency-cap.md))
 - Workers may themselves dispatch up to 2 support agents (researcher / reviewer / builder)
 - Handle results: retry failures, spawn continuations, flag stuck slices
 - Log token usage per worker via [ccusage](../../CONTEXT.md#ccusage)

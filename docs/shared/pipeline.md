@@ -15,11 +15,11 @@ The Forge runs a four-phase pipeline. Both modes (Dev and WHJ) share this shape 
 
 These hold in both modes. If a future change wants to touch any of the below, the change applies to both modes simultaneously. There is no "dev-mode pipeline" or "WHJ-mode pipeline."
 
-- Phases communicate only via on-disk artifacts — see [ADR-0002](../adr/0002-phase-isolation.md).
+- Phases communicate only via on-disk artifacts — see [ADR-0001](../adr/0001-phase-isolation.md).
 - The four-phase shape (Ponder, Forge, Temper, Seal) is identical.
 - The dependency-aware queue (topo-sort by blockers) is identical — only how blockers are parsed differs (issue body vs task frontmatter).
 - The dispatch-loop logic inside `/forge-overseer` and `/temper-overseer` is identical — only the queue source differs (`needs-rework`/`ready-for-agent` issues for the Forge phase, open `feat/#*-*` PRs for the Temper phase).
-- One operator command per phase. No auto-chain between phases — see [ADR-0007](../adr/0007-pipeline-orchestrator-structure.md).
+- One operator command per phase. No auto-chain between phases — see [ADR-0005](../adr/0005-pipeline-orchestrator-structure.md).
 - The knowledge library pattern (`.claude/lessons.md` index + `.claude/knowledge/<slug>.md` details) is identical.
 
 ## Sentinel protocol
@@ -142,7 +142,7 @@ generation as the final `.result` line:
 
 These are not part of the per-worker sentinel schema above; they are a separate
 contract between the active overseer and the relaunch loop. The loop wraps
-**whichever overseer is currently running** per ADR-0007 §Consequences.
+**whichever overseer is currently running** per ADR-0005 §Consequences.
 
 ### Legacy (removed)
 

@@ -1,8 +1,6 @@
 # subshell-orphaned-background-pid
 
-> **Naming context (after sub-phase 4b, 2026-05-17):** in the body below, "/forge" refers to the orchestrator role now named `/forgemaster`, and "/temper" refers to the builder role now named `/forge`. See [ADR-0005](../docs/adr/0005-pipeline-role-split.md) for the rename rationale.
->
-> **Naming context amended (after sub-phase 4e, 2026-05-17):** `/forgemaster` (the post-4b orchestrator name) was further retired and split into `/forge-overseer` + `/temper-overseer` per [ADR-0007](../docs/adr/0007-pipeline-orchestrator-structure.md) and [ADR-0008](../docs/adr/0008-naming-discipline.md). The builder/review worker names carry over unchanged.
+> **Naming context:** historical entries below may use pre-rename role names. Current roles: `/forge-overseer` (Forge-phase orchestrator), `/temper-overseer` (Temper-phase orchestrator), `/forge` (per-slice builder), `/temper` (per-PR reviewer). See [ADR-0005](../../docs/adr/0005-pipeline-orchestrator-structure.md) and [ADR-0006](../../docs/adr/0006-naming-discipline.md).
 
 
 **Indexed from:** `.claude/lessons.md`

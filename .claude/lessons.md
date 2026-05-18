@@ -1,8 +1,6 @@
 # Lessons learned
 
-> **Naming context (after sub-phase 4b, 2026-05-17):** in the body below, "/forge" refers to the orchestrator role now named `/forgemaster`, and "/temper" refers to the builder role now named `/forge`. See [ADR-0005](../docs/adr/0005-pipeline-role-split.md) for the rename rationale.
->
-> **Naming context amended (after sub-phase 4e, 2026-05-17):** `/forgemaster` (the post-4b orchestrator name) was further retired and split into two phase-scoped overseers, `/forge-overseer` and `/temper-overseer`, per [ADR-0007](../docs/adr/0007-pipeline-orchestrator-structure.md). The builder/review worker names (`/forge` / `/temper`) carry over unchanged. See [ADR-0008](../docs/adr/0008-naming-discipline.md) for the canonical-glossary discipline that pins the post-4e names.
+> **Naming context:** historical entries below may use pre-rename role names (`/forgemaster` as the orchestrator, `/forge` as the builder, no `/temper` role). The current role names are `/forge-overseer` (Forge-phase orchestrator), `/temper-overseer` (Temper-phase orchestrator), `/forge` (per-slice builder), and `/temper` (per-PR reviewer). See [ADR-0005](../docs/adr/0005-pipeline-orchestrator-structure.md) for the orchestrator structure and [ADR-0006](../docs/adr/0006-naming-discipline.md) for the canonical-glossary discipline.
 
 
 Append-only log of failed-then-fixed patterns. Read at the start of every temper session **only when you hit a wall** — not bulk-loaded at startup. Each entry = a wall we hit, how we got past it, and a rule to avoid hitting it again.

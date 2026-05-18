@@ -11,7 +11,7 @@ set -uo pipefail
 # prompt the operator can approve (interactive) or which auto-denies in
 # autonomous mode.
 #
-# Defense-in-depth context (see ADR-0004 + its 2026-05-17 amendment):
+# Defense-in-depth context (see ADR-0003 + its 2026-05-17 amendment):
 #   1. `permissions.ask` in .claude/settings.json statically prompts for the
 #      three known human-only paths (docs/how-the-forge-works.md,
 #      docs/audit/**, docs/vision/**). Harness-enforced, fail-closed in
@@ -34,7 +34,7 @@ set -uo pipefail
 # and exit 0. Claude Code's hook protocol consumes the structured output and
 # routes the tool call through a permission prompt with the provided reason.
 # In `dontAsk` (autonomous) mode the harness auto-denies ask-rules without
-# prompting — the autonomous safety guarantee from ADR-0004 is preserved
+# prompting — the autonomous safety guarantee from ADR-0003 is preserved
 # through the harness, not through this script.
 #
 # ── Ask side-effect: JSONL log ───────────────────────────────────────────────
