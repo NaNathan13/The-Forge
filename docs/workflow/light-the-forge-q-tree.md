@@ -51,7 +51,7 @@ flowchart TD
     B2["Block 2 — Visual review<br/>Playwright / iOS Sim / Other / None"]
     B2 --> B3
 
-    B3["Block 3 — First phase<br/>first sub-phase title"]
+    B3["Block 3 — First slice<br/>first slice title"]
     B3 --> B4Decide{Skip Block 4?}
 
     B4Decide -->|"Yes — came via<br/>Existing / Starter<br/>(examine filled it)"| B5
@@ -79,7 +79,7 @@ flowchart TD
 - **Block 0c — Developer mode.** Asked on every path (Fresh / Existing / Starter). Sets `**Dev mode:** fast|balanced|tdd` in `CLAUDE.md`. Downstream skills (`/forge`, `/ponder`, `/inscribe`) branch on this line.
 - **Block 1 — Identity.** Project name and one-line description.
 - **Block 2 — Visual review.** Which tool temper uses for UI screenshots (Playwright, iOS Sim MCP, Other, None).
-- **Block 3 — First phase.** The `0a` sub-phase title that lands in `MISSION-CONTROL.md`.
+- **Block 3 — First slice.** The first slice title that lands in `MISSION-CONTROL.md`.
 - **Block 4 — Tech stack.** Stack preset, framework, check command. Skipped when `/examine` already ran (Existing / Starter paths) or when the user chose Research-first in 0b.
 - **Block 5 — Domain language.** Optional key terms that seed `CONTEXT.md`. Skippable.
 - **Block 6 — GitHub.** Repo creation choice (new public / new private / link existing / skip).

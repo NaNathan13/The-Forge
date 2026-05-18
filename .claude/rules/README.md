@@ -70,8 +70,7 @@ belongs in a top-level doc that's read reactively (`CONTEXT.md`,
 Claude Code issue [#49835](https://github.com/anthropics/claude-code/issues/49835)
 reports that adding `paths:` frontmatter to a `.claude/skills/<name>/SKILL.md`
 makes the skill undiscoverable. That bug is **scoped to skills** — it does
-not affect rules under `.claude/rules/`. Slice 3g(b) verified this
-empirically; the verification log lives on the PR for issue #249.
+not affect rules under `.claude/rules/`.
 
 If the upstream bug is ever found to also affect rules, swap path-scoped
 auto-load for the `CLAUDE.md` include pattern until the bug closes.

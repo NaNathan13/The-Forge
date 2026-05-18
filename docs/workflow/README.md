@@ -65,4 +65,4 @@ See [`CONTEXT.md#slice-labels`](../../CONTEXT.md#slice-labels) for the full set.
 
 | Doc | What it covers |
 |-----|----------------|
-| [`p2-resilience-operations.md`](./p2-resilience-operations.md) | P2 single-session resilience — install the `launchd` agents, read the logs, recover from a tripped circuit breaker. macOS-only crash layer. |
+| [`relaunch-loop-operations.md`](./relaunch-loop-operations.md) | Long-lived `claude` session resilience — install the `launchd` agents, read the logs, recover from a tripped circuit breaker. macOS-only crash layer. |

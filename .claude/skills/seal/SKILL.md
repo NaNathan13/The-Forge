@@ -28,7 +28,7 @@ Idempotent: running `/seal` twice in a row with no new work between produces no 
                   #   Still skips PRs with friction / needs-human / non-green CI or no ready-for-seal label.
 ```
 
-`--auto` mode is for operators who want a non-interactive seal run (e.g. running `/seal` immediately after inspecting `/temper-overseer`'s end-of-phase summary). It is NOT auto-invoked by any other skill — per ADR-0005 §Decision, the pre-4e auto-chain into Seal is removed; one operator command per phase.
+`--auto` mode is for operators who want a non-interactive seal run (e.g. running `/seal` immediately after inspecting `/temper-overseer`'s end-of-phase summary). It is NOT auto-invoked by any other skill — per ADR-0005 §Decision, one operator command per phase; no auto-chain into Seal from any earlier phase.
 
 ## Process
 
@@ -135,12 +135,10 @@ Run `scripts/reconcile-mc.sh`. Show the operator any commit + push output it pro
 bash scripts/reconcile-mc.sh
 ```
 
-The script is the sole writer of `MISSION-CONTROL.md` (sub-phase 3f / issue #238). It performs the full close-out in one pass:
+The script is the sole writer of `MISSION-CONTROL.md`. It performs the full close-out in one pass against the flat-ledger MC shape:
 
-- Reads MC and queries `gh issue view N --json state -q .state` for every row's `<!-- mc:open=N,N -->` marker.
-- Advances rows whose full marker set is `CLOSED`: status `🚧 in-progress` → `✅ shipped`, marker `mc:open=...` → `mc:done=...`, `Blocked by` cell → `—`.
-- Recomputes phase progress bars via `scripts/derive-progress.sh`.
-- Recomputes the "Telemetry — right now" banner (Phase + In flight count, `—` when zero).
+- Reads MC and queries `gh issue view N --json state -q .state` for every row's `<!-- mc:open=N,N -->` marker across the `🚧 In flight`, `⏳ Queued`, and `⏸ Deferred` tables.
+- For any row whose full marker set is `CLOSED`, removes the row entirely (shipped work disappears from MC — git log carries history).
 - Recomputes the "Recommended next prompt" using the priority order baked into the script.
 - Shows the diff on stdout. If non-empty, commits with `chore(mc): reconcile YYYY-MM-DD — <summary>` and pushes.
 
@@ -197,26 +195,25 @@ After the run summary, print **exactly one** final line — a low-friction nudge
 Exact format (one line, no trailing prose):
 
 ```
-Roadmap check: <phase> is <bar> <N/M>, last up: <next-id>. Still the right plan, or worth a re-grill?
+Roadmap check: <in-flight-count> in flight, <queued-count> queued, next up: <next-title>. Still the right plan, or worth a re-grill?
 ```
 
 Where:
 
-- `<phase>` — the current phase name as it now appears in MC's Telemetry banner (e.g. `P3`). Take the leading phase token from the `**Phase:**` line of `MISSION-CONTROL.md` (everything up to but not including the ` — `). After step 5's reconcile, this line reflects the just-sealed state.
-- `<bar>` — the progress bar string for that phase. Source: run `bash scripts/derive-progress.sh` and take the bar (the run of `▓`/`░` glyphs) from the matching `### <phase> ...` line. Do not re-derive by hand; the script is the source of truth.
-- `<N/M>` — the fraction from the same `derive-progress.sh` line.
-- `<next-id>` — the next `⏳ queued` sub-phase ID in the current phase's table, in document order (e.g. `3f`). If no `⏳ queued` rows remain in the current phase, use the em-dash literal `—`. Other status emoji (`🔥 grilling`, `📝 prd-ready`, `🚧 in-progress`, `✅ shipped`, `⏸ deferred`, `⏳ scope-TBD`) do **not** count as queued — only the bare `⏳ queued` status.
+- `<in-flight-count>` — number of rows in the `🚧 In flight` table after step 5's reconcile.
+- `<queued-count>` — number of rows in the `⏳ Queued` table after step 5's reconcile.
+- `<next-title>` — the title of the first row in either `🚧 In flight` (if non-empty) or `⏳ Queued` (otherwise), in document order. If both tables are empty, use the em-dash literal `—`.
 
-Example, sealing the slice that closed out 3e (phase P3 still in flight with 3f queued):
-
-```
-Roadmap check: P3 is ▓▓▓▓▓░ 5/6, last up: 3f. Still the right plan, or worth a re-grill?
-```
-
-Example, sealing the slice that closed out 3f (no queued sub-phases left in P3):
+Example, sealing a slice that left two slices in flight and three queued:
 
 ```
-Roadmap check: P3 is ▓▓▓▓▓▓ 6/6, last up: —. Still the right plan, or worth a re-grill?
+Roadmap check: 2 in flight, 3 queued, next up: templates mirror. Still the right plan, or worth a re-grill?
+```
+
+Example, sealing the last slice in MC (both tables empty):
+
+```
+Roadmap check: 0 in flight, 0 queued, next up: —. Still the right plan, or worth a re-grill?
 ```
 
 This is the final line of `/seal`. Nothing after it.

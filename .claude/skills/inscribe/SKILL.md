@@ -21,7 +21,7 @@ Or auto-invoked by `/ponder` after the grill, which passes:
 - **Dev mode:** `fast`, `balanced`, or `tdd` (resolved during ponder's size check)
 - **Size reason:** a one-sentence rationale for the size call, captured during ponder's size check. Inscribe renders this verbatim into PRD frontmatter as `**Why this size?** <rationale>` (see A1 / B0).
 - **ADR candidates:** `adr_candidates` — a (possibly empty) list of picked ADRs from the grill's ADR-offer step. Each entry carries the title framing, Context / Decision / Rationale / Rejected-alternatives synthesized from the grill, and an optional Revisit precondition. Inscribe physically writes one `docs/adr/NNNN-<slug>.md` per entry in step A0 (Path A) or B-1 (Path B) **before** the PRD or any issue artifacts. When the list is empty, the ADR-emission step is skipped entirely (see "No-op behavior" under A0 / B-1).
-- **`terms_used`:** the resolved list of `(term, body)` pairs ponder's pre-flight grilled out for the PRD's `## Terms used` section. Each entry is one declared term — `term` is the bare term name (the bold label rendered as `**<term>**:`); `body` is the one-line description ponder captured (an anchor link into CONTEXT.md for canon terms, a `non-canon — <reason>` line for non-canon terms). Inscribe renders the section verbatim into the PRD in A1 (Path A) or B0 (Path B) and runs the hard-gate check in A1.5 (Path A) or B0.5 (Path B). When `terms_used` is empty, the PRD's `## Terms used` section is rendered as `(none used in this PRD body)` and the hard-gate check passes trivially. Pre-4e PRDs are exempt — this parameter is required only for PRDs filed after ADR-0006 lands.
+- **`terms_used`:** the resolved list of `(term, body)` pairs ponder's pre-flight grilled out for the PRD's `## Terms used` section. Each entry is one declared term — `term` is the bare term name (the bold label rendered as `**<term>**:`); `body` is the one-line description ponder captured (an anchor link into CONTEXT.md for canon terms, a `non-canon — <reason>` line for non-canon terms). Inscribe renders the section verbatim into the PRD in A1 (Path A) or B0 (Path B) and runs the hard-gate check in A1.5 (Path A) or B0.5 (Path B). When `terms_used` is empty, the PRD's `## Terms used` section is rendered as `(none used in this PRD body)` and the hard-gate check passes trivially.
 
 ## Inputs
 
@@ -110,7 +110,7 @@ If `adr_candidates` is non-empty, write each picked ADR **before** any PRD or is
 1. **Compute the next ADR number.** Scan `docs/adr/` for files matching `NNNN-*.md`, **excluding `0000-template.md`**. Take the max `NNNN` and add 1, zero-padded to 4 digits. (First ADR after 0001–0003 is `0004`. If `docs/adr/` is empty or holds only the template, the first written number is `0001`.) When writing multiple ADRs in one A0 run, increment per-candidate so each picked ADR gets a unique number — the second written this run is `max + 2`, the third `max + 3`, etc.
 2. **Read the template** at `docs/adr/0000-template.md` and substitute placeholders:
    - **Title** — from the candidate's framing. Slug = kebab-case of the title, lowercased, ASCII only (e.g. `Phase isolation: hand-offs only via on-disk artifacts` → `phase-isolation`). Keep the slug short — match the existing ADRs' brevity.
-   - **Status / Date / Phase** — `Accepted` / today's date in UTC (`YYYY-MM-DD`) / `P<n> — <phase-name> · sub-phase <id>` derived from `sub_phase_id`.
+   - **Status / Date** — `Accepted` / today's date in UTC (`YYYY-MM-DD`). (The 0000-template no longer carries a `**Phase:**` header — surviving ADRs are phase-agnostic v1.)
    - **Context / Decision / Rationale / Rejected alternatives** — synthesized from the grill conversation. Use what the grill captured for each candidate; do not invent rationale.
    - **Revisit precondition** — include this `##` heading **only when** the candidate carries identifiable change-conditions (the grill flagged them). Otherwise omit the heading entirely — the template's comment is explicit on this point.
    - **Consequences / Related** — fill from the grill. `Related` should at minimum cross-reference the PRD this ADR was filed alongside (a forward reference is fine — `A1` writes the PRD next).
@@ -125,20 +125,20 @@ Synthesise the conversation into `docs/prds/<feature>.md`.
 
 **Frontmatter `>` block — mechanical rendering of `**Why this size?**`:**
 
-The top of every PRD opens with a blockquote (`>`) frontmatter block carrying the sub-phase, status, and filed-date line. Render the captured `size_reason` (from Inputs §4, or ponder) as the next line inside that same block, exactly:
+The top of every PRD opens with a blockquote (`>`) frontmatter block carrying the sub-phase (when one applies), status, and filed-date line. Render the captured `size_reason` (from Inputs §4, or ponder) as the next line inside that same block, exactly:
 
 ```markdown
-> Sub-phase **<sub-phase-id>** (Phase **P<n> — <phase-name>**) · Status: 📝 prd-ready · Filed <YYYY-MM-DD>
+> Sub-phase **<sub-phase-id>** · Status: 📝 prd-ready · Filed <YYYY-MM-DD>
 >
 > **Why this size?** <size_reason verbatim>
 ```
+
+(If the work has no sub-phase — standalone single-slice — omit the `Sub-phase **<sub-phase-id>** · ` prefix and lead with `Status:`.)
 
 Rules:
 - The line is mechanical — emit it whenever `size_reason` is non-empty. No phrasing variations, no rewording, no TODO placeholders.
 - If `size_reason` is empty (user declined on the second ask in Inputs §4), omit the `**Why this size?**` line entirely — do not emit a stub.
 - Place the line immediately after the status/filed-date line, separated by the standard `>` empty line. Any further frontmatter (umbrella context, source recs, etc.) follows below it.
-
-See `docs/prds/improvements-3b-contracts.md` for the canonical example.
 
 **ADR cross-references.** When `adr_candidates` was non-empty (A0 wrote one or more ADRs), the PRD body **may** reference the new ADR numbers — either via a `## Related` section near the end (parallel to ADR-0001's `## Related`) or via inline citations like `(see ADR-NNNN)` at the decision points the ADR records. The convention is *available, not mandatory*: judgment call per PRD on which shape reads best. When `adr_candidates` is empty, no reference is required.
 
@@ -249,7 +249,7 @@ Determine the **recommended build order**: logic slices first, then mixed, then 
 If `adr_candidates` is non-empty, write each picked ADR **before** the PRD (if one is written) or the issue. The mechanics are identical to step A0 — the same numbering rule, template substitution, and path-list bookkeeping apply, with two single-slice specifics:
 
 1. **Compute the next ADR number** by `max(existing NNNN under docs/adr/ excluding 0000) + 1`, zero-padded. When writing multiple candidates in one B-1 run, increment per-candidate.
-2. **Template substitution** is the same — title / slug / status / date / phase / Context / Decision / Rationale / Rejected alternatives / Consequences / Related — with `Revisit precondition` included only when the candidate carries identifiable change-conditions.
+2. **Template substitution** is the same — title / slug / status / date / Context / Decision / Rationale / Rejected alternatives / Consequences / Related — with `Revisit precondition` included only when the candidate carries identifiable change-conditions.
 3. **Carry the path list to B3** so the handoff step appends one row per newly-written ADR to MC's `## 📡 ADRs` section.
 
 ADRs can be written for single-slice work regardless of dev mode — the ADR-emission step is independent of the PRD branch in B0. If `mode=fast` or `mode=balanced` and no PRD is written, B-1 still writes the ADRs; only B0 is skipped.
@@ -331,10 +331,10 @@ After all issues are triaged:
 3. **Append newly-written ADRs to MC's `## 📡 ADRs` section.** If A0 / B-1 wrote one or more ADRs this run (the path list carried forward is non-empty), append **one row per path** to the `## 📡 ADRs` bullet list in `MISSION-CONTROL.md`. Row format, verbatim:
 
    ```
-   - [`NNNN-slug.md`](docs/adr/NNNN-slug.md) — <one-line summary> (P<n> / sub-phase <id>).
+   - [`NNNN-slug.md`](docs/adr/NNNN-slug.md) — <one-line summary>.
    ```
 
-   Where `NNNN-slug.md` matches the filename written in A0 / B-1, the one-line summary distills the ADR's Decision in one sentence, and `P<n> / sub-phase <id>` is derived from the sub-phase the ADR was filed under (same source as the ADR's `**Phase:**` header). Append in the order the ADRs were written (ascending NNNN), at the bottom of the existing list.
+   Where `NNNN-slug.md` matches the filename written in A0 / B-1 and the one-line summary distills the ADR's Decision in one sentence. Append in the order the ADRs were written (ascending NNNN), at the bottom of the existing list.
 
    When the path list is empty (A0 / B-1 was skipped because `adr_candidates` was empty), skip this step entirely — the `## 📡 ADRs` section is not touched, and no prose line is emitted.
 

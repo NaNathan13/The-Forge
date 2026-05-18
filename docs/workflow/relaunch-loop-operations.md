@@ -1,21 +1,18 @@
-# P2 Single-Session Resilience — Operator Guide
+# Relaunch Loop — Operator Guide
 
 How a human **installs**, **observes**, and **recovers** a supervised long-lived
 Claude session.
 
-P2 makes one `claude` session survive indefinitely — through clean context-limit
-handoffs *and* hard crashes — with no human in the operational loop. This doc is
-the operational manual for the assembled system. It does not re-explain the
-mechanism; that is the [P2 design doc](../design/p2-single-session-resilience.md)
-and [`.forge/README.md`](../../.forge/README.md). It explains what *you*, the
-operator, do.
+The relaunch loop makes one `claude` session survive indefinitely — through
+clean context-limit handoffs *and* hard crashes — with no human in the
+operational loop. This doc is the operational manual for the assembled system;
+it does not re-explain the mechanism. It explains what *you*, the operator, do.
 
 > **macOS only.** The crash-recovery layer (`launchd` keep-alive + liveness
-> watchdog) is **macOS-only** for sub-phase 1b. Linux (`systemd`) and Windows
-> are a noted future follow-up — see [macOS-only caveat](#macos-only-caveat).
-> The continuation substrate (the relaunch loop, continuation files, the hooks)
-> is portable bash and works anywhere; only the *outer crash supervisor* is
-> macOS-bound.
+> watchdog) is **macOS-only**. Linux (`systemd`) and Windows are a noted future
+> follow-up — see [macOS-only caveat](#macos-only-caveat). The continuation
+> substrate (the relaunch loop, continuation files, the hooks) is portable bash
+> and works anywhere; only the *outer crash supervisor* is macOS-bound.
 
 ---
 
@@ -42,10 +39,10 @@ All runtime state lives under `.forge/` (gitignored). Config lives in
 
 ## Install
 
-Installing P2's crash layer means filling in and loading **two `launchd`
+Installing the crash layer means filling in and loading **two `launchd`
 agents** for your project. A solo drop-in user who never installs them loses
-nothing — the relaunch loop and hooks still run, you just don't get crash/reboot
-recovery (ADR optional-by-layers).
+nothing — the relaunch loop and hooks still run, you just don't get
+crash/reboot recovery (optional-by-layers).
 
 ### 1. Find your session slug
 
@@ -61,10 +58,10 @@ Use that value everywhere a step below says `<slug>`.
 
 ### 2. Confirm `resilience.config`
 
-`.forge/resilience.config` ships with the design-doc defaults (orchestrator
-40/50, worker 50/60, 900s heartbeat timeout, retention cap 20). Review it —
-tune per project by editing the file, never the scripts. The relaunch loop, both
-hooks, and the watchdog all `source` it.
+`.forge/resilience.config` ships with sane defaults (orchestrator 40/50, worker
+50/60, 900s heartbeat timeout, retention cap 20). Review it — tune per project
+by editing the file, never the scripts. The relaunch loop, both hooks, and the
+watchdog all `source` it.
 
 ### 3. Fill in the keep-alive agent (supervises the loop)
 
@@ -218,9 +215,9 @@ truth; the loop's budget gate is the real decision-maker.
 
 ## Recover
 
-P2 self-recovers from the three failure modes — clean context-limit handoff,
-hard crash, and silent hang — with no human action. The one situation that
-**stops and waits for you** is a tripped **circuit breaker**.
+The relaunch loop self-recovers from the three failure modes — clean
+context-limit handoff, hard crash, and silent hang — with no human action. The
+one situation that **stops and waits for you** is a tripped **circuit breaker**.
 
 ### What the circuit breaker is
 
@@ -305,15 +302,15 @@ rm -f .forge/continuation/<slug>/handoff-signal
 ### Recovering from a tripped crash breaker
 
 Distinct from the **handoff** thrash breaker above, the **crash-respin** breaker
-(sub-phase 3d) guards against a session that crashes on startup and respawns
-forever. It counts non-zero `claude` exits across **launchd-respawned loop
-processes** (the persistent `.crash-window` counter under
-`.forge/continuation/<slug>/`) and trips when more than
-`FORGE_CRASH_MAX_RESPINS` crashes happen within `FORGE_CRASH_WINDOW_SECONDS`
-(built-in defaults: 5 / 300). On trip, the loop writes a **stay-down sentinel**
-at `.forge/continuation/<slug>/.crash-breaker-tripped` and the *next* loop
-start exits 0 — `KeepAlive.SuccessfulExit=false` in the plist then halts
-launchd respawn. The crash layer has stopped and is waiting for you.
+guards against a session that crashes on startup and respawns forever. It counts
+non-zero `claude` exits across **launchd-respawned loop processes** (the
+persistent `.crash-window` counter under `.forge/continuation/<slug>/`) and
+trips when more than `FORGE_CRASH_MAX_RESPINS` crashes happen within
+`FORGE_CRASH_WINDOW_SECONDS` (built-in defaults: 5 / 300). On trip, the loop
+writes a **stay-down sentinel** at
+`.forge/continuation/<slug>/.crash-breaker-tripped` and the *next* loop start
+exits 0 — `KeepAlive.SuccessfulExit=false` in the plist then halts launchd
+respawn. The crash layer has stopped and is waiting for you.
 
 #### Step 1 — confirm the agent stopped respawning
 
@@ -389,7 +386,7 @@ loaded (`launchctl list | grep com.forge.<slug>`) and that the loop log shows
 
 ## macOS-only caveat
 
-**The crash-recovery layer is macOS-only for sub-phase 1b.**
+**The crash-recovery layer is macOS-only.**
 
 - The `launchd` keep-alive agent and the liveness-watchdog agent are `launchd`
   property lists — `launchd` is macOS-only.
@@ -397,7 +394,7 @@ loaded (`launchctl list | grep com.forge.<slug>`) and that the loop log shows
   loud on a non-Darwin host** rather than silently doing the wrong thing.
 
 Linux (`systemd` unit + timer, `stat -c`) and Windows (Task Scheduler / service)
-crash recovery are a **noted future follow-up — out of scope for sub-phase 1b**.
+crash recovery are a **noted future follow-up — out of scope today**.
 
 What still works everywhere (portable bash, no `launchd`):
 
@@ -408,16 +405,12 @@ What still works everywhere (portable bash, no `launchd`):
 So on Linux/Windows you get clean context-limit resilience today; you do not yet
 get automatic crash/reboot/hang recovery. A solo drop-in user who never installs
 the `launchd` agents loses nothing they had before — the crash layer is purely
-additive (ADR optional-by-layers).
+additive (optional-by-layers).
 
 ---
 
 ## Related
 
-- [P2 design doc](../design/p2-single-session-resilience.md) — the mechanism and
-  the four resolved open questions.
-- [P2 build-phase PRD](../prds/p2-single-session-resilience-build.md) — the
-  build-phase decisions and the eight slices.
 - [`.forge/README.md`](../../.forge/README.md) — the `.forge/` substrate:
   continuation files, `resilience.config`, slug derivation.
 - `templates/launchd/` — the two `launchd` plist templates (each has full

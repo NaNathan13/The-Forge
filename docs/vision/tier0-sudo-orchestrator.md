@@ -166,11 +166,11 @@ Recording these here so future re-readers don't relitigate them.
 
 - `roster.json` schema from Agent View (verify still stable when
   Tier-0 work begins).
-- The 6 sub-phases of P3 — Improvements have to be cross-checked: does
-  the `Blocked by` column, `derive-progress.sh`, and the widened drift
+- The shipped improvements layer has to be cross-checked: does the
+  `Blocked by` field, the flat-ledger MC shape, and the widened drift
   hook give Tier-0 enough machine-readable signal? Or does Tier-0 need
-  the *expensive* version of audit rec #14 (sibling `roadmap.md` per
-  project) after all?
+  the *expensive* version of a sibling `roadmap.md` per project after
+  all?
 - The first 3 real product projects' MC files — they'll show whether
   the current MC schema is rich enough for cross-project rollup, or
-  whether 3f's structure has to extend further.
+  whether the flat-ledger structure has to extend further.
